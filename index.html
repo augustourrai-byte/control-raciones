@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Control Operacional de Raciones</title>
   <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-slate-100 text-slate-900">
   <div class="flex min-h-screen">
@@ -173,51 +174,58 @@
       </section>
 
       <!-- IMPORTAR -->
-      <section id="section-importar" class="app-section hidden space-y-6">
-        <h2 class="text-4xl font-bold tracking-tight">Importar BBDD</h2>
+<section id="section-importar" class="app-section hidden space-y-6">
+  <h2 class="text-4xl font-bold tracking-tight">Importar BBDD</h2>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-          <div class="text-sm text-slate-600">
-            Pega aquí el extracto de BBDD. El sistema hará esto:
-            <br>
-            <b>1.</b> leerá <b>NOMBRE_EMPRESA</b>, <b>SERVICIO</b>, <b>FECHA</b>, <b>EQUIPO</b> y <b>PRECIO</b>
-            <br>
-            <b>2.</b> convertirá <b>EQUIPO</b> al nombre del casino
-            <br>
-            <b>3.</b> sumará <b>PRECIO</b> como cantidad real
-            <br>
-            <b>4.</b> agrupará por <b>fecha + empresa + servicio/familia + casino</b>
-            <br>
-            <b>5.</b> permutas se consolidan como familia <b>COLACION TERRENO</b>
-          </div>
+  <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+    <div class="text-sm text-slate-600">
+      Sube directamente un archivo <b>.xlsx</b>, <b>.xls</b> o <b>.csv</b>.
+      <br>
+      El sistema leerá:
+      <b>NOMBRE_EMPRESA</b>, <b>SERVICIO</b>, <b>FECHA</b>, <b>EQUIPO</b> y <b>PRECIO</b>.
+      <br>
+      Luego hará esto:
+      <br>
+      <b>1.</b> convertirá <b>EQUIPO</b> al nombre del casino
+      <br>
+      <b>2.</b> sumará <b>PRECIO</b> como cantidad real
+      <br>
+      <b>3.</b> agrupará por <b>fecha + empresa + servicio original + familia + casino</b>
+      <br>
+      <b>4.</b> consolidará permutas como familia <b>COLACION TERRENO</b>
+    </div>
 
-          <textarea id="txtImportarBBDD" rows="16" class="w-full border border-slate-300 rounded-xl p-3 font-mono text-sm" placeholder="Pega aquí el extracto copiado desde Excel o desde la BBDD..."></textarea>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <input id="fileImportarBBDD" type="file" accept=".xlsx,.xls,.csv" class="border border-slate-300 rounded-xl px-3 py-2" />
+      <button id="btnImportarArchivoBBDD" class="bg-slate-900 text-white rounded-xl px-4 py-2">Importar archivo</button>
+      <button id="btnLimpiarImportacion" class="bg-white border border-slate-300 rounded-xl px-4 py-2">Limpiar</button>
+    </div>
 
-          <div class="flex flex-wrap gap-3">
-            <button id="btnImportarBBDD" class="bg-slate-900 text-white rounded-xl px-4 py-2">Importar BBDD</button>
-            <button id="btnLimpiarImportacion" class="bg-white border border-slate-300 rounded-xl px-4 py-2">Limpiar</button>
-          </div>
+    <div class="text-xs text-slate-500">
+      El archivo debe contener encabezados como:
+      COD_EMPRESA, RUT_EMPRESA, NOMBRE_EMPRESA, SERVICIO, PRECIO, FECHA, EQUIPO.
+    </div>
 
-          <div id="resultadoImportacion" class="text-sm"></div>
-        </div>
+    <div id="resultadoImportacion" class="text-sm"></div>
+  </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-          <h3 class="text-xl font-semibold mb-4">Vista consolidada de reales importados</h3>
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b text-left">
-                <th class="p-2">Fecha</th>
-                <th class="p-2">Empresa</th>
-                <th class="p-2">Servicio original</th>
-                <th class="p-2">Familia</th>
-                <th class="p-2">Casino</th>
-                <th class="p-2 text-right">Real</th>
-              </tr>
-            </thead>
-            <tbody id="tablaImportadosPreview"></tbody>
-          </table>
-        </div>
-      </section>
+  <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
+    <h3 class="text-xl font-semibold mb-4">Vista consolidada de reales importados</h3>
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b text-left">
+          <th class="p-2">Fecha</th>
+          <th class="p-2">Empresa</th>
+          <th class="p-2">Servicio original</th>
+          <th class="p-2">Familia</th>
+          <th class="p-2">Casino</th>
+          <th class="p-2 text-right">Real</th>
+        </tr>
+      </thead>
+      <tbody id="tablaImportadosPreview"></tbody>
+    </table>
+  </div>
+</section>
 
       <!-- PRODUCCION -->
       <section id="section-produccion" class="app-section hidden space-y-6">
@@ -957,99 +965,133 @@
     return ",";
   }
 
-  function importBBDD() {
-    const text = document.getElementById("txtImportarBBDD").value.trim();
-    const out = document.getElementById("resultadoImportacion");
+function processImportedRows(rows) {
+  const out = document.getElementById("resultadoImportacion");
 
-    if (!text) {
-      alert("Pega el extracto antes de importar.");
-      return;
+  if (!rows || !rows.length) {
+    out.innerHTML = `<div class="text-rose-700 font-medium">El archivo no contiene filas válidas.</div>`;
+    return;
+  }
+
+  const normalizedHeaders = Object.keys(rows[0]).map(h => normalizeText(h));
+
+  const getValue = (row, headerName) => {
+    const originalKey = Object.keys(row).find(k => normalizeText(k) === headerName);
+    return originalKey ? row[originalKey] : "";
+  };
+
+  const requiredHeaders = ["NOMBRE_EMPRESA", "SERVICIO", "FECHA", "EQUIPO", "PRECIO"];
+  const missing = requiredHeaders.filter(h => !normalizedHeaders.includes(h));
+
+  if (missing.length) {
+    out.innerHTML = `<div class="text-rose-700 font-medium">Faltan columnas obligatorias: ${missing.join(", ")}</div>`;
+    return;
+  }
+
+  const grouped = {};
+  let rawRows = 0;
+  let totalServicios = 0;
+
+  rows.forEach(row => {
+    const empresa = normalizeText(getValue(row, "NOMBRE_EMPRESA"));
+    const servicio = normalizeText(getValue(row, "SERVICIO"));
+    const fecha = parseDateToISO(getValue(row, "FECHA"));
+    const equipo = normalizeText(getValue(row, "EQUIPO"));
+    const casino = EQUIPO_MAP[equipo] || equipo || "SIN MAPEO";
+    const precio = Number(String(getValue(row, "PRECIO") || "").replace(",", "."));
+
+    if (!empresa || !servicio || !fecha || Number.isNaN(precio)) return;
+
+    const familia = normalizeServiceFamily(servicio);
+    const key = `${fecha}|${empresa}|${servicio}|${familia}|${casino}|${equipo}`;
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        fecha,
+        empresa,
+        servicio,
+        familia,
+        casino,
+        equipo,
+        real: 0,
+        observacion: "IMPORTADO BBDD"
+      };
     }
 
-    const lines = text.split(/\r?\n/).filter(Boolean);
-    if (lines.length < 2) {
-      alert("Debes pegar encabezado y al menos una fila.");
-      return;
-    }
+    grouped[key].real += precio;
+    rawRows += 1;
+    totalServicios += precio;
+  });
 
-    const sep = detectSeparator(lines[0]);
-    const headers = lines[0].split(sep).map(h => normalizeText(h));
+  const imported = Object.values(grouped);
 
-    const idxEmpresa = headers.indexOf("NOMBRE_EMPRESA");
-    const idxServicio = headers.indexOf("SERVICIO");
-    const idxFecha = headers.indexOf("FECHA");
-    const idxEquipo = headers.indexOf("EQUIPO");
-    const idxPrecio = headers.indexOf("PRECIO");
+  imported.forEach(r => {
+    db.reales.push(r);
+    if (!db.empresas.includes(r.empresa)) db.empresas.push(r.empresa);
+    if (!db.servicios.includes(r.servicio)) db.servicios.push(r.servicio);
+  });
 
-    if ([idxEmpresa, idxServicio, idxFecha, idxEquipo, idxPrecio].some(x => x === -1)) {
-      out.innerHTML = `<div class="text-rose-700 font-medium">Faltan columnas obligatorias. Deben existir: NOMBRE_EMPRESA, SERVICIO, FECHA, EQUIPO y PRECIO.</div>`;
-      return;
-    }
+  saveData();
+  renderAll();
 
-    const grouped = {};
-    let rawRows = 0;
-    let importedRows = 0;
-    let totalServicios = 0;
+  out.innerHTML = `
+    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
+      ✔ Filas fuente leídas: <b>${formatNumber(rawRows)}</b><br>
+      ✔ Registros consolidados importados: <b>${formatNumber(imported.length)}</b><br>
+      ✔ Cantidad total de servicios sumados desde PRECIO: <b>${formatNumber(totalServicios)}</b>
+    </div>
+  `;
 
-    for (const line of lines.slice(1)) {
-      const cols = line.split(sep);
-      const empresa = normalizeText(cols[idxEmpresa] || "");
-      const servicio = normalizeText(cols[idxServicio] || "");
-      const fecha = parseDateToISO(cols[idxFecha] || "");
-      const equipo = normalizeText(cols[idxEquipo] || "");
-      const casino = EQUIPO_MAP[equipo] || equipo || "SIN MAPEO";
-      const precio = Number(String(cols[idxPrecio] || "").replace(",", "."));
+  showSection("importar");
+}
 
-      if (!empresa || !servicio || !fecha || Number.isNaN(precio)) continue;
+function importBBDDFromFile() {
+  const input = document.getElementById("fileImportarBBDD");
+  const file = input.files[0];
+  const out = document.getElementById("resultadoImportacion");
 
-      const familia = normalizeServiceFamily(servicio);
-      const key = `${fecha}|${empresa}|${servicio}|${familia}|${casino}|${equipo}`;
+  if (!file) {
+    alert("Selecciona un archivo antes de importar.");
+    return;
+  }
 
-      if (!grouped[key]) {
-        grouped[key] = {
-          fecha,
-          empresa,
-          servicio,
-          familia,
-          casino,
-          equipo,
-          real: 0,
-          observacion: "IMPORTADO BBDD"
-        };
+  out.innerHTML = `<div class="text-slate-600">Procesando archivo...</div>`;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    try {
+      const data = e.target.result;
+      let workbook;
+
+      if (file.name.toLowerCase().endsWith(".csv")) {
+        workbook = XLSX.read(data, { type: "string" });
+      } else {
+        const bytes = new Uint8Array(data);
+        workbook = XLSX.read(bytes, { type: "array" });
       }
 
-      grouped[key].real += precio;
-      rawRows += 1;
-      totalServicios += precio;
+      const firstSheet = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[firstSheet];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      processImportedRows(rows);
+    } catch (error) {
+      out.innerHTML = `<div class="text-rose-700 font-medium">Error al leer el archivo: ${error.message}</div>`;
     }
+  };
 
-    const imported = Object.values(grouped);
-
-    imported.forEach(r => {
-      db.reales.push(r);
-      if (!db.empresas.includes(r.empresa)) db.empresas.push(r.empresa);
-      if (!db.servicios.includes(r.servicio)) db.servicios.push(r.servicio);
-    });
-
-    importedRows = imported.length;
-    saveData();
-    renderAll();
-
-    out.innerHTML = `
-      <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
-        ✔ Filas fuente leídas: <b>${formatNumber(rawRows)}</b><br>
-        ✔ Registros consolidados importados: <b>${formatNumber(importedRows)}</b><br>
-        ✔ Cantidad total de servicios sumados desde PRECIO: <b>${formatNumber(totalServicios)}</b>
-      </div>
-    `;
-
-    showSection("importar");
+  if (file.name.toLowerCase().endsWith(".csv")) {
+    reader.readAsText(file, "utf-8");
+  } else {
+    reader.readAsArrayBuffer(file);
   }
+}
 
-  function limpiarImportacion() {
-    document.getElementById("txtImportarBBDD").value = "";
-    document.getElementById("resultadoImportacion").innerHTML = "";
-  }
+function limpiarImportacion() {
+  document.getElementById("fileImportarBBDD").value = "";
+  document.getElementById("resultadoImportacion").innerHTML = "";
+}
 
   function exportCruce() {
     const rows = getFilteredRows();
@@ -1100,7 +1142,7 @@
   document.getElementById("btnGuardarReal").addEventListener("click", guardarReal);
   document.getElementById("btnAgregarEmpresa").addEventListener("click", agregarEmpresa);
   document.getElementById("btnAgregarServicio").addEventListener("click", agregarServicio);
-  document.getElementById("btnImportarBBDD").addEventListener("click", importBBDD);
+document.getElementById("btnImportarArchivoBBDD").addEventListener("click", importBBDDFromFile);
   document.getElementById("btnLimpiarImportacion").addEventListener("click", limpiarImportacion);
   document.getElementById("btnExportarCruce").addEventListener("click", exportCruce);
   document.getElementById("btnExportarReales").addEventListener("click", exportReales);
