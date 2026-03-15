@@ -12,10 +12,11 @@
     <aside class="w-72 bg-slate-950 text-white p-4">
       <h1 class="text-2xl font-bold mb-6">Control Raciones</h1>
 
-      <nav class="space-y-2" id="sidebarMenu">
+      <nav class="space-y-2">
         <button data-section="dashboard" class="menu-btn w-full text-left px-4 py-3 rounded-xl bg-slate-700">Dashboard</button>
         <button data-section="curva" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Curva contratistas</button>
-        <button data-section="real" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Asistencia real</button>
+        <button data-section="real" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Asistencia real manual</button>
+        <button data-section="importar" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Importar BBDD</button>
         <button data-section="produccion" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Producción sugerida</button>
         <button data-section="cobro" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Base de cobro</button>
         <button data-section="analisis" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Análisis</button>
@@ -23,19 +24,27 @@
         <button data-section="maestros" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Maestros</button>
       </nav>
 
-      <div class="mt-8 border-t border-slate-800 pt-4">
-        <button id="btnExportar" class="w-full bg-white text-slate-900 px-4 py-2 rounded-xl font-medium hover:bg-slate-100">
-          Exportar CSV
+      <div class="mt-8 border-t border-slate-800 pt-4 space-y-2">
+        <button id="btnExportarCruce" class="w-full bg-white text-slate-900 px-4 py-2 rounded-xl font-medium hover:bg-slate-100">
+          Exportar cruce CSV
+        </button>
+        <button id="btnExportarReales" class="w-full bg-slate-800 text-white px-4 py-2 rounded-xl font-medium hover:bg-slate-700">
+          Exportar reales BBDD
+        </button>
+        <button id="btnReset" class="w-full bg-rose-700 text-white px-4 py-2 rounded-xl font-medium hover:bg-rose-600">
+          Reset demo
         </button>
       </div>
     </aside>
 
     <!-- Main -->
     <main class="flex-1 p-6 md:p-8 space-y-6">
+      <!-- Filtros -->
       <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
           <input id="filtroEmpresa" class="border border-slate-300 rounded-xl px-3 py-2" placeholder="Buscar empresa" />
-          <input id="filtroServicio" class="border border-slate-300 rounded-xl px-3 py-2" placeholder="Buscar servicio" />
+          <input id="filtroServicio" class="border border-slate-300 rounded-xl px-3 py-2" placeholder="Buscar servicio / familia" />
+          <input id="filtroCasino" class="border border-slate-300 rounded-xl px-3 py-2" placeholder="Buscar casino" />
           <input id="filtroFechaDesde" type="date" class="border border-slate-300 rounded-xl px-3 py-2" />
           <input id="filtroFechaHasta" type="date" class="border border-slate-300 rounded-xl px-3 py-2" />
           <button id="btnLimpiarFiltros" class="bg-slate-900 text-white rounded-xl px-4 py-2">Limpiar filtros</button>
@@ -46,17 +55,17 @@
       <section id="section-dashboard" class="app-section space-y-6">
         <h2 class="text-4xl font-bold tracking-tight">Dashboard Operacional</h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-8 gap-4">
           <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
             <div class="text-sm text-slate-500">Curva total</div>
             <div id="kpiCurva" class="text-4xl font-bold mt-2">0</div>
           </div>
           <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="text-sm text-slate-500">Real</div>
+            <div class="text-sm text-slate-500">Real total</div>
             <div id="kpiReal" class="text-4xl font-bold mt-2">0</div>
           </div>
           <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="text-sm text-slate-500">Cobro</div>
+            <div class="text-sm text-slate-500">Cobro total</div>
             <div id="kpiCobro" class="text-4xl font-bold mt-2">0</div>
           </div>
           <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
@@ -68,8 +77,16 @@
             <div id="kpiBrechaCobro" class="text-4xl font-bold mt-2">0</div>
           </div>
           <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="text-sm text-slate-500">Registros</div>
+            <div class="text-sm text-slate-500">Brecha curva-real</div>
+            <div id="kpiBrechaCurva" class="text-4xl font-bold mt-2">0</div>
+          </div>
+          <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+            <div class="text-sm text-slate-500">Registros consolidados</div>
             <div id="kpiRegistros" class="text-4xl font-bold mt-2">0</div>
+          </div>
+          <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+            <div class="text-sm text-slate-500">Rojos</div>
+            <div id="kpiRojos" class="text-4xl font-bold mt-2">0</div>
           </div>
         </div>
 
@@ -91,70 +108,114 @@
         <h2 class="text-4xl font-bold tracking-tight">Curva contratistas</h2>
 
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4">
             <input id="curvaFecha" type="date" class="border border-slate-300 rounded-xl px-3 py-2" />
             <input id="curvaEmpresa" list="empresasList" placeholder="Empresa" class="border border-slate-300 rounded-xl px-3 py-2" />
             <input id="curvaServicio" list="serviciosList" placeholder="Servicio" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="curvaTurno" placeholder="Turno" class="border border-slate-300 rounded-xl px-3 py-2" />
             <input id="curvaCantidad" type="number" min="0" placeholder="Cantidad curva" class="border border-slate-300 rounded-xl px-3 py-2" />
             <button id="btnGuardarCurva" class="bg-slate-900 text-white rounded-xl px-4 py-2">Guardar curva</button>
           </div>
+          <p class="text-sm text-slate-500 mt-3">
+            La curva se compara contra la <b>familia de servicio</b>. Las permutas se consolidan como <b>COLACION TERRENO</b>.
+          </p>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 class="text-xl font-semibold mb-4">Histórico de curvas</h3>
-          <div class="overflow-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left">
-                  <th class="p-2">Fecha</th>
-                  <th class="p-2">Empresa</th>
-                  <th class="p-2">Servicio</th>
-                  <th class="p-2">Turno</th>
-                  <th class="p-2 text-right">Curva</th>
-                  <th class="p-2"></th>
-                </tr>
-              </thead>
-              <tbody id="tablaCurvas"></tbody>
-            </table>
-          </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b text-left">
+                <th class="p-2">Fecha</th>
+                <th class="p-2">Empresa</th>
+                <th class="p-2">Servicio original</th>
+                <th class="p-2">Familia</th>
+                <th class="p-2 text-right">Curva</th>
+                <th class="p-2"></th>
+              </tr>
+            </thead>
+            <tbody id="tablaCurvas"></tbody>
+          </table>
         </div>
       </section>
 
-      <!-- REAL -->
+      <!-- REAL MANUAL -->
       <section id="section-real" class="app-section hidden space-y-6">
-        <h2 class="text-4xl font-bold tracking-tight">Asistencia real</h2>
+        <h2 class="text-4xl font-bold tracking-tight">Asistencia real manual</h2>
 
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
           <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-7 gap-4">
             <input id="realFecha" type="date" class="border border-slate-300 rounded-xl px-3 py-2" />
             <input id="realEmpresa" list="empresasList" placeholder="Empresa" class="border border-slate-300 rounded-xl px-3 py-2" />
             <input id="realServicio" list="serviciosList" placeholder="Servicio" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="realTurno" placeholder="Turno" class="border border-slate-300 rounded-xl px-3 py-2" />
+            <input id="realCasino" placeholder="Casino" class="border border-slate-300 rounded-xl px-3 py-2" />
             <input id="realCantidad" type="number" min="0" placeholder="Cantidad real" class="border border-slate-300 rounded-xl px-3 py-2" />
             <input id="realObservacion" placeholder="Observación" class="border border-slate-300 rounded-xl px-3 py-2" />
             <button id="btnGuardarReal" class="bg-slate-900 text-white rounded-xl px-4 py-2">Guardar real</button>
           </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 class="text-xl font-semibold mb-4">Histórico de reales</h3>
-          <div class="overflow-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left">
-                  <th class="p-2">Fecha</th>
-                  <th class="p-2">Empresa</th>
-                  <th class="p-2">Servicio</th>
-                  <th class="p-2">Turno</th>
-                  <th class="p-2 text-right">Real</th>
-                  <th class="p-2">Obs.</th>
-                  <th class="p-2"></th>
-                </tr>
-              </thead>
-              <tbody id="tablaReales"></tbody>
-            </table>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b text-left">
+                <th class="p-2">Fecha</th>
+                <th class="p-2">Empresa</th>
+                <th class="p-2">Servicio original</th>
+                <th class="p-2">Familia</th>
+                <th class="p-2">Casino</th>
+                <th class="p-2 text-right">Real</th>
+                <th class="p-2">Obs.</th>
+                <th class="p-2"></th>
+              </tr>
+            </thead>
+            <tbody id="tablaReales"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- IMPORTAR -->
+      <section id="section-importar" class="app-section hidden space-y-6">
+        <h2 class="text-4xl font-bold tracking-tight">Importar BBDD</h2>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+          <div class="text-sm text-slate-600">
+            Pega aquí el extracto de BBDD. El sistema hará esto:
+            <br>
+            <b>1.</b> leerá <b>NOMBRE_EMPRESA</b>, <b>SERVICIO</b>, <b>FECHA</b>, <b>EQUIPO</b> y <b>PRECIO</b>
+            <br>
+            <b>2.</b> convertirá <b>EQUIPO</b> al nombre del casino
+            <br>
+            <b>3.</b> sumará <b>PRECIO</b> como cantidad real
+            <br>
+            <b>4.</b> agrupará por <b>fecha + empresa + servicio/familia + casino</b>
+            <br>
+            <b>5.</b> permutas se consolidan como familia <b>COLACION TERRENO</b>
           </div>
+
+          <textarea id="txtImportarBBDD" rows="16" class="w-full border border-slate-300 rounded-xl p-3 font-mono text-sm" placeholder="Pega aquí el extracto copiado desde Excel o desde la BBDD..."></textarea>
+
+          <div class="flex flex-wrap gap-3">
+            <button id="btnImportarBBDD" class="bg-slate-900 text-white rounded-xl px-4 py-2">Importar BBDD</button>
+            <button id="btnLimpiarImportacion" class="bg-white border border-slate-300 rounded-xl px-4 py-2">Limpiar</button>
+          </div>
+
+          <div id="resultadoImportacion" class="text-sm"></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
+          <h3 class="text-xl font-semibold mb-4">Vista consolidada de reales importados</h3>
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b text-left">
+                <th class="p-2">Fecha</th>
+                <th class="p-2">Empresa</th>
+                <th class="p-2">Servicio original</th>
+                <th class="p-2">Familia</th>
+                <th class="p-2">Casino</th>
+                <th class="p-2 text-right">Real</th>
+              </tr>
+            </thead>
+            <tbody id="tablaImportadosPreview"></tbody>
+          </table>
         </div>
       </section>
 
@@ -168,11 +229,11 @@
               <tr class="border-b text-left">
                 <th class="p-2">Fecha</th>
                 <th class="p-2">Empresa</th>
-                <th class="p-2">Servicio</th>
-                <th class="p-2">Turno</th>
+                <th class="p-2">Familia</th>
                 <th class="p-2 text-right">Curva</th>
                 <th class="p-2 text-right">Prom. histórico</th>
                 <th class="p-2 text-right">Prom. últimas 4</th>
+                <th class="p-2 text-right">Real</th>
                 <th class="p-2 text-right">Producción sugerida</th>
               </tr>
             </thead>
@@ -191,8 +252,7 @@
               <tr class="border-b text-left">
                 <th class="p-2">Fecha</th>
                 <th class="p-2">Empresa</th>
-                <th class="p-2">Servicio</th>
-                <th class="p-2">Turno</th>
+                <th class="p-2">Familia</th>
                 <th class="p-2 text-right">Curva</th>
                 <th class="p-2 text-right">Real</th>
                 <th class="p-2 text-right">Cobro</th>
@@ -225,11 +285,11 @@
           </div>
 
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-            <h3 class="text-xl font-semibold mb-4">Promedio por servicio</h3>
+            <h3 class="text-xl font-semibold mb-4">Promedio por familia de servicio</h3>
             <table class="w-full text-sm">
               <thead>
                 <tr class="border-b text-left">
-                  <th class="p-2">Servicio</th>
+                  <th class="p-2">Familia</th>
                   <th class="p-2 text-right">Curva promedio</th>
                   <th class="p-2 text-right">Real promedio</th>
                   <th class="p-2 text-right">Cobro promedio</th>
@@ -251,6 +311,7 @@
               <tr class="border-b text-left">
                 <th class="p-2">Mes</th>
                 <th class="p-2">Empresa</th>
+                <th class="p-2">Familia</th>
                 <th class="p-2 text-right">Curva</th>
                 <th class="p-2 text-right">Real</th>
                 <th class="p-2 text-right">Cobro</th>
@@ -293,37 +354,80 @@
   </div>
 
 <script>
-  const STORAGE_KEY = "control_raciones_full_v1";
+  const STORAGE_KEY = "control_raciones_full_v2";
 
-  const defaultData = {
-    empresas: ["JKL", "MNO", "PQR"],
+  const DEFAULT_DATA = {
+    empresas: ["CODELCO AMECO", "RESK Transportes y Servicios Ltda."],
     servicios: [
-      "Desayuno",
-      "Almuerzo",
-      "Cena",
-      "Cena trasnoche",
-      "Colación reforzada",
-      "Colación cordillera",
-      "Colación terreno",
-      "Permuta desayuno",
-      "Permuta almuerzo",
-      "Permuta cena",
-      "Permuta cena trasnoche",
-      "Aguas 500cc",
-      "Bidones",
-      "Coffee standard",
-      "Coffee plus",
-      "Coffee básico"
+      "DESAYUNO",
+      "ALMUERZO",
+      "CENA",
+      "CENA TRASNOCHE",
+      "COLACION REFORZADA",
+      "COLACION CORDILLERA",
+      "COLACION TERRENO",
+      "PERMUTA DESAYUNO",
+      "PERMUTA ALMUERZO",
+      "PERMUTA CENA",
+      "PERMUTA CENA 24H",
+      "PERMUTA CENA TRASNOCHE",
+      "AGUAS 500CC",
+      "BIDONES",
+      "COFFEE STANDARD",
+      "COFFEE PLUS",
+      "COFFEE BASICO"
     ],
     curvas: [],
     reales: []
   };
 
+  const EQUIPO_MAP = {
+    "A": "DP (PLANTA)",
+    "B": "DM (MINA)",
+    "C": "CAP",
+    "D": "AÑAÑUCAS",
+    "E": "CF",
+    "F": "CAES",
+    "G": "PDA 1"
+  };
+
+  function normalizeText(v) {
+    return String(v || "").trim().replace(/\s+/g, " ").toUpperCase();
+  }
+
+  function normalizeServiceFamily(servicio) {
+    const s = normalizeText(servicio);
+    const terreno = new Set([
+      "COLACION TERRENO",
+      "PERMUTA DESAYUNO",
+      "PERMUTA ALMUERZO",
+      "PERMUTA CENA",
+      "PERMUTA CENA 24H",
+      "PERMUTA CENA TRASNOCHE"
+    ]);
+    return terreno.has(s) ? "COLACION TERRENO" : s;
+  }
+
+  function parseDateToISO(fecha) {
+    const f = String(fecha || "").trim();
+    if (!f) return "";
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return f;
+
+    const m1 = f.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (m1) return `${m1[3]}-${m1[2]}-${m1[1]}`;
+
+    const m2 = f.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (m2) return `${m2[3]}-${m2[2]}-${m2[1]}`;
+
+    return f;
+  }
+
   function loadData() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData));
-      return structuredClone(defaultData);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA));
+      return structuredClone(DEFAULT_DATA);
     }
     try {
       const parsed = JSON.parse(raw);
@@ -334,8 +438,8 @@
         reales: parsed.reales || []
       };
     } catch {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData));
-      return structuredClone(defaultData);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA));
+      return structuredClone(DEFAULT_DATA);
     }
   }
 
@@ -359,50 +463,49 @@
     return ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][d.getDay()];
   }
 
+  function average(arr) {
+    return arr.length ? arr.reduce((a,b)=>a+b,0) / arr.length : 0;
+  }
+
   function getMergedRows() {
     const map = new Map();
 
     db.curvas.forEach(c => {
-      const key = `${c.fecha}|${c.empresa}|${c.servicio}|${c.turno}`;
+      const key = `${c.fecha}|${normalizeText(c.empresa)}|${normalizeText(c.familia)}`;
       if (!map.has(key)) {
         map.set(key, {
           fecha: c.fecha,
-          empresa: c.empresa,
-          servicio: c.servicio,
-          turno: c.turno,
+          empresa: normalizeText(c.empresa),
+          familia: normalizeText(c.familia),
           curva: 0,
-          real: 0,
-          observacion: ""
+          real: 0
         });
       }
       map.get(key).curva += Number(c.cantidad || 0);
     });
 
     db.reales.forEach(r => {
-      const key = `${r.fecha}|${r.empresa}|${r.servicio}|${r.turno}`;
+      const key = `${r.fecha}|${normalizeText(r.empresa)}|${normalizeText(r.familia)}`;
       if (!map.has(key)) {
         map.set(key, {
           fecha: r.fecha,
-          empresa: r.empresa,
-          servicio: r.servicio,
-          turno: r.turno,
+          empresa: normalizeText(r.empresa),
+          familia: normalizeText(r.familia),
           curva: 0,
-          real: 0,
-          observacion: ""
+          real: 0
         });
       }
-      map.get(key).real += Number(r.cantidad || 0);
-      map.get(key).observacion = r.observacion || "";
+      map.get(key).real += Number(r.real || 0);
     });
 
     const rows = [...map.values()].map(row => {
-      const historico = db.reales
-        .filter(x => x.empresa === row.empresa && x.servicio === row.servicio && x.turno === row.turno)
+      const historial = db.reales
+        .filter(x => normalizeText(x.empresa) === row.empresa && normalizeText(x.familia) === row.familia)
         .sort((a,b) => b.fecha.localeCompare(a.fecha))
-        .map(x => Number(x.cantidad || 0));
+        .map(x => Number(x.real || 0));
 
-      const promHistorico = historico.length ? historico.reduce((a,b)=>a+b,0) / historico.length : 0;
-      const promUltimas4 = historico.length ? historico.slice(0,4).reduce((a,b)=>a+b,0) / Math.min(4,historico.length) : 0;
+      const promHistorico = average(historial);
+      const promUltimas4 = average(historial.slice(0,4));
       const cobro = Math.max(row.curva, row.real);
       const produccion = Math.round(Math.max(row.curva, promHistorico, promUltimas4, row.real));
 
@@ -429,12 +532,21 @@
   function getFilteredRows() {
     const empresa = document.getElementById("filtroEmpresa").value.trim().toLowerCase();
     const servicio = document.getElementById("filtroServicio").value.trim().toLowerCase();
+    const casino = document.getElementById("filtroCasino").value.trim().toLowerCase();
     const desde = document.getElementById("filtroFechaDesde").value;
     const hasta = document.getElementById("filtroFechaHasta").value;
 
-    return getMergedRows().filter(r => {
+    const merged = getMergedRows();
+
+    return merged.filter(r => {
+      const casinosDeFila = db.reales
+        .filter(x => x.fecha === r.fecha && normalizeText(x.empresa) === r.empresa && normalizeText(x.familia) === r.familia)
+        .map(x => normalizeText(x.casino))
+        .join(" ");
+
       if (empresa && !r.empresa.toLowerCase().includes(empresa)) return false;
-      if (servicio && !r.servicio.toLowerCase().includes(servicio)) return false;
+      if (servicio && !r.familia.toLowerCase().includes(servicio)) return false;
+      if (casino && !casinosDeFila.toLowerCase().includes(casino)) return false;
       if (desde && r.fecha < desde) return false;
       if (hasta && r.fecha > hasta) return false;
       return true;
@@ -457,20 +569,21 @@
     document.getElementById("kpiCobro").innerText = formatNumber(cobro);
     document.getElementById("kpiProduccion").innerText = formatNumber(produccion);
     document.getElementById("kpiBrechaCobro").innerText = formatNumber(cobro - real);
+    document.getElementById("kpiBrechaCurva").innerText = formatNumber(curva - real);
     document.getElementById("kpiRegistros").innerText = formatNumber(rows.length);
+    document.getElementById("kpiRojos").innerText = formatNumber(rows.filter(x => x.semaforo === "Rojo").length);
   }
 
   function renderResumenDias(rows) {
     const cont = document.getElementById("resumenDias");
     const dias = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
     const grouped = {};
-
     dias.forEach(d => grouped[d] = []);
     rows.forEach(r => grouped[r.dia]?.push(r.real));
 
     cont.innerHTML = dias.map(d => {
-      const avg = grouped[d].length ? grouped[d].reduce((a,b)=>a+b,0) / grouped[d].length : 0;
-      const pct = Math.min(avg / 200 * 100, 100);
+      const avg = average(grouped[d]);
+      const p = Math.min(avg / 200 * 100, 100);
       return `
         <div>
           <div class="flex justify-between text-sm mb-1">
@@ -478,7 +591,7 @@
             <span>${formatNumber(Math.round(avg))}</span>
           </div>
           <div class="w-full bg-slate-100 rounded-full h-3">
-            <div class="bg-slate-900 h-3 rounded-full" style="width:${pct}%"></div>
+            <div class="bg-slate-900 h-3 rounded-full" style="width:${p}%"></div>
           </div>
         </div>
       `;
@@ -488,10 +601,15 @@
   function renderLecturaRapida(rows) {
     const cont = document.getElementById("lecturaRapida");
     const rojos = rows.filter(x => x.semaforo === "Rojo").length;
-    const permutas = rows.filter(x => x.servicio.toLowerCase().includes("permuta")).reduce((a,b)=>a+b.cobro,0);
     const topEmpresa = (() => {
       const g = {};
       rows.forEach(r => g[r.empresa] = (g[r.empresa] || 0) + r.cobro);
+      const arr = Object.entries(g).sort((a,b)=>b[1]-a[1]);
+      return arr[0] ? `${arr[0][0]} (${formatNumber(arr[0][1])})` : "-";
+    })();
+    const topFamilia = (() => {
+      const g = {};
+      rows.forEach(r => g[r.familia] = (g[r.familia] || 0) + r.real);
       const arr = Object.entries(g).sort((a,b)=>b[1]-a[1]);
       return arr[0] ? `${arr[0][0]} (${formatNumber(arr[0][1])})` : "-";
     })();
@@ -502,26 +620,25 @@
         <div class="mt-1">Semáforo rojo: <b>${formatNumber(rojos)}</b></div>
       </div>
       <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
-        <div class="font-semibold">Cobro permutas</div>
-        <div class="mt-1">Total cobrable: <b>${formatNumber(permutas)}</b></div>
-      </div>
-      <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
         <div class="font-semibold">Empresa con mayor cobro</div>
         <div class="mt-1"><b>${topEmpresa}</b></div>
+      </div>
+      <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+        <div class="font-semibold">Familia con mayor consumo real</div>
+        <div class="mt-1"><b>${topFamilia}</b></div>
       </div>
     `;
   }
 
   function renderCurvas() {
-    const tbody = document.getElementById("tablaCurvas");
-    tbody.innerHTML = db.curvas
+    document.getElementById("tablaCurvas").innerHTML = db.curvas
       .sort((a,b) => b.fecha.localeCompare(a.fecha))
       .map((r,i) => `
         <tr class="border-b">
           <td class="p-2">${r.fecha}</td>
           <td class="p-2">${r.empresa}</td>
           <td class="p-2">${r.servicio}</td>
-          <td class="p-2">${r.turno}</td>
+          <td class="p-2">${r.familia}</td>
           <td class="p-2 text-right">${formatNumber(r.cantidad)}</td>
           <td class="p-2 text-right"><button onclick="eliminarCurva(${i})" class="text-red-600">Eliminar</button></td>
         </tr>
@@ -529,18 +646,35 @@
   }
 
   function renderReales() {
-    const tbody = document.getElementById("tablaReales");
-    tbody.innerHTML = db.reales
+    document.getElementById("tablaReales").innerHTML = db.reales
       .sort((a,b) => b.fecha.localeCompare(a.fecha))
       .map((r,i) => `
         <tr class="border-b">
           <td class="p-2">${r.fecha}</td>
           <td class="p-2">${r.empresa}</td>
           <td class="p-2">${r.servicio}</td>
-          <td class="p-2">${r.turno}</td>
-          <td class="p-2 text-right">${formatNumber(r.cantidad)}</td>
+          <td class="p-2">${r.familia}</td>
+          <td class="p-2">${r.casino}</td>
+          <td class="p-2 text-right">${formatNumber(r.real)}</td>
           <td class="p-2">${r.observacion || ""}</td>
           <td class="p-2 text-right"><button onclick="eliminarReal(${i})" class="text-red-600">Eliminar</button></td>
+        </tr>
+      `).join("");
+  }
+
+  function renderImportadosPreview() {
+    document.getElementById("tablaImportadosPreview").innerHTML = db.reales
+      .slice()
+      .sort((a,b) => b.fecha.localeCompare(a.fecha))
+      .slice(0, 200)
+      .map(r => `
+        <tr class="border-b">
+          <td class="p-2">${r.fecha}</td>
+          <td class="p-2">${r.empresa}</td>
+          <td class="p-2">${r.servicio}</td>
+          <td class="p-2">${r.familia}</td>
+          <td class="p-2">${r.casino}</td>
+          <td class="p-2 text-right">${formatNumber(r.real)}</td>
         </tr>
       `).join("");
   }
@@ -550,11 +684,11 @@
       <tr class="border-b">
         <td class="p-2">${r.fecha}</td>
         <td class="p-2">${r.empresa}</td>
-        <td class="p-2">${r.servicio}</td>
-        <td class="p-2">${r.turno}</td>
+        <td class="p-2">${r.familia}</td>
         <td class="p-2 text-right">${formatNumber(r.curva)}</td>
         <td class="p-2 text-right">${formatNumber(Math.round(r.promHistorico))}</td>
         <td class="p-2 text-right">${formatNumber(Math.round(r.promUltimas4))}</td>
+        <td class="p-2 text-right">${formatNumber(r.real)}</td>
         <td class="p-2 text-right font-semibold">${formatNumber(r.produccion)}</td>
       </tr>
     `).join("");
@@ -565,8 +699,7 @@
       <tr class="border-b">
         <td class="p-2">${r.fecha}</td>
         <td class="p-2">${r.empresa}</td>
-        <td class="p-2">${r.servicio}</td>
-        <td class="p-2">${r.turno}</td>
+        <td class="p-2">${r.familia}</td>
         <td class="p-2 text-right">${formatNumber(r.curva)}</td>
         <td class="p-2 text-right">${formatNumber(r.real)}</td>
         <td class="p-2 text-right font-semibold">${formatNumber(r.cobro)}</td>
@@ -577,55 +710,43 @@
 
   function renderAnalisis(rows) {
     const empresaMap = {};
-    const servicioMap = {};
+    const familiaMap = {};
 
     rows.forEach(r => {
       if (!empresaMap[r.empresa]) empresaMap[r.empresa] = [];
-      if (!servicioMap[r.servicio]) servicioMap[r.servicio] = [];
+      if (!familiaMap[r.familia]) familiaMap[r.familia] = [];
       empresaMap[r.empresa].push(r);
-      servicioMap[r.servicio].push(r);
+      familiaMap[r.familia].push(r);
     });
 
     document.getElementById("tablaAnalisisEmpresa").innerHTML = Object.entries(empresaMap)
       .sort((a,b)=>a[0].localeCompare(b[0]))
-      .map(([nombre, items]) => {
-        const promCurva = items.reduce((a,b)=>a+b.curva,0)/items.length;
-        const promReal = items.reduce((a,b)=>a+b.real,0)/items.length;
-        const promCobro = items.reduce((a,b)=>a+b.cobro,0)/items.length;
-        return `
-          <tr class="border-b">
-            <td class="p-2">${nombre}</td>
-            <td class="p-2 text-right">${formatNumber(Math.round(promCurva))}</td>
-            <td class="p-2 text-right">${formatNumber(Math.round(promReal))}</td>
-            <td class="p-2 text-right">${formatNumber(Math.round(promCobro))}</td>
-          </tr>
-        `;
-      }).join("");
+      .map(([nombre, items]) => `
+        <tr class="border-b">
+          <td class="p-2">${nombre}</td>
+          <td class="p-2 text-right">${formatNumber(Math.round(average(items.map(x=>x.curva))))}</td>
+          <td class="p-2 text-right">${formatNumber(Math.round(average(items.map(x=>x.real))))}</td>
+          <td class="p-2 text-right">${formatNumber(Math.round(average(items.map(x=>x.cobro))))}</td>
+        </tr>
+      `).join("");
 
-    document.getElementById("tablaAnalisisServicio").innerHTML = Object.entries(servicioMap)
+    document.getElementById("tablaAnalisisServicio").innerHTML = Object.entries(familiaMap)
       .sort((a,b)=>a[0].localeCompare(b[0]))
-      .map(([nombre, items]) => {
-        const promCurva = items.reduce((a,b)=>a+b.curva,0)/items.length;
-        const promReal = items.reduce((a,b)=>a+b.real,0)/items.length;
-        const promCobro = items.reduce((a,b)=>a+b.cobro,0)/items.length;
-        return `
-          <tr class="border-b">
-            <td class="p-2">${nombre}</td>
-            <td class="p-2 text-right">${formatNumber(Math.round(promCurva))}</td>
-            <td class="p-2 text-right">${formatNumber(Math.round(promReal))}</td>
-            <td class="p-2 text-right">${formatNumber(Math.round(promCobro))}</td>
-          </tr>
-        `;
-      }).join("");
+      .map(([nombre, items]) => `
+        <tr class="border-b">
+          <td class="p-2">${nombre}</td>
+          <td class="p-2 text-right">${formatNumber(Math.round(average(items.map(x=>x.curva))))}</td>
+          <td class="p-2 text-right">${formatNumber(Math.round(average(items.map(x=>x.real))))}</td>
+          <td class="p-2 text-right">${formatNumber(Math.round(average(items.map(x=>x.cobro))))}</td>
+        </tr>
+      `).join("");
   }
 
   function renderReporte(rows) {
     const map = {};
     rows.forEach(r => {
-      const key = `${r.mes}|${r.empresa}`;
-      if (!map[key]) {
-        map[key] = { mes: r.mes, empresa: r.empresa, curva: 0, real: 0, cobro: 0, produccion: 0 };
-      }
+      const key = `${r.mes}|${r.empresa}|${r.familia}`;
+      if (!map[key]) map[key] = { mes:r.mes, empresa:r.empresa, familia:r.familia, curva:0, real:0, cobro:0, produccion:0 };
       map[key].curva += r.curva;
       map[key].real += r.real;
       map[key].cobro += r.cobro;
@@ -633,11 +754,12 @@
     });
 
     document.getElementById("tablaReporteMensual").innerHTML = Object.values(map)
-      .sort((a,b) => (a.mes + a.empresa).localeCompare(b.mes + b.empresa))
+      .sort((a,b) => (a.mes+a.empresa+a.familia).localeCompare(b.mes+b.empresa+b.familia))
       .map(r => `
         <tr class="border-b">
           <td class="p-2">${r.mes}</td>
           <td class="p-2">${r.empresa}</td>
+          <td class="p-2">${r.familia}</td>
           <td class="p-2 text-right">${formatNumber(r.curva)}</td>
           <td class="p-2 text-right">${formatNumber(r.real)}</td>
           <td class="p-2 text-right font-semibold">${formatNumber(r.cobro)}</td>
@@ -648,7 +770,7 @@
 
   function renderMaestros() {
     document.getElementById("listaEmpresas").innerHTML = db.empresas
-      .sort((a,b)=>a.localeCompare(b))
+      .slice().sort((a,b)=>a.localeCompare(b))
       .map((e,i) => `
         <li class="flex justify-between items-center border border-slate-200 rounded-xl px-3 py-2">
           <span>${e}</span>
@@ -657,7 +779,7 @@
       `).join("");
 
     document.getElementById("listaServicios").innerHTML = db.servicios
-      .sort((a,b)=>a.localeCompare(b))
+      .slice().sort((a,b)=>a.localeCompare(b))
       .map((s,i) => `
         <li class="flex justify-between items-center border border-slate-200 rounded-xl px-3 py-2">
           <span>${s}</span>
@@ -674,6 +796,7 @@
     renderLecturaRapida(rows);
     renderCurvas();
     renderReales();
+    renderImportadosPreview();
     renderProduccion(rows);
     renderCobro(rows);
     renderAnalisis(rows);
@@ -699,17 +822,18 @@
 
   function guardarCurva() {
     const fecha = document.getElementById("curvaFecha").value;
-    const empresa = document.getElementById("curvaEmpresa").value.trim();
-    const servicio = document.getElementById("curvaServicio").value.trim();
-    const turno = document.getElementById("curvaTurno").value.trim();
+    const empresa = normalizeText(document.getElementById("curvaEmpresa").value);
+    const servicio = normalizeText(document.getElementById("curvaServicio").value);
     const cantidad = Number(document.getElementById("curvaCantidad").value);
 
-    if (!fecha || !empresa || !servicio || !turno || cantidad < 0 || Number.isNaN(cantidad)) {
+    if (!fecha || !empresa || !servicio || Number.isNaN(cantidad) || cantidad < 0) {
       alert("Completa todos los campos de curva.");
       return;
     }
 
-    db.curvas.push({ fecha, empresa, servicio, turno, cantidad });
+    const familia = normalizeServiceFamily(servicio);
+
+    db.curvas.push({ fecha, empresa, servicio, familia, cantidad });
     if (!db.empresas.includes(empresa)) db.empresas.push(empresa);
     if (!db.servicios.includes(servicio)) db.servicios.push(servicio);
 
@@ -719,7 +843,6 @@
     document.getElementById("curvaFecha").value = "";
     document.getElementById("curvaEmpresa").value = "";
     document.getElementById("curvaServicio").value = "";
-    document.getElementById("curvaTurno").value = "";
     document.getElementById("curvaCantidad").value = "";
 
     showSection("curva");
@@ -727,18 +850,20 @@
 
   function guardarReal() {
     const fecha = document.getElementById("realFecha").value;
-    const empresa = document.getElementById("realEmpresa").value.trim();
-    const servicio = document.getElementById("realServicio").value.trim();
-    const turno = document.getElementById("realTurno").value.trim();
-    const cantidad = Number(document.getElementById("realCantidad").value);
+    const empresa = normalizeText(document.getElementById("realEmpresa").value);
+    const servicio = normalizeText(document.getElementById("realServicio").value);
+    const casino = normalizeText(document.getElementById("realCasino").value);
+    const real = Number(document.getElementById("realCantidad").value);
     const observacion = document.getElementById("realObservacion").value.trim();
 
-    if (!fecha || !empresa || !servicio || !turno || cantidad < 0 || Number.isNaN(cantidad)) {
+    if (!fecha || !empresa || !servicio || !casino || Number.isNaN(real) || real < 0) {
       alert("Completa todos los campos de asistencia real.");
       return;
     }
 
-    db.reales.push({ fecha, empresa, servicio, turno, cantidad, observacion });
+    const familia = normalizeServiceFamily(servicio);
+
+    db.reales.push({ fecha, empresa, servicio, familia, casino, equipo: "", real, observacion });
     if (!db.empresas.includes(empresa)) db.empresas.push(empresa);
     if (!db.servicios.includes(servicio)) db.servicios.push(servicio);
 
@@ -748,7 +873,7 @@
     document.getElementById("realFecha").value = "";
     document.getElementById("realEmpresa").value = "";
     document.getElementById("realServicio").value = "";
-    document.getElementById("realTurno").value = "";
+    document.getElementById("realCasino").value = "";
     document.getElementById("realCantidad").value = "";
     document.getElementById("realObservacion").value = "";
 
@@ -756,13 +881,12 @@
   }
 
   function eliminarCurva(i) {
-    const sorted = [...db.curvas].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+    const sorted = [...db.curvas].sort((a,b) => b.fecha.localeCompare(a.fecha));
     const row = sorted[i];
     const idx = db.curvas.findIndex(x =>
       x.fecha === row.fecha &&
       x.empresa === row.empresa &&
       x.servicio === row.servicio &&
-      x.turno === row.turno &&
       x.cantidad === row.cantidad
     );
     if (idx >= 0) db.curvas.splice(idx,1);
@@ -771,15 +895,14 @@
   }
 
   function eliminarReal(i) {
-    const sorted = [...db.reales].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+    const sorted = [...db.reales].sort((a,b) => b.fecha.localeCompare(a.fecha));
     const row = sorted[i];
     const idx = db.reales.findIndex(x =>
       x.fecha === row.fecha &&
       x.empresa === row.empresa &&
       x.servicio === row.servicio &&
-      x.turno === row.turno &&
-      x.cantidad === row.cantidad &&
-      x.observacion === row.observacion
+      x.casino === row.casino &&
+      Number(x.real) === Number(row.real)
     );
     if (idx >= 0) db.reales.splice(idx,1);
     saveData();
@@ -811,7 +934,7 @@
   }
 
   function agregarEmpresa() {
-    const value = document.getElementById("nuevaEmpresa").value.trim();
+    const value = normalizeText(document.getElementById("nuevaEmpresa").value);
     if (!value) return;
     if (!db.empresas.includes(value)) db.empresas.push(value);
     document.getElementById("nuevaEmpresa").value = "";
@@ -820,7 +943,7 @@
   }
 
   function agregarServicio() {
-    const value = document.getElementById("nuevoServicio").value.trim();
+    const value = normalizeText(document.getElementById("nuevoServicio").value);
     if (!value) return;
     if (!db.servicios.includes(value)) db.servicios.push(value);
     document.getElementById("nuevoServicio").value = "";
@@ -828,9 +951,109 @@
     renderAll();
   }
 
-  function exportarCSV() {
+  function detectSeparator(line) {
+    if (line.includes("\t")) return "\t";
+    if (line.includes(";")) return ";";
+    return ",";
+  }
+
+  function importBBDD() {
+    const text = document.getElementById("txtImportarBBDD").value.trim();
+    const out = document.getElementById("resultadoImportacion");
+
+    if (!text) {
+      alert("Pega el extracto antes de importar.");
+      return;
+    }
+
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    if (lines.length < 2) {
+      alert("Debes pegar encabezado y al menos una fila.");
+      return;
+    }
+
+    const sep = detectSeparator(lines[0]);
+    const headers = lines[0].split(sep).map(h => normalizeText(h));
+
+    const idxEmpresa = headers.indexOf("NOMBRE_EMPRESA");
+    const idxServicio = headers.indexOf("SERVICIO");
+    const idxFecha = headers.indexOf("FECHA");
+    const idxEquipo = headers.indexOf("EQUIPO");
+    const idxPrecio = headers.indexOf("PRECIO");
+
+    if ([idxEmpresa, idxServicio, idxFecha, idxEquipo, idxPrecio].some(x => x === -1)) {
+      out.innerHTML = `<div class="text-rose-700 font-medium">Faltan columnas obligatorias. Deben existir: NOMBRE_EMPRESA, SERVICIO, FECHA, EQUIPO y PRECIO.</div>`;
+      return;
+    }
+
+    const grouped = {};
+    let rawRows = 0;
+    let importedRows = 0;
+    let totalServicios = 0;
+
+    for (const line of lines.slice(1)) {
+      const cols = line.split(sep);
+      const empresa = normalizeText(cols[idxEmpresa] || "");
+      const servicio = normalizeText(cols[idxServicio] || "");
+      const fecha = parseDateToISO(cols[idxFecha] || "");
+      const equipo = normalizeText(cols[idxEquipo] || "");
+      const casino = EQUIPO_MAP[equipo] || equipo || "SIN MAPEO";
+      const precio = Number(String(cols[idxPrecio] || "").replace(",", "."));
+
+      if (!empresa || !servicio || !fecha || Number.isNaN(precio)) continue;
+
+      const familia = normalizeServiceFamily(servicio);
+      const key = `${fecha}|${empresa}|${servicio}|${familia}|${casino}|${equipo}`;
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          fecha,
+          empresa,
+          servicio,
+          familia,
+          casino,
+          equipo,
+          real: 0,
+          observacion: "IMPORTADO BBDD"
+        };
+      }
+
+      grouped[key].real += precio;
+      rawRows += 1;
+      totalServicios += precio;
+    }
+
+    const imported = Object.values(grouped);
+
+    imported.forEach(r => {
+      db.reales.push(r);
+      if (!db.empresas.includes(r.empresa)) db.empresas.push(r.empresa);
+      if (!db.servicios.includes(r.servicio)) db.servicios.push(r.servicio);
+    });
+
+    importedRows = imported.length;
+    saveData();
+    renderAll();
+
+    out.innerHTML = `
+      <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
+        ✔ Filas fuente leídas: <b>${formatNumber(rawRows)}</b><br>
+        ✔ Registros consolidados importados: <b>${formatNumber(importedRows)}</b><br>
+        ✔ Cantidad total de servicios sumados desde PRECIO: <b>${formatNumber(totalServicios)}</b>
+      </div>
+    `;
+
+    showSection("importar");
+  }
+
+  function limpiarImportacion() {
+    document.getElementById("txtImportarBBDD").value = "";
+    document.getElementById("resultadoImportacion").innerHTML = "";
+  }
+
+  function exportCruce() {
     const rows = getFilteredRows();
-    const headers = ["fecha","dia","mes","empresa","servicio","turno","curva","real","cobro","produccion","semaforo","observacion"];
+    const headers = ["fecha","dia","mes","empresa","familia","curva","real","cobro","produccion","semaforo"];
     const csv = [
       headers.join(";"),
       ...rows.map(r => headers.map(h => csvValue(r[h] ?? "")).join(";"))
@@ -840,9 +1063,33 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "control_raciones.csv";
+    a.download = "cruce_raciones.csv";
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function exportReales() {
+    const headers = ["fecha","empresa","servicio","familia","casino","equipo","real","observacion"];
+    const csv = [
+      headers.join(";"),
+      ...db.reales.map(r => headers.map(h => csvValue(r[h] ?? "")).join(";"))
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "reales_importados.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function resetDemo() {
+    if (!confirm("Esto borrará toda la información guardada en este navegador.")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    db = loadData();
+    renderAll();
+    showSection("dashboard");
   }
 
   document.querySelectorAll(".menu-btn").forEach(btn => {
@@ -853,16 +1100,22 @@
   document.getElementById("btnGuardarReal").addEventListener("click", guardarReal);
   document.getElementById("btnAgregarEmpresa").addEventListener("click", agregarEmpresa);
   document.getElementById("btnAgregarServicio").addEventListener("click", agregarServicio);
-  document.getElementById("btnExportar").addEventListener("click", exportarCSV);
+  document.getElementById("btnImportarBBDD").addEventListener("click", importBBDD);
+  document.getElementById("btnLimpiarImportacion").addEventListener("click", limpiarImportacion);
+  document.getElementById("btnExportarCruce").addEventListener("click", exportCruce);
+  document.getElementById("btnExportarReales").addEventListener("click", exportReales);
+  document.getElementById("btnReset").addEventListener("click", resetDemo);
 
   document.getElementById("filtroEmpresa").addEventListener("input", renderAll);
   document.getElementById("filtroServicio").addEventListener("input", renderAll);
+  document.getElementById("filtroCasino").addEventListener("input", renderAll);
   document.getElementById("filtroFechaDesde").addEventListener("change", renderAll);
   document.getElementById("filtroFechaHasta").addEventListener("change", renderAll);
 
   document.getElementById("btnLimpiarFiltros").addEventListener("click", () => {
     document.getElementById("filtroEmpresa").value = "";
     document.getElementById("filtroServicio").value = "";
+    document.getElementById("filtroCasino").value = "";
     document.getElementById("filtroFechaDesde").value = "";
     document.getElementById("filtroFechaHasta").value = "";
     renderAll();
