@@ -1,707 +1,203 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Control Operacional de Raciones PRO 2</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <style>
-    html, body { height: 100%; }
-    body { margin: 0; }
-    .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
-    .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
-    .sticky-head thead th { position: sticky; top: 0; background: white; z-index: 1; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Operacional de Raciones</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+}
+</style>
+
 </head>
-<body class="bg-slate-100 text-slate-900">
-<div id="root"></div>
-<script type="text/babel">
-const { useEffect, useMemo, useState } = React;
 
-const STORAGE_KEY = 'control_raciones_pro_v6';
-const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
-const DEFAULT_TURNOS = ['A','B','C','Noche'];
-const DEFAULT_SERVICIOS = [
-  'Desayuno','Almuerzo','Cena','Cena trasnoche','Colación reforzada','Colación cordillera','Colación terreno',
-  'Aguas 500cc','Bidones','Coffee standard','Coffee plus','Coffee básico',
-  'Permuta desayuno','Permuta almuerzo','Permuta cena','Permuta cena trasnoche'
-];
-const TERRENO_EQUIVALENTES = new Set(['Colación terreno','Permuta desayuno','Permuta almuerzo','Permuta cena','Permuta cena trasnoche']);
+<body class="bg-slate-100">
 
-const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
-const fmt = (n) => new Intl.NumberFormat('es-CL').format(Number(n || 0));
-const pct = (n) => `${Number(n || 0).toFixed(1)}%`;
+<div class="flex">
 
-function parseDate(v) {
-  if (!v) return null;
-  const [y,m,d] = v.split('-').map(Number);
-  return new Date(y, m - 1, d, 12, 0, 0);
-}
-function getDayName(v) {
-  const d = parseDate(v);
-  if (!d) return '';
-  return ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][d.getDay()];
-}
-function getWeekOfMonth(v) {
-  const d = parseDate(v);
-  if (!d) return 0;
-  const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).getDay();
-  return Math.ceil((d.getDate() + firstDay) / 7);
-}
-function getMonthKey(v) {
-  if (!v) return '';
-  const [y,m] = v.split('-');
-  return `${y}-${m}`;
-}
-function getMonthLabel(v) {
-  if (!v) return '';
-  const [y,m] = v.split('-');
-  const names = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  return `${names[Number(m)-1]} ${y}`;
-}
-function csvValue(v) {
-  return `"${String(v ?? '').replaceAll('"','""')}"`;
-}
-function dl(name, content, type) {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-function safeParse(raw, fallback) {
-  try { return JSON.parse(raw) ?? fallback; } catch { return fallback; }
-}
-function average(arr) {
-  return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
-}
-function movingAverage(arr, n) {
-  return average(arr.slice(0, n));
-}
+<!-- SIDEBAR -->
+<div class="w-64 bg-slate-900 text-white min-h-screen p-4">
 
-function makeSeed() {
-  const faenas = [{ id: uid(), nombre: 'División Salvador' }];
-  const turnos = DEFAULT_TURNOS.map(nombre => ({ id: uid(), nombre }));
-  const servicios = DEFAULT_SERVICIOS.map(nombre => ({ id: uid(), nombre }));
-  const empresas = ['JKL','MNO','PQR','TUV','WXY'].map(nombre => ({ id: uid(), nombre }));
-  const usuarios = [
-    { id: uid(), nombre: 'Administrador' },
-    { id: uid(), nombre: 'Operación' },
-    { id: uid(), nombre: 'Control Gestión' }
-  ];
-  const ids = {
-    faena: Object.fromEntries(faenas.map(x => [x.nombre, x.id])),
-    turno: Object.fromEntries(turnos.map(x => [x.nombre, x.id])),
-    servicio: Object.fromEntries(servicios.map(x => [x.nombre, x.id])),
-    empresa: Object.fromEntries(empresas.map(x => [x.nombre, x.id])),
-    usuario: Object.fromEntries(usuarios.map(x => [x.nombre, x.id])),
-  };
+<h1 class="text-xl font-bold mb-6">
+Control Raciones
+</h1>
 
-  const curvaRows = [
-    ['2026-03-03','División Salvador','JKL','A','Almuerzo',80],
-    ['2026-03-04','División Salvador','JKL','A','Almuerzo',82],
-    ['2026-03-05','División Salvador','JKL','A','Almuerzo',80],
-    ['2026-03-12','División Salvador','JKL','A','Almuerzo',82],
-    ['2026-03-05','División Salvador','JKL','A','Colación terreno',25],
-    ['2026-03-12','División Salvador','JKL','A','Permuta almuerzo',18],
-    ['2026-03-05','División Salvador','MNO','A','Almuerzo',55],
-    ['2026-03-12','División Salvador','MNO','A','Almuerzo',60],
-    ['2026-03-12','División Salvador','PQR','B','Cena',45],
-    ['2026-03-13','División Salvador','WXY','Noche','Cena trasnoche',35],
-  ].map((r, i) => ({
-    id: uid() + i,
-    fecha: r[0], faenaId: ids.faena[r[1]], empresaId: ids.empresa[r[2]], turnoId: ids.turno[r[3]], servicioId: ids.servicio[r[4]],
-    cantidad: r[5], fuente: 'Curva contratista', usuarioId: ids.usuario['Administrador'], creadoEn: new Date().toISOString(),
-  }));
+<ul class="space-y-2">
 
-  const realesRows = [
-    ['2026-03-03','División Salvador','JKL','A','Almuerzo',78,80,'Casi en curva'],
-    ['2026-03-04','División Salvador','JKL','A','Almuerzo',79,82,'Leve bajo curva'],
-    ['2026-03-05','División Salvador','JKL','A','Almuerzo',50,80,'Baja asistencia real'],
-    ['2026-03-12','División Salvador','JKL','A','Almuerzo',54,82,'Desvío fuerte'],
-    ['2026-03-05','División Salvador','JKL','A','Colación terreno',23,24,'Bajo leve'],
-    ['2026-03-12','División Salvador','JKL','A','Permuta almuerzo',15,18,'Permuta menor a curva'],
-    ['2026-03-05','División Salvador','MNO','A','Almuerzo',57,55,'Sobre curva'],
-    ['2026-03-12','División Salvador','MNO','A','Almuerzo',63,60,'Sobre curva'],
-    ['2026-03-12','División Salvador','PQR','B','Cena',40,45,'Bajo curva'],
-    ['2026-03-13','División Salvador','WXY','Noche','Cena trasnoche',38,35,'Sobre curva'],
-  ].map((r, i) => ({
-    id: uid() + i,
-    fecha: r[0], faenaId: ids.faena[r[1]], empresaId: ids.empresa[r[2]], turnoId: ids.turno[r[3]], servicioId: ids.servicio[r[4]],
-    cantidad: r[5], proyectado: r[6], observacion: r[7], usuarioId: ids.usuario['Operación'], creadoEn: new Date().toISOString(),
-  }));
+<li class="bg-slate-700 p-2 rounded">Dashboard</li>
+<li class="p-2">Curva contratistas</li>
+<li class="p-2">Asistencia real</li>
+<li class="p-2">Producción sugerida</li>
+<li class="p-2">Base de cobro</li>
+<li class="p-2">Análisis</li>
+<li class="p-2">Reporte mensual</li>
 
-  return { faenas, turnos, servicios, empresas, usuarios, curva: curvaRows, reales: realesRows };
-}
+</ul>
 
-function loadState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    const seed = makeSeed();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-    return seed;
-  }
-  const parsed = safeParse(raw, null);
-  if (!parsed) {
-    const seed = makeSeed();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-    return seed;
-  }
-  return {
-    faenas: parsed.faenas || [], turnos: parsed.turnos || [], servicios: parsed.servicios || [], empresas: parsed.empresas || [], usuarios: parsed.usuarios || [], curva: parsed.curva || [], reales: parsed.reales || []
-  };
-}
-function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+</div>
 
-function Card({ title, subtitle, children, actions }) {
-  return <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-5"><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-4"><div><h2 className="text-lg md:text-xl font-semibold tracking-tight">{title}</h2>{subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}</div>{actions && <div className="flex flex-wrap gap-2">{actions}</div>}</div>{children}</div>;
-}
-function KPI({ title, value, subtitle, tone='slate' }) {
-  const tones = { slate:'bg-white border-slate-200', sky:'bg-sky-50 border-sky-200', emerald:'bg-emerald-50 border-emerald-200', amber:'bg-amber-50 border-amber-200', rose:'bg-rose-50 border-rose-200' };
-  return <div className={`rounded-2xl border p-4 shadow-sm ${tones[tone]}`}><div className="text-sm text-slate-500">{title}</div><div className="mt-2 text-3xl font-semibold tracking-tight">{value}</div>{subtitle && <div className="mt-1 text-xs text-slate-500">{subtitle}</div>}</div>;
-}
-function Btn({ children, onClick, type='button', variant='default' }) {
-  const styles = { default:'bg-white border-slate-300 text-slate-700 hover:bg-slate-50', dark:'bg-slate-900 border-slate-900 text-white hover:bg-slate-800', danger:'bg-white border-rose-300 text-rose-700 hover:bg-rose-50' };
-  return <button type={type} onClick={onClick} className={`px-4 py-2 rounded-xl border text-sm font-medium transition ${styles[variant]}`}>{children}</button>;
-}
-function Input({ label, ...props }) {
-  return <label className="block space-y-1"><span className="text-sm text-slate-600">{label}</span><input {...props} className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200" /></label>;
-}
-function Select({ label, options, ...props }) {
-  return <label className="block space-y-1"><span className="text-sm text-slate-600">{label}</span><select {...props} className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200">{options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>;
-}
-function Sidebar({ tab, setTab }) {
-  const items = ['Dashboard','Maestros','Curva contratistas','Asistencia real','Producción sugerida','Base de cobro','Análisis','Reporte mensual','Importar / Exportar'];
-  return <div className="w-full lg:w-72 shrink-0"><div className="bg-slate-900 text-white rounded-3xl p-4 md:p-5 shadow-lg"><div className="text-xs uppercase tracking-[0.2em] text-slate-400">Control</div><div className="text-2xl font-bold mt-1">Raciones PRO 2</div><div className="text-sm text-slate-300 mt-2">Curva mensual, buscador, predicción y panel financiero.</div><div className="mt-5 space-y-2">{items.map(item => <button key={item} onClick={() => setTab(item)} className={`w-full text-left px-4 py-3 rounded-2xl text-sm transition ${tab===item ? 'bg-white text-slate-900 font-semibold' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}>{item}</button>)}</div></div></div>;
+<!-- CONTENIDO -->
+
+<div class="flex-1 p-8">
+
+<h2 class="text-2xl font-bold mb-6">
+Dashboard Operacional
+</h2>
+
+<div class="grid grid-cols-4 gap-4">
+
+<div class="bg-white p-4 rounded shadow">
+<p class="text-gray-500 text-sm">Curva total</p>
+<p class="text-3xl font-bold" id="curva">0</p>
+</div>
+
+<div class="bg-white p-4 rounded shadow">
+<p class="text-gray-500 text-sm">Real</p>
+<p class="text-3xl font-bold" id="real">0</p>
+</div>
+
+<div class="bg-white p-4 rounded shadow">
+<p class="text-gray-500 text-sm">Cobro</p>
+<p class="text-3xl font-bold" id="cobro">0</p>
+</div>
+
+<div class="bg-white p-4 rounded shadow">
+<p class="text-gray-500 text-sm">Producción sugerida</p>
+<p class="text-3xl font-bold" id="produccion">0</p>
+</div>
+
+</div>
+
+<div class="mt-10 bg-white p-6 rounded shadow">
+
+<h3 class="text-lg font-semibold mb-4">
+Ingreso de raciones
+</h3>
+
+<div class="grid grid-cols-4 gap-4">
+
+<input id="empresa" placeholder="Empresa"
+class="border p-2 rounded">
+
+<input id="servicio" placeholder="Servicio"
+class="border p-2 rounded">
+
+<input id="curvaInput" placeholder="Curva"
+type="number"
+class="border p-2 rounded">
+
+<input id="realInput" placeholder="Real"
+type="number"
+class="border p-2 rounded">
+
+</div>
+
+<button onclick="guardar()"
+class="mt-4 bg-slate-900 text-white px-4 py-2 rounded">
+
+Guardar registro
+
+</button>
+
+</div>
+
+<div class="mt-10 bg-white p-6 rounded shadow">
+
+<h3 class="text-lg font-semibold mb-4">
+Histórico
+</h3>
+
+<table class="w-full">
+
+<thead>
+<tr class="text-left border-b">
+<th class="p-2">Empresa</th>
+<th class="p-2">Servicio</th>
+<th class="p-2">Curva</th>
+<th class="p-2">Real</th>
+<th class="p-2">Cobro</th>
+</tr>
+</thead>
+
+<tbody id="tabla"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let datos = JSON.parse(localStorage.getItem("raciones") || "[]")
+
+function guardar(){
+
+let empresa = document.getElementById("empresa").value
+let servicio = document.getElementById("servicio").value
+let curva = Number(document.getElementById("curvaInput").value)
+let real = Number(document.getElementById("realInput").value)
+
+let cobro = Math.max(curva,real)
+
+datos.push({
+empresa,
+servicio,
+curva,
+real,
+cobro
+})
+
+localStorage.setItem("raciones",JSON.stringify(datos))
+
+render()
+
 }
 
-function App() {
-  const [state, setState] = useState(loadState);
-  const [tab, setTab] = useState('Dashboard');
-  const [filters, setFilters] = useState({ fechaDesde:'', fechaHasta:'', faenaId:'all', empresaId:'all', turnoId:'all', servicioId:'all', dia:'all', mes:'all' });
-  const [master, setMaster] = useState({ empresa:'', faena:'', turno:'', servicio:'' });
-  const [searchText, setSearchText] = useState('');
-  const [curveForm, setCurveForm] = useState(() => { const s = loadState(); return { fecha:new Date().toISOString().slice(0,10), faenaId:s.faenas[0]?.id||'', empresaId:s.empresas[0]?.id||'', turnoId:s.turnos[0]?.id||'', servicioId:s.servicios[0]?.id||'', cantidad:'', fuente:'Curva contratista', usuarioId:s.usuarios[0]?.id||'' }; });
-  const [realForm, setRealForm] = useState(() => { const s = loadState(); return { fecha:new Date().toISOString().slice(0,10), faenaId:s.faenas[0]?.id||'', empresaId:s.empresas[0]?.id||'', turnoId:s.turnos[0]?.id||'', servicioId:s.servicios[0]?.id||'', cantidad:'', proyectado:'', observacion:'', usuarioId:s.usuarios[1]?.id||s.usuarios[0]?.id||'' }; });
-  const [bulkMode, setBulkMode] = useState('curva');
-  const [bulkText, setBulkText] = useState('');
-  const [matrixMode, setMatrixMode] = useState('curva');
-  const [matrixText, setMatrixText] = useState('');
+function render(){
 
-  useEffect(() => saveState(state), [state]);
+let tabla = document.getElementById("tabla")
 
-  const maps = useMemo(() => ({
-    faena: Object.fromEntries(state.faenas.map(x => [x.id, x.nombre])), empresa: Object.fromEntries(state.empresas.map(x => [x.id, x.nombre])), turno: Object.fromEntries(state.turnos.map(x => [x.id, x.nombre])), servicio: Object.fromEntries(state.servicios.map(x => [x.id, x.nombre])), usuario: Object.fromEntries(state.usuarios.map(x => [x.id, x.nombre]))
-  }), [state]);
+tabla.innerHTML = ""
 
-  const merged = useMemo(() => {
-    const curveMap = new Map();
-    const realMap = new Map();
-    const keyOf = (r) => [r.fecha, r.faenaId, r.empresaId, r.turnoId, r.servicioId].join('|');
-    state.curva.forEach(r => curveMap.set(keyOf(r), r));
-    state.reales.forEach(r => realMap.set(keyOf(r), r));
-    const keys = new Set([...curveMap.keys(), ...realMap.keys()]);
+let curvaTotal = 0
+let realTotal = 0
+let cobroTotal = 0
 
-    return [...keys].map(k => {
-      const c = curveMap.get(k); const r = realMap.get(k);
-      const fecha = c?.fecha || r?.fecha || '';
-      const empresaId = c?.empresaId || r?.empresaId || '';
-      const turnoId = c?.turnoId || r?.turnoId || '';
-      const servicioId = c?.servicioId || r?.servicioId || '';
-      const servicioNombre = maps.servicio[servicioId] || '';
-      const curva = Number(c?.cantidad || 0);
-      const real = Number(r?.cantidad || 0);
-      const proyectado = Number(r?.proyectado || 0);
-      const baseCobro = curva > 0 ? curva : proyectado;
-      const cobrar = Math.max(baseCobro, real);
-      const historial = state.reales.filter(x => x.empresaId === empresaId && x.turnoId === turnoId && x.servicioId === servicioId).sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(x => Number(x.cantidad || 0));
-      const historialDia = state.reales.filter(x => x.empresaId === empresaId && x.turnoId === turnoId && x.servicioId === servicioId && getDayName(x.fecha) === getDayName(fecha)).sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(x => Number(x.cantidad || 0));
-      const promHist = average(historial);
-      const promDia = average(historialDia);
-      const prom4 = movingAverage(historial, 4);
-      const prodSugerida = Math.round(Math.max(curva, promHist, promDia, prom4));
-      const cumplimiento = curva > 0 ? (real / curva) * 100 : 0;
-      let semaforo = 'gris'; let lectura = 'Sin curva';
-      if (curva > 0) {
-        const gapPct = ((curva - real) / curva) * 100;
-        if (real >= curva) { semaforo = 'verde'; lectura = 'Real igual o sobre curva'; }
-        else if (gapPct <= 20) { semaforo = 'amarillo'; lectura = 'Bajo curva moderado'; }
-        else { semaforo = 'rojo'; lectura = 'Bajo curva crítico'; }
-      }
-      return {
-        key:k, fecha, dia:getDayName(fecha), semanaMes:getWeekOfMonth(fecha), mes:getMonthKey(fecha), mesLabel:getMonthLabel(fecha),
-        faenaId:c?.faenaId || r?.faenaId || '', empresaId, turnoId, servicioId,
-        faena:maps.faena[c?.faenaId || r?.faenaId] || '-', empresa:maps.empresa[empresaId] || '-', turno:maps.turno[turnoId] || '-', servicio:servicioNombre || '-',
-        curva, real, proyectado, baseCobro, cobrar, prodSugerida, promHist, promDia, prom4, cumplimiento, semaforo, lectura,
-        terrenoClasificado: TERRENO_EQUIVALENTES.has(servicioNombre) ? 'Sí' : 'No', observacion:r?.observacion || ''
-      };
-    }).sort((a,b) => b.fecha.localeCompare(a.fecha) || a.empresa.localeCompare(b.empresa) || a.servicio.localeCompare(b.servicio));
-  }, [state, maps]);
+datos.forEach(d=>{
 
-  const filtered = useMemo(() => {
-    const q = searchText.trim().toLowerCase();
-    return merged.filter(r => {
-      if (filters.fechaDesde && r.fecha < filters.fechaDesde) return false;
-      if (filters.fechaHasta && r.fecha > filters.fechaHasta) return false;
-      if (filters.faenaId !== 'all' && r.faenaId !== filters.faenaId) return false;
-      if (filters.empresaId !== 'all' && r.empresaId !== filters.empresaId) return false;
-      if (filters.turnoId !== 'all' && r.turnoId !== filters.turnoId) return false;
-      if (filters.servicioId !== 'all' && r.servicioId !== filters.servicioId) return false;
-      if (filters.dia !== 'all' && r.dia !== filters.dia) return false;
-      if (filters.mes !== 'all' && r.mes !== filters.mes) return false;
-      if (q) {
-        const text = `${r.empresa} ${r.servicio} ${r.turno} ${r.faena} ${r.observacion}`.toLowerCase();
-        if (!text.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [merged, filters, searchText]);
+curvaTotal += d.curva
+realTotal += d.real
+cobroTotal += d.cobro
 
-  const monthOptions = useMemo(() => {
-    const vals = [...new Set(merged.map(x => x.mes).filter(Boolean))].sort().reverse();
-    return [{ value:'all', label:'Todos los meses' }, ...vals.map(v => ({ value:v, label:getMonthLabel(v+'-01') }))];
-  }, [merged]);
+tabla.innerHTML += `
+<tr class="border-b">
+<td class="p-2">${d.empresa}</td>
+<td class="p-2">${d.servicio}</td>
+<td class="p-2">${d.curva}</td>
+<td class="p-2">${d.real}</td>
+<td class="p-2">${d.cobro}</td>
+</tr>
+`
 
-  const dashboard = useMemo(() => {
-    const totalCurva = filtered.reduce((a,r)=>a+r.curva,0);
-    const totalReal = filtered.reduce((a,r)=>a+r.real,0);
-    const totalCobrar = filtered.reduce((a,r)=>a+r.cobrar,0);
-    const totalProd = filtered.reduce((a,r)=>a+r.prodSugerida,0);
-    const brecha = totalCobrar - totalReal;
-    const brechaCurva = totalCurva - totalReal;
-    const rojos = filtered.filter(r => r.semaforo === 'rojo').length;
-    const terreno = filtered.filter(r => r.terrenoClasificado === 'Sí').reduce((a,r)=>a+r.cobrar,0);
-    return { totalCurva, totalReal, totalCobrar, totalProd, brecha, brechaCurva, rojos, terreno };
-  }, [filtered]);
+})
 
-  const analysis = useMemo(() => {
-    const byDay = {}, byTurn = {}, byEmpresa = {};
-    filtered.forEach(r => {
-      [[byDay, r.dia],[byTurn, r.turno],[byEmpresa, r.empresa]].forEach(([obj, key]) => {
-        obj[key] ??= { curva:0, real:0, cobrar:0, count:0 };
-        obj[key].curva += r.curva; obj[key].real += r.real; obj[key].cobrar += r.cobrar; obj[key].count += 1;
-      });
-    });
-    return {
-      byDay: DAYS.filter(d => byDay[d]).map(d => ({ nombre:d, ...byDay[d], promReal:byDay[d].real/byDay[d].count, promCurva:byDay[d].curva/byDay[d].count, promCobro:byDay[d].cobrar/byDay[d].count })),
-      byTurn: Object.keys(byTurn).sort().map(k => ({ nombre:k, ...byTurn[k], promReal:byTurn[k].real/byTurn[k].count, promCurva:byTurn[k].curva/byTurn[k].count, promCobro:byTurn[k].cobrar/byTurn[k].count })),
-      byEmpresa: Object.keys(byEmpresa).sort().map(k => ({ nombre:k, ...byEmpresa[k], promReal:byEmpresa[k].real/byEmpresa[k].count, promCurva:byEmpresa[k].curva/byEmpresa[k].count, promCobro:byEmpresa[k].cobrar/byEmpresa[k].count, gap:byEmpresa[k].curva-byEmpresa[k].real })),
-    };
-  }, [filtered]);
+document.getElementById("curva").innerText = curvaTotal
+document.getElementById("real").innerText = realTotal
+document.getElementById("cobro").innerText = cobroTotal
+document.getElementById("produccion").innerText = Math.max(curvaTotal,realTotal)
 
-  const reporteMensual = useMemo(() => {
-    const groups = {};
-    filtered.forEach(r => {
-      const k = `${r.mes}|${r.empresa}`;
-      groups[k] ??= { mes:r.mesLabel, empresa:r.empresa, curva:0, real:0, cobrar:0, prod:0, registros:0, rojos:0, amarillos:0 };
-      groups[k].curva += r.curva; groups[k].real += r.real; groups[k].cobrar += r.cobrar; groups[k].prod += r.prodSugerida; groups[k].registros += 1;
-      if (r.semaforo === 'rojo') groups[k].rojos += 1;
-      if (r.semaforo === 'amarillo') groups[k].amarillos += 1;
-    });
-    return Object.values(groups).sort((a,b) => a.empresa.localeCompare(b.empresa));
-  }, [filtered]);
-
-  const prediccionMes = useMemo(() => {
-    const targetMonth = filters.mes !== 'all' ? filters.mes : monthOptions[1]?.value || '';
-    if (!targetMonth) return null;
-    const [year, month] = targetMonth.split('-').map(Number);
-    const lastDay = new Date(year, month, 0).getDate();
-    const monthRows = merged.filter(r => r.mes === targetMonth);
-    const daysSeen = new Set(monthRows.map(r => r.fecha));
-    let cierreProyectado = monthRows.reduce((a,r)=>a+r.cobrar,0);
-    const future = [];
-    for (let d = 1; d <= lastDay; d++) {
-      const fecha = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      if (daysSeen.has(fecha)) continue;
-      const dia = getDayName(fecha);
-      const base = merged.filter(r => r.dia === dia && (filters.faenaId === 'all' || r.faenaId === filters.faenaId));
-      const forecast = Math.round(average(base.map(r => r.cobrar)) || 0);
-      cierreProyectado += forecast;
-      future.push({ fecha, dia, forecast });
-    }
-    return {
-      mes: getMonthLabel(`${targetMonth}-01`),
-      realAcumulado: monthRows.reduce((a,r)=>a+r.real,0),
-      cobrableAcumulado: monthRows.reduce((a,r)=>a+r.cobrar,0),
-      cierreProyectado: Math.round(cierreProyectado),
-      diasPendientes: future.length,
-      proximos: future.slice(0,10),
-    };
-  }, [filters.mes, filters.faenaId, merged, monthOptions]);
-
-  const options = {
-    faena:[{value:'all',label:'Todas las faenas'},...state.faenas.map(x=>({value:x.id,label:x.nombre}))],
-    empresa:[{value:'all',label:'Todas las empresas'},...state.empresas.map(x=>({value:x.id,label:x.nombre}))],
-    turno:[{value:'all',label:'Todos los turnos'},...state.turnos.map(x=>({value:x.id,label:x.nombre}))],
-    servicio:[{value:'all',label:'Todos los servicios'},...state.servicios.map(x=>({value:x.id,label:x.nombre}))],
-    dia:[{value:'all',label:'Todos los días'},...DAYS.map(x=>({value:x,label:x}))],
-  };
-
-  function updateState(fn) { setState(prev => fn(prev)); }
-
-  function addMaster(kind, value) {
-    const clean = value.trim();
-    if (!clean) return;
-    const map = { empresa:'empresas', faena:'faenas', turno:'turnos', servicio:'servicios' };
-    const listKey = map[kind];
-    updateState(prev => {
-      if (prev[listKey].some(x => x.nombre.toLowerCase() === clean.toLowerCase())) { alert('Ese valor ya existe.'); return prev; }
-      return { ...prev, [listKey]: [...prev[listKey], { id: uid(), nombre: clean }] };
-    });
-    setMaster(prev => ({ ...prev, [kind]: '' }));
-  }
-
-  function delMaster(listKey, id) {
-    const used =
-      (listKey === 'empresas' && (state.curva.some(x => x.empresaId === id) || state.reales.some(x => x.empresaId === id))) ||
-      (listKey === 'faenas' && (state.curva.some(x => x.faenaId === id) || state.reales.some(x => x.faenaId === id))) ||
-      (listKey === 'turnos' && (state.curva.some(x => x.turnoId === id) || state.reales.some(x => x.turnoId === id))) ||
-      (listKey === 'servicios' && (state.curva.some(x => x.servicioId === id) || state.reales.some(x => x.servicioId === id)));
-    if (used) { alert('No puedes eliminarlo porque ya tiene registros asociados.'); return; }
-    if (!confirm('¿Eliminar este maestro?')) return;
-    updateState(prev => ({ ...prev, [listKey]: prev[listKey].filter(x => x.id !== id) }));
-  }
-
-  function saveCurva(e) {
-    e.preventDefault();
-    if (!curveForm.fecha || !curveForm.faenaId || !curveForm.empresaId || !curveForm.turnoId || !curveForm.servicioId) { alert('Completa los campos obligatorios.'); return; }
-    const cantidad = Number(curveForm.cantidad || 0);
-    if (cantidad <= 0) { alert('La curva debe ser mayor a 0.'); return; }
-    const row = { id: uid(), ...curveForm, cantidad, creadoEn: new Date().toISOString() };
-    updateState(prev => ({ ...prev, curva: [row, ...prev.curva] }));
-    setCurveForm(prev => ({ ...prev, cantidad:'', fuente:'Curva contratista' }));
-    setTab('Base de cobro');
-  }
-
-  function saveReal(e) {
-    e.preventDefault();
-    if (!realForm.fecha || !realForm.faenaId || !realForm.empresaId || !realForm.turnoId || !realForm.servicioId) { alert('Completa los campos obligatorios.'); return; }
-    const row = { id: uid(), ...realForm, cantidad:Number(realForm.cantidad || 0), proyectado:Number(realForm.proyectado || 0), creadoEn: new Date().toISOString() };
-    updateState(prev => ({ ...prev, reales: [row, ...prev.reales] }));
-    setRealForm(prev => ({ ...prev, cantidad:'', proyectado:'', observacion:'' }));
-    setTab('Producción sugerida');
-  }
-
-  function deleteCurva(id) { if (!confirm('¿Eliminar registro de curva?')) return; updateState(prev => ({ ...prev, curva: prev.curva.filter(x => x.id !== id) })); }
-  function deleteReal(id) { if (!confirm('¿Eliminar registro real?')) return; updateState(prev => ({ ...prev, reales: prev.reales.filter(x => x.id !== id) })); }
-
-  function exportCruce() {
-    const headers = ['fecha','mesLabel','dia','faena','empresa','turno','servicio','curva','proyectado','real','prodSugerida','baseCobro','cobrar','cumplimiento','semaforo','terrenoClasificado','observacion'];
-    const content = [headers.join(';')].concat(filtered.map(r => headers.map(h => csvValue(r[h] ?? '')).join(';'))).join('\n');
-    dl('raciones_cruce_pro.csv', content, 'text/csv;charset=utf-8;');
-  }
-  function exportReporteMensual() {
-    const headers = ['mes','empresa','curva','real','cobrar','prod','registros','rojos','amarillos'];
-    const content = [headers.join(';')].concat(reporteMensual.map(r => headers.map(h => csvValue(r[h] ?? '')).join(';'))).join('\n');
-    dl('reporte_mensual_raciones.csv', content, 'text/csv;charset=utf-8;');
-  }
-  function exportBackup() { dl('raciones_backup.json', JSON.stringify(state, null, 2), 'application/json;charset=utf-8;'); }
-  function resetDemo() { if (!confirm('Esto reemplazará toda la información con datos demo.')) return; setState(makeSeed()); setTab('Dashboard'); }
-
-  function importBulk() {
-    const text = bulkText.trim();
-    if (!text) { alert('Pega datos antes de importar.'); return; }
-    const lines = text.split(/\r?\n/).filter(Boolean);
-    if (lines.length < 2) { alert('Debes pegar encabezado y al menos una fila.'); return; }
-    const sep = lines[0].includes(';') ? ';' : ',';
-    const headers = lines[0].split(sep).map(x => x.trim());
-    const rows = lines.slice(1).map(line => {
-      const vals = line.split(sep).map(x => x.trim());
-      const obj = {}; headers.forEach((h,i) => obj[h] = vals[i] ?? ''); return obj;
-    });
-    const mFaena = Object.fromEntries(state.faenas.map(x => [x.nombre.toLowerCase(), x.id]));
-    const mEmpresa = Object.fromEntries(state.empresas.map(x => [x.nombre.toLowerCase(), x.id]));
-    const mTurno = Object.fromEntries(state.turnos.map(x => [x.nombre.toLowerCase(), x.id]));
-    const mServicio = Object.fromEntries(state.servicios.map(x => [x.nombre.toLowerCase(), x.id]));
-    const defaultUser = state.usuarios[0]?.id || '';
-    const parsed = rows.map(r => ({ fecha:r.fecha || r.Fecha || '', faenaId:mFaena[(r.faena || r.Faena || '').toLowerCase()], empresaId:mEmpresa[(r.empresa || r.Empresa || '').toLowerCase()], turnoId:mTurno[(r.turno || r.Turno || '').toLowerCase()], servicioId:mServicio[(r.servicio || r.Servicio || '').toLowerCase()], raw:r }));
-    if (parsed.some(r => !r.fecha || !r.faenaId || !r.empresaId || !r.turnoId || !r.servicioId)) { alert('Hay filas inválidas. Revisa nombres exactos en maestros.'); return; }
-    if (bulkMode === 'curva') {
-      const add = parsed.map(r => ({ id:uid(), fecha:r.fecha, faenaId:r.faenaId, empresaId:r.empresaId, turnoId:r.turnoId, servicioId:r.servicioId, cantidad:Number(r.raw.cantidad || r.raw.curva || r.raw.curvaComensales || 0), fuente:r.raw.fuente || 'Importación curva', usuarioId:defaultUser, creadoEn:new Date().toISOString() }));
-      updateState(prev => ({ ...prev, curva:[...add, ...prev.curva] }));
-    } else {
-      const add = parsed.map(r => ({ id:uid(), fecha:r.fecha, faenaId:r.faenaId, empresaId:r.empresaId, turnoId:r.turnoId, servicioId:r.servicioId, cantidad:Number(r.raw.real || r.raw.cantidad || 0), proyectado:Number(r.raw.proyectado || 0), observacion:r.raw.observacion || '', usuarioId:defaultUser, creadoEn:new Date().toISOString() }));
-      updateState(prev => ({ ...prev, reales:[...add, ...prev.reales] }));
-    }
-    setBulkText('');
-    setTab('Dashboard');
-    alert('Importación completada.');
-  }
-
-  function importMatrix() {
-    const text = matrixText.trim();
-    if (!text) { alert('Pega una matriz antes de importar.'); return; }
-    const lines = text.split(/\r?\n/).filter(Boolean);
-    if (lines.length < 2) { alert('Debes pegar encabezado y al menos una fila.'); return; }
-    const sep = lines[0].includes(';') ? ';' : ',';
-    const headers = lines[0].split(sep).map(x => x.trim());
-    if (headers.length < 6) { alert('La matriz debe traer: faena;empresa;turno;servicio;fuente y luego días.'); return; }
-    const fixed = headers.slice(0,5).map(x => x.toLowerCase());
-    const expected = ['faena','empresa','turno','servicio','fuente'];
-    if (!expected.every((x,i) => fixed[i] === x)) { alert('Los primeros encabezados deben ser exactamente: faena;empresa;turno;servicio;fuente'); return; }
-    const dateHeaders = headers.slice(5);
-    if (dateHeaders.some(h => !/^\d{4}-\d{2}-\d{2}$/.test(h))) { alert('Las columnas de días deben estar en formato YYYY-MM-DD.'); return; }
-    const mFaena = Object.fromEntries(state.faenas.map(x => [x.nombre.toLowerCase(), x.id]));
-    const mEmpresa = Object.fromEntries(state.empresas.map(x => [x.nombre.toLowerCase(), x.id]));
-    const mTurno = Object.fromEntries(state.turnos.map(x => [x.nombre.toLowerCase(), x.id]));
-    const mServicio = Object.fromEntries(state.servicios.map(x => [x.nombre.toLowerCase(), x.id]));
-    const defaultUser = state.usuarios[0]?.id || '';
-    const newCurvas = [];
-    const newReales = [];
-    for (const line of lines.slice(1)) {
-      const vals = line.split(sep).map(x => x.trim());
-      const faenaId = mFaena[(vals[0] || '').toLowerCase()];
-      const empresaId = mEmpresa[(vals[1] || '').toLowerCase()];
-      const turnoId = mTurno[(vals[2] || '').toLowerCase()];
-      const servicioId = mServicio[(vals[3] || '').toLowerCase()];
-      const fuente = vals[4] || (matrixMode === 'curva' ? 'Importación matriz curva' : 'Importación matriz real');
-      if (!faenaId || !empresaId || !turnoId || !servicioId) { alert(`Fila inválida: ${vals.slice(0,4).join(' | ')}`); return; }
-      dateHeaders.forEach((fecha, idx) => {
-        const raw = vals[idx + 5] ?? '';
-        if (raw === '') return;
-        const num = Number(raw);
-        if (!Number.isFinite(num)) return;
-        if (matrixMode === 'curva') newCurvas.push({ id:uid(), fecha, faenaId, empresaId, turnoId, servicioId, cantidad:num, fuente, usuarioId:defaultUser, creadoEn:new Date().toISOString() });
-        else newReales.push({ id:uid(), fecha, faenaId, empresaId, turnoId, servicioId, cantidad:num, proyectado:0, observacion:fuente, usuarioId:defaultUser, creadoEn:new Date().toISOString() });
-      });
-    }
-    if (!newCurvas.length && !newReales.length) { alert('No se detectaron valores numéricos en la matriz.'); return; }
-    updateState(prev => ({ ...prev, curva: matrixMode === 'curva' ? [...newCurvas, ...prev.curva] : prev.curva, reales: matrixMode === 'real' ? [...newReales, ...prev.reales] : prev.reales }));
-    setMatrixText('');
-    setTab(matrixMode === 'curva' ? 'Curva contratistas' : 'Asistencia real');
-    alert(`Importación matriz completada. Se agregaron ${newCurvas.length + newReales.length} registros.`);
-  }
-
-  function semaforoPill(tipo) {
-    const base = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium';
-    if (tipo === 'verde') return <span className={`${base} bg-emerald-100 text-emerald-700`}>Verde</span>;
-    if (tipo === 'amarillo') return <span className={`${base} bg-amber-100 text-amber-700`}>Amarillo</span>;
-    if (tipo === 'rojo') return <span className={`${base} bg-rose-100 text-rose-700`}>Rojo</span>;
-    return <span className={`${base} bg-slate-100 text-slate-600`}>Sin curva</span>;
-  }
-
-  const chartMax = Math.max(...analysis.byDay.map(x => x.promReal), 1);
-
-  return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-[1700px] mx-auto flex flex-col lg:flex-row gap-6">
-        <Sidebar tab={tab} setTab={setTab} />
-        <div className="flex-1 min-w-0 space-y-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Control operacional de raciones</h1>
-              <p className="text-slate-600 mt-2">Preparado para ~70 empresas, búsqueda rápida, matriz mensual y proyección de cierre.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Btn onClick={exportCruce}>Exportar cruce</Btn>
-              <Btn onClick={exportReporteMensual}>Exportar reporte mensual</Btn>
-              <Btn onClick={exportBackup}>Backup JSON</Btn>
-              <Btn onClick={resetDemo} variant="danger">Reset demo</Btn>
-            </div>
-          </div>
-
-          <Card title="Filtros globales" subtitle="Todo se recalcula con estos filtros: dashboard, producción, cobro, análisis y reportes." actions={<div className="w-full md:w-72"><Input label="Buscar empresa / servicio / observación" value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Ej: JKL, permuta, trasnoche" /></div>}>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-8 gap-3">
-              <Input label="Fecha desde" type="date" value={filters.fechaDesde} onChange={e => setFilters(f => ({ ...f, fechaDesde:e.target.value }))} />
-              <Input label="Fecha hasta" type="date" value={filters.fechaHasta} onChange={e => setFilters(f => ({ ...f, fechaHasta:e.target.value }))} />
-              <Select label="Mes" value={filters.mes} onChange={e => setFilters(f => ({ ...f, mes:e.target.value }))} options={monthOptions} />
-              <Select label="Faena" value={filters.faenaId} onChange={e => setFilters(f => ({ ...f, faenaId:e.target.value }))} options={options.faena} />
-              <Select label="Empresa" value={filters.empresaId} onChange={e => setFilters(f => ({ ...f, empresaId:e.target.value }))} options={options.empresa} />
-              <Select label="Turno" value={filters.turnoId} onChange={e => setFilters(f => ({ ...f, turnoId:e.target.value }))} options={options.turno} />
-              <Select label="Servicio" value={filters.servicioId} onChange={e => setFilters(f => ({ ...f, servicioId:e.target.value }))} options={options.servicio} />
-              <Select label="Día" value={filters.dia} onChange={e => setFilters(f => ({ ...f, dia:e.target.value }))} options={options.dia} />
-            </div>
-          </Card>
-
-          {tab === 'Dashboard' && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-8 gap-4">
-                <KPI title="Curva comprometida" value={fmt(dashboard.totalCurva)} subtitle="Total filtrado" tone="sky" />
-                <KPI title="Asistencia real" value={fmt(dashboard.totalReal)} subtitle="Registro real observado" tone="emerald" />
-                <KPI title="Cantidad a cobrar" value={fmt(dashboard.totalCobrar)} subtitle="Base cobro vs real" tone="amber" />
-                <KPI title="Producción sugerida" value={fmt(dashboard.totalProd)} subtitle="Motor de recomendación" tone="slate" />
-                <KPI title="Brecha cobrable-real" value={fmt(dashboard.brecha)} subtitle="Impacto financiero" tone="rose" />
-                <KPI title="Brecha curva-real" value={fmt(dashboard.brechaCurva)} subtitle="Desvío contractual" tone="slate" />
-                <KPI title="Alertas rojas" value={fmt(dashboard.rojos)} subtitle="Casos críticos" tone="rose" />
-                <KPI title="Cobro terreno+permutas" value={fmt(dashboard.terreno)} subtitle="Permutas = terreno" tone="slate" />
-              </div>
-
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                <Card title="Comportamiento por día de semana" subtitle="Promedio real según histórico filtrado.">
-                  <div className="space-y-3">
-                    {analysis.byDay.length === 0 && <div className="text-sm text-slate-500">No hay datos para los filtros actuales.</div>}
-                    {analysis.byDay.map(r => (
-                      <div key={r.nombre}>
-                        <div className="flex items-center justify-between text-sm mb-1">
-                          <span className="font-medium">{r.nombre}</span>
-                          <span>{fmt(Math.round(r.promReal))} real promedio</span>
-                        </div>
-                        <div className="h-3 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-slate-900 rounded-full" style={{ width: `${Math.min((r.promReal / chartMax) * 100, 100)}%` }}></div></div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                <Card title="Proyección de cierre del mes" subtitle="Estimación simple usando comportamiento histórico del mismo día de semana.">
-                  {!prediccionMes ? <div className="text-sm text-slate-500">No hay mes seleccionado para proyectar.</div> : (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200"><div className="text-sm text-slate-500">Mes</div><div className="text-xl font-semibold mt-1">{prediccionMes.mes}</div></div>
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200"><div className="text-sm text-slate-500">Cobrable acumulado</div><div className="text-xl font-semibold mt-1">{fmt(prediccionMes.cobrableAcumulado)}</div></div>
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200"><div className="text-sm text-slate-500">Cierre proyectado</div><div className="text-xl font-semibold mt-1">{fmt(prediccionMes.cierreProyectado)}</div></div>
-                      </div>
-                      <div className="text-sm text-slate-600">Días pendientes por proyectar: <b>{prediccionMes.diasPendientes}</b></div>
-                      <div className="max-h-60 overflow-auto scrollbar-thin border border-slate-200 rounded-2xl">
-                        <table className="min-w-full text-sm">
-                          <thead><tr className="border-b border-slate-200 text-left text-slate-500"><th className="py-2 px-3">Fecha</th><th className="py-2 px-3">Día</th><th className="py-2 px-3 text-right">Forecast</th></tr></thead>
-                          <tbody>{prediccionMes.proximos.map(r => <tr key={r.fecha} className="border-b border-slate-100"><td className="py-2 px-3">{r.fecha}</td><td className="py-2 px-3">{r.dia}</td><td className="py-2 px-3 text-right font-medium">{fmt(r.forecast)}</td></tr>)}</tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </Card>
-              </div>
-            </>
-          )}
-
-          {tab === 'Maestros' && (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              <Card title="Empresas" subtitle="Soporta una base amplia. Usa el buscador superior para navegar más rápido.">
-                <div className="flex gap-2 mb-4"><input value={master.empresa} onChange={e => setMaster(m => ({ ...m, empresa:e.target.value }))} className="flex-1 px-3 py-2 rounded-xl border border-slate-300" placeholder="Nueva empresa" /><Btn onClick={() => addMaster('empresa', master.empresa)} variant="dark">Agregar</Btn></div>
-                <div className="max-h-[420px] overflow-auto scrollbar-thin space-y-2">{state.empresas.map(x => <div key={x.id} className="p-3 rounded-xl border border-slate-200 flex items-center justify-between"><span>{x.nombre}</span><Btn onClick={() => delMaster('empresas', x.id)} variant="danger">Eliminar</Btn></div>)}</div>
-              </Card>
-              <Card title="Faenas"><div className="flex gap-2 mb-4"><input value={master.faena} onChange={e => setMaster(m => ({ ...m, faena:e.target.value }))} className="flex-1 px-3 py-2 rounded-xl border border-slate-300" placeholder="Nueva faena" /><Btn onClick={() => addMaster('faena', master.faena)} variant="dark">Agregar</Btn></div><div className="space-y-2">{state.faenas.map(x => <div key={x.id} className="p-3 rounded-xl border border-slate-200 flex items-center justify-between"><span>{x.nombre}</span><Btn onClick={() => delMaster('faenas', x.id)} variant="danger">Eliminar</Btn></div>)}</div></Card>
-              <Card title="Turnos"><div className="flex gap-2 mb-4"><input value={master.turno} onChange={e => setMaster(m => ({ ...m, turno:e.target.value }))} className="flex-1 px-3 py-2 rounded-xl border border-slate-300" placeholder="Nuevo turno" /><Btn onClick={() => addMaster('turno', master.turno)} variant="dark">Agregar</Btn></div><div className="space-y-2">{state.turnos.map(x => <div key={x.id} className="p-3 rounded-xl border border-slate-200 flex items-center justify-between"><span>{x.nombre}</span><Btn onClick={() => delMaster('turnos', x.id)} variant="danger">Eliminar</Btn></div>)}</div></Card>
-              <Card title="Servicios" subtitle="Incluye permutas, retail y consumos logísticos."><div className="flex gap-2 mb-4"><input value={master.servicio} onChange={e => setMaster(m => ({ ...m, servicio:e.target.value }))} className="flex-1 px-3 py-2 rounded-xl border border-slate-300" placeholder="Nuevo servicio" /><Btn onClick={() => addMaster('servicio', master.servicio)} variant="dark">Agregar</Btn></div><div className="max-h-[420px] overflow-auto scrollbar-thin space-y-2">{state.servicios.map(x => <div key={x.id} className="p-3 rounded-xl border border-slate-200 flex items-center justify-between"><span>{x.nombre}</span><Btn onClick={() => delMaster('servicios', x.id)} variant="danger">Eliminar</Btn></div>)}</div></Card>
-            </div>
-          )}
-
-          {tab === 'Curva contratistas' && (
-            <Card title="Curva contratistas" subtitle="Carga diaria o mensual por empresa. Esta es la base contractual para planificar y cobrar.">
-              <form onSubmit={saveCurva} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                <Input label="Fecha" type="date" value={curveForm.fecha} onChange={e => setCurveForm(f => ({ ...f, fecha:e.target.value }))} />
-                <Select label="Faena" value={curveForm.faenaId} onChange={e => setCurveForm(f => ({ ...f, faenaId:e.target.value }))} options={state.faenas.map(x => ({ value:x.id, label:x.nombre }))} />
-                <Select label="Empresa" value={curveForm.empresaId} onChange={e => setCurveForm(f => ({ ...f, empresaId:e.target.value }))} options={state.empresas.map(x => ({ value:x.id, label:x.nombre }))} />
-                <Select label="Turno" value={curveForm.turnoId} onChange={e => setCurveForm(f => ({ ...f, turnoId:e.target.value }))} options={state.turnos.map(x => ({ value:x.id, label:x.nombre }))} />
-                <Select label="Servicio" value={curveForm.servicioId} onChange={e => setCurveForm(f => ({ ...f, servicioId:e.target.value }))} options={state.servicios.map(x => ({ value:x.id, label:x.nombre }))} />
-                <Input label="Cantidad curva" type="number" min="0" value={curveForm.cantidad} onChange={e => setCurveForm(f => ({ ...f, cantidad:e.target.value }))} />
-                <Input label="Fuente" value={curveForm.fuente} onChange={e => setCurveForm(f => ({ ...f, fuente:e.target.value }))} />
-                <Select label="Usuario" value={curveForm.usuarioId} onChange={e => setCurveForm(f => ({ ...f, usuarioId:e.target.value }))} options={state.usuarios.map(x => ({ value:x.id, label:x.nombre }))} />
-                <div className="xl:col-span-4 flex justify-end"><Btn type="submit" variant="dark">Guardar curva</Btn></div>
-              </form>
-            </Card>
-          )}
-
-          {tab === 'Asistencia real' && (
-            <Card title="Asistencia real" subtitle="Acá registras consumo real y proyección operativa del día.">
-              <form onSubmit={saveReal} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                <Input label="Fecha" type="date" value={realForm.fecha} onChange={e => setRealForm(f => ({ ...f, fecha:e.target.value }))} />
-                <Select label="Faena" value={realForm.faenaId} onChange={e => setRealForm(f => ({ ...f, faenaId:e.target.value }))} options={state.faenas.map(x => ({ value:x.id, label:x.nombre }))} />
-                <Select label="Empresa" value={realForm.empresaId} onChange={e => setRealForm(f => ({ ...f, empresaId:e.target.value }))} options={state.empresas.map(x => ({ value:x.id, label:x.nombre }))} />
-                <Select label="Turno" value={realForm.turnoId} onChange={e => setRealForm(f => ({ ...f, turnoId:e.target.value }))} options={state.turnos.map(x => ({ value:x.id, label:x.nombre }))} />
-                <Select label="Servicio" value={realForm.servicioId} onChange={e => setRealForm(f => ({ ...f, servicioId:e.target.value }))} options={state.servicios.map(x => ({ value:x.id, label:x.nombre }))} />
-                <Input label="Cantidad real" type="number" min="0" value={realForm.cantidad} onChange={e => setRealForm(f => ({ ...f, cantidad:e.target.value }))} />
-                <Input label="Proyección operativa" type="number" min="0" value={realForm.proyectado} onChange={e => setRealForm(f => ({ ...f, proyectado:e.target.value }))} />
-                <Select label="Usuario" value={realForm.usuarioId} onChange={e => setRealForm(f => ({ ...f, usuarioId:e.target.value }))} options={state.usuarios.map(x => ({ value:x.id, label:x.nombre }))} />
-                <label className="block space-y-1 md:col-span-2 xl:col-span-4"><span className="text-sm text-slate-600">Observación</span><textarea value={realForm.observacion} onChange={e => setRealForm(f => ({ ...f, observacion:e.target.value }))} rows="3" className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"></textarea></label>
-                <div className="xl:col-span-4 flex justify-end"><Btn type="submit" variant="dark">Guardar real</Btn></div>
-              </form>
-            </Card>
-          )}
-
-          {tab === 'Producción sugerida' && (
-            <Card title="Producción sugerida" subtitle="Máximo entre curva, promedio histórico, promedio del mismo día y promedio de últimas 4 observaciones.">
-              <div className="overflow-auto scrollbar-thin sticky-head max-h-[680px]">
-                <table className="min-w-full text-sm">
-                  <thead><tr className="border-b border-slate-200 text-slate-500 text-left"><th className="py-3 pr-4">Fecha</th><th className="py-3 pr-4">Empresa</th><th className="py-3 pr-4">Turno</th><th className="py-3 pr-4">Servicio</th><th className="py-3 pr-4 text-right">Curva</th><th className="py-3 pr-4 text-right">Prom. hist</th><th className="py-3 pr-4 text-right">Prom. mismo día</th><th className="py-3 pr-4 text-right">Prom. últimas 4</th><th className="py-3 pr-4 text-right">Producción sugerida</th></tr></thead>
-                  <tbody>{filtered.map(r => <tr key={r.key} className="border-b border-slate-100"><td className="py-3 pr-4 whitespace-nowrap">{r.fecha}</td><td className="py-3 pr-4 whitespace-nowrap">{r.empresa}</td><td className="py-3 pr-4 whitespace-nowrap">{r.turno}</td><td className="py-3 pr-4 whitespace-nowrap">{r.servicio}</td><td className="py-3 pr-4 text-right">{fmt(r.curva)}</td><td className="py-3 pr-4 text-right">{fmt(Math.round(r.promHist))}</td><td className="py-3 pr-4 text-right">{fmt(Math.round(r.promDia))}</td><td className="py-3 pr-4 text-right">{fmt(Math.round(r.prom4))}</td><td className="py-3 pr-4 text-right font-semibold">{fmt(r.prodSugerida)}</td></tr>)}{filtered.length === 0 && <tr><td colSpan="9" className="py-8 text-center text-slate-500">No hay datos para calcular producción sugerida.</td></tr>}</tbody>
-                </table>
-              </div>
-            </Card>
-          )}
-
-          {tab === 'Base de cobro' && (
-            <Card title="Base de cobro" subtitle="Si hay curva, la base es curva; si no, la base es proyección. Luego se cobra el mayor entre base y real.">
-              <div className="overflow-auto scrollbar-thin sticky-head max-h-[680px]">
-                <table className="min-w-full text-sm">
-                  <thead><tr className="border-b border-slate-200 text-slate-500 text-left"><th className="py-3 pr-4">Fecha</th><th className="py-3 pr-4">Empresa</th><th className="py-3 pr-4">Turno</th><th className="py-3 pr-4">Servicio</th><th className="py-3 pr-4 text-right">Curva</th><th className="py-3 pr-4 text-right">Proy.</th><th className="py-3 pr-4 text-right">Real</th><th className="py-3 pr-4 text-right">Base cobro</th><th className="py-3 pr-4 text-right">Cobrar</th><th className="py-3 pr-4">Semáforo</th><th className="py-3 pr-4">Lectura</th><th className="py-3 pr-4">Terreno</th></tr></thead>
-                  <tbody>{filtered.map(r => <tr key={r.key} className="border-b border-slate-100"><td className="py-3 pr-4 whitespace-nowrap">{r.fecha}</td><td className="py-3 pr-4 whitespace-nowrap">{r.empresa}</td><td className="py-3 pr-4 whitespace-nowrap">{r.turno}</td><td className="py-3 pr-4 whitespace-nowrap">{r.servicio}</td><td className="py-3 pr-4 text-right">{fmt(r.curva)}</td><td className="py-3 pr-4 text-right">{fmt(r.proyectado)}</td><td className="py-3 pr-4 text-right">{fmt(r.real)}</td><td className="py-3 pr-4 text-right">{fmt(r.baseCobro)}</td><td className="py-3 pr-4 text-right font-semibold">{fmt(r.cobrar)}</td><td className="py-3 pr-4">{semaforoPill(r.semaforo)}</td><td className="py-3 pr-4">{r.lectura}</td><td className="py-3 pr-4">{r.terrenoClasificado}</td></tr>)}{filtered.length === 0 && <tr><td colSpan="12" className="py-8 text-center text-slate-500">No hay registros para validar cobro.</td></tr>}</tbody>
-                </table>
-              </div>
-            </Card>
-          )}
-
-          {tab === 'Análisis' && (
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              <Card title="Promedio por día"><table className="w-full text-sm"><thead><tr className="text-left text-slate-500 border-b border-slate-200"><th className="py-2">Día</th><th className="py-2 text-right">Curva</th><th className="py-2 text-right">Real</th><th className="py-2 text-right">Cobro</th></tr></thead><tbody>{analysis.byDay.map(r => <tr key={r.nombre} className="border-b border-slate-100"><td className="py-2">{r.nombre}</td><td className="py-2 text-right">{fmt(Math.round(r.promCurva))}</td><td className="py-2 text-right font-medium">{fmt(Math.round(r.promReal))}</td><td className="py-2 text-right font-semibold">{fmt(Math.round(r.promCobro))}</td></tr>)}</tbody></table></Card>
-              <Card title="Promedio por turno"><table className="w-full text-sm"><thead><tr className="text-left text-slate-500 border-b border-slate-200"><th className="py-2">Turno</th><th className="py-2 text-right">Curva</th><th className="py-2 text-right">Real</th><th className="py-2 text-right">Cobro</th></tr></thead><tbody>{analysis.byTurn.map(r => <tr key={r.nombre} className="border-b border-slate-100"><td className="py-2">{r.nombre}</td><td className="py-2 text-right">{fmt(Math.round(r.promCurva))}</td><td className="py-2 text-right font-medium">{fmt(Math.round(r.promReal))}</td><td className="py-2 text-right font-semibold">{fmt(Math.round(r.promCobro))}</td></tr>)}</tbody></table></Card>
-              <Card title="Patrón por empresa" subtitle="Te muestra quién infla curva y cuánto termina cobrando."><div className="max-h-[520px] overflow-auto scrollbar-thin"><table className="w-full text-sm"><thead><tr className="text-left text-slate-500 border-b border-slate-200"><th className="py-2">Empresa</th><th className="py-2 text-right">Curva</th><th className="py-2 text-right">Real</th><th className="py-2 text-right">Gap</th></tr></thead><tbody>{analysis.byEmpresa.map(r => <tr key={r.nombre} className="border-b border-slate-100"><td className="py-2">{r.nombre}</td><td className="py-2 text-right">{fmt(Math.round(r.promCurva))}</td><td className="py-2 text-right font-medium">{fmt(Math.round(r.promReal))}</td><td className={`py-2 text-right font-semibold ${r.gap > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>{fmt(Math.round(r.gap))}</td></tr>)}</tbody></table></div></Card>
-            </div>
-          )}
-
-          {tab === 'Reporte mensual' && (
-            <Card title="Reporte mensual por empresa" subtitle="Pensado para control gestión y apoyo a facturación.">
-              <div className="overflow-auto scrollbar-thin sticky-head max-h-[680px]">
-                <table className="min-w-full text-sm"><thead><tr className="border-b border-slate-200 text-slate-500 text-left"><th className="py-3 pr-4">Mes</th><th className="py-3 pr-4">Empresa</th><th className="py-3 pr-4 text-right">Curva</th><th className="py-3 pr-4 text-right">Real</th><th className="py-3 pr-4 text-right">Cobrar</th><th className="py-3 pr-4 text-right">Producción sug.</th><th className="py-3 pr-4 text-right">Registros</th><th className="py-3 pr-4 text-right">Rojos</th><th className="py-3 pr-4 text-right">Amarillos</th></tr></thead><tbody>{reporteMensual.map(r => <tr key={`${r.mes}|${r.empresa}`} className="border-b border-slate-100"><td className="py-3 pr-4 whitespace-nowrap">{r.mes}</td><td className="py-3 pr-4 whitespace-nowrap">{r.empresa}</td><td className="py-3 pr-4 text-right">{fmt(r.curva)}</td><td className="py-3 pr-4 text-right">{fmt(r.real)}</td><td className="py-3 pr-4 text-right font-semibold">{fmt(r.cobrar)}</td><td className="py-3 pr-4 text-right">{fmt(r.prod)}</td><td className="py-3 pr-4 text-right">{fmt(r.registros)}</td><td className="py-3 pr-4 text-right text-rose-700 font-semibold">{fmt(r.rojos)}</td><td className="py-3 pr-4 text-right text-amber-700 font-semibold">{fmt(r.amarillos)}</td></tr>)}{reporteMensual.length === 0 && <tr><td colSpan="9" className="py-8 text-center text-slate-500">No hay datos para reporte mensual.</td></tr>}</tbody></table>
-              </div>
-            </Card>
-          )}
-
-          {tab === 'Importar / Exportar' && (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              <Card title="Importación masiva estándar" subtitle="Una fila por registro. Útil cuando ya tienes la planilla normalizada.">
-                <div className="flex flex-wrap gap-2 mb-3"><Btn onClick={() => setBulkMode('curva')} variant={bulkMode==='curva' ? 'dark' : 'default'}>Modo curva</Btn><Btn onClick={() => setBulkMode('real')} variant={bulkMode==='real' ? 'dark' : 'default'}>Modo real</Btn></div>
-                <div className="text-sm text-slate-600 mb-3">{bulkMode === 'curva' ? 'Encabezados: fecha;faena;empresa;turno;servicio;cantidad;fuente' : 'Encabezados: fecha;faena;empresa;turno;servicio;real;proyectado;observacion'}</div>
-                <textarea value={bulkText} onChange={e => setBulkText(e.target.value)} rows="12" className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-sm"></textarea>
-                <div className="mt-4 flex justify-end"><Btn onClick={importBulk} variant="dark">Importar estándar</Btn></div>
-              </Card>
-
-              <Card title="Carga mensual tipo matriz" subtitle="El formato correcto para 70 empresas: una fila por empresa+turno+servicio y un día por columna.">
-                <div className="flex flex-wrap gap-2 mb-3"><Btn onClick={() => setMatrixMode('curva')} variant={matrixMode==='curva' ? 'dark' : 'default'}>Matriz curva</Btn><Btn onClick={() => setMatrixMode('real')} variant={matrixMode==='real' ? 'dark' : 'default'}>Matriz real</Btn></div>
-                <div className="text-sm text-slate-600 mb-3">Primeras columnas obligatorias: <b>faena;empresa;turno;servicio;fuente</b>. Desde la sexta columna, cada encabezado debe ser una fecha en formato YYYY-MM-DD.</div>
-                <textarea value={matrixText} onChange={e => setMatrixText(e.target.value)} rows="12" className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-sm"></textarea>
-                <div className="mt-4 flex justify-end"><Btn onClick={importMatrix} variant="dark">Importar matriz mensual</Btn></div>
-              </Card>
-
-              <Card title="Plantilla matriz sugerida" subtitle="Este formato es el que realmente te conviene para curvas mensuales de contratistas.">
-                <div className="space-y-3 text-sm">
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200"><div className="font-semibold">Matriz curva mensual</div><pre className="mt-3 text-xs bg-white border border-slate-200 rounded-xl p-3 overflow-auto">faena;empresa;turno;servicio;fuente;2026-03-01;2026-03-02;2026-03-03;2026-03-04;2026-03-05
-División Salvador;JKL;A;Almuerzo;Correo contratista;80;82;79;81;80
-División Salvador;JKL;A;Permuta almuerzo;Correo contratista;18;18;20;18;18
-División Salvador;MNO;A;Almuerzo;Correo contratista;55;54;56;55;55</pre></div>
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200"><div className="font-semibold">Matriz real mensual</div><pre className="mt-3 text-xs bg-white border border-slate-200 rounded-xl p-3 overflow-auto">faena;empresa;turno;servicio;fuente;2026-03-01;2026-03-02;2026-03-03;2026-03-04;2026-03-05
-División Salvador;JKL;A;Almuerzo;Carga operación;50;78;76;79;50
-División Salvador;JKL;A;Permuta almuerzo;Carga operación;15;17;18;16;15
-División Salvador;MNO;A;Almuerzo;Carga operación;57;54;58;56;57</pre></div>
-                </div>
-              </Card>
-
-              <Card title="Exportaciones disponibles" subtitle="Salida para control, respaldo y facturación.">
-                <div className="space-y-3 text-sm">
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200"><div className="font-semibold">Cruce completo</div><div className="mt-1 text-slate-600">Fecha, empresa, turno, servicio, curva, real, producción sugerida, base de cobro y cantidad a cobrar.</div><div className="mt-3"><Btn onClick={exportCruce}>Exportar cruce</Btn></div></div>
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200"><div className="font-semibold">Reporte mensual</div><div className="mt-1 text-slate-600">Resumen por empresa para control de gestión y apoyo a facturación.</div><div className="mt-3"><Btn onClick={exportReporteMensual}>Exportar reporte mensual</Btn></div></div>
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200"><div className="font-semibold">Backup JSON</div><div className="mt-1 text-slate-600">Respaldo completo de maestros, curvas y reales.</div><div className="mt-3"><Btn onClick={exportBackup}>Descargar backup</Btn></div></div>
-                </div>
-              </Card>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            <Card title="Histórico de curvas" subtitle="Eliminación simple mientras no exista edición completa."><div className="max-h-[360px] overflow-auto scrollbar-thin space-y-2">{state.curva.map(r => <div key={r.id} className="p-3 rounded-xl border border-slate-200 flex items-start justify-between gap-3"><div className="text-sm"><div className="font-medium">{r.fecha} · {maps.empresa[r.empresaId] || '-'} · {maps.turno[r.turnoId] || '-'} · {maps.servicio[r.servicioId] || '-'}</div><div className="text-slate-500 mt-1">{maps.faena[r.faenaId] || '-'} · Curva: {fmt(r.cantidad)}</div></div><Btn onClick={() => deleteCurva(r.id)} variant="danger">Eliminar</Btn></div>)}</div></Card>
-            <Card title="Histórico de reales" subtitle="Eliminación simple mientras no exista edición completa."><div className="max-h-[360px] overflow-auto scrollbar-thin space-y-2">{state.reales.map(r => <div key={r.id} className="p-3 rounded-xl border border-slate-200 flex items-start justify-between gap-3"><div className="text-sm"><div className="font-medium">{r.fecha} · {maps.empresa[r.empresaId] || '-'} · {maps.turno[r.turnoId] || '-'} · {maps.servicio[r.servicioId] || '-'}</div><div className="text-slate-500 mt-1">Real: {fmt(r.cantidad)} · Proyectado: {fmt(r.proyectado)} · {r.observacion || 'Sin observación'}</div></div><Btn onClick={() => deleteReal(r.id)} variant="danger">Eliminar</Btn></div>)}</div></Card>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+render()
+
 </script>
+
 </body>
 </html>
