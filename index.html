@@ -3,23 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Control Operacional de Raciones</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 
-<style>
-body{
-    font-family: Arial, sans-serif;
-}
-</style>
-
 </head>
 
-<body class="bg-slate-100">
+<body class="bg-gray-100">
 
 <div class="flex">
 
 <!-- SIDEBAR -->
+
 <div class="w-64 bg-slate-900 text-white min-h-screen p-4">
 
 <h1 class="text-xl font-bold mb-6">
@@ -28,13 +24,9 @@ Control Raciones
 
 <ul class="space-y-2">
 
-<li class="bg-slate-700 p-2 rounded">Dashboard</li>
-<li class="p-2">Curva contratistas</li>
-<li class="p-2">Asistencia real</li>
-<li class="p-2">Producción sugerida</li>
-<li class="p-2">Base de cobro</li>
-<li class="p-2">Análisis</li>
-<li class="p-2">Reporte mensual</li>
+<li onclick="mostrar('dashboard')" class="cursor-pointer bg-slate-700 p-2 rounded">Dashboard</li>
+<li onclick="mostrar('ingreso')" class="cursor-pointer p-2">Ingreso raciones</li>
+<li onclick="mostrar('historial')" class="cursor-pointer p-2">Histórico</li>
 
 </ul>
 
@@ -44,39 +36,47 @@ Control Raciones
 
 <div class="flex-1 p-8">
 
-<h2 class="text-2xl font-bold mb-6">
-Dashboard Operacional
-</h2>
+<!-- DASHBOARD -->
+
+<div id="dashboard">
+
+<h2 class="text-2xl font-bold mb-6">Dashboard Operacional</h2>
 
 <div class="grid grid-cols-4 gap-4">
 
 <div class="bg-white p-4 rounded shadow">
 <p class="text-gray-500 text-sm">Curva total</p>
-<p class="text-3xl font-bold" id="curva">0</p>
+<p id="curvaTotal" class="text-3xl font-bold">0</p>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
 <p class="text-gray-500 text-sm">Real</p>
-<p class="text-3xl font-bold" id="real">0</p>
+<p id="realTotal" class="text-3xl font-bold">0</p>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
 <p class="text-gray-500 text-sm">Cobro</p>
-<p class="text-3xl font-bold" id="cobro">0</p>
+<p id="cobroTotal" class="text-3xl font-bold">0</p>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
 <p class="text-gray-500 text-sm">Producción sugerida</p>
-<p class="text-3xl font-bold" id="produccion">0</p>
+<p id="produccionTotal" class="text-3xl font-bold">0</p>
 </div>
 
 </div>
 
-<div class="mt-10 bg-white p-6 rounded shadow">
+</div>
 
-<h3 class="text-lg font-semibold mb-4">
+<!-- INGRESO -->
+
+<div id="ingreso" class="hidden">
+
+<h2 class="text-2xl font-bold mb-6">
 Ingreso de raciones
-</h3>
+</h2>
+
+<div class="bg-white p-6 rounded shadow">
 
 <div class="grid grid-cols-4 gap-4">
 
@@ -86,12 +86,12 @@ class="border p-2 rounded">
 <input id="servicio" placeholder="Servicio"
 class="border p-2 rounded">
 
-<input id="curvaInput" placeholder="Curva"
-type="number"
+<input id="curva" type="number"
+placeholder="Curva"
 class="border p-2 rounded">
 
-<input id="realInput" placeholder="Real"
-type="number"
+<input id="real" type="number"
+placeholder="Real"
 class="border p-2 rounded">
 
 </div>
@@ -105,21 +105,30 @@ Guardar registro
 
 </div>
 
-<div class="mt-10 bg-white p-6 rounded shadow">
+</div>
 
-<h3 class="text-lg font-semibold mb-4">
+<!-- HISTORIAL -->
+
+<div id="historial" class="hidden mt-10">
+
+<h2 class="text-2xl font-bold mb-6">
 Histórico
-</h3>
+</h2>
+
+<div class="bg-white p-6 rounded shadow">
 
 <table class="w-full">
 
 <thead>
-<tr class="text-left border-b">
+<tr class="border-b text-left">
+
 <th class="p-2">Empresa</th>
 <th class="p-2">Servicio</th>
 <th class="p-2">Curva</th>
 <th class="p-2">Real</th>
 <th class="p-2">Cobro</th>
+<th class="p-2"></th>
+
 </tr>
 </thead>
 
@@ -133,18 +142,37 @@ Histórico
 
 </div>
 
+</div>
+
 <script>
 
 let datos = JSON.parse(localStorage.getItem("raciones") || "[]")
+
+function mostrar(seccion){
+
+document.getElementById("dashboard").classList.add("hidden")
+document.getElementById("ingreso").classList.add("hidden")
+document.getElementById("historial").classList.add("hidden")
+
+document.getElementById(seccion).classList.remove("hidden")
+
+}
 
 function guardar(){
 
 let empresa = document.getElementById("empresa").value
 let servicio = document.getElementById("servicio").value
-let curva = Number(document.getElementById("curvaInput").value)
-let real = Number(document.getElementById("realInput").value)
+let curva = Number(document.getElementById("curva").value)
+let real = Number(document.getElementById("real").value)
 
-let cobro = Math.max(curva,real)
+if(!empresa || !servicio){
+
+alert("Debe ingresar empresa y servicio")
+return
+
+}
+
+let cobro = Math.max(curva, real)
 
 datos.push({
 empresa,
@@ -154,9 +182,32 @@ real,
 cobro
 })
 
-localStorage.setItem("raciones",JSON.stringify(datos))
+localStorage.setItem("raciones", JSON.stringify(datos))
+
+limpiar()
 
 render()
+
+mostrar("historial")
+
+}
+
+function eliminar(i){
+
+datos.splice(i,1)
+
+localStorage.setItem("raciones", JSON.stringify(datos))
+
+render()
+
+}
+
+function limpiar(){
+
+document.getElementById("empresa").value=""
+document.getElementById("servicio").value=""
+document.getElementById("curva").value=""
+document.getElementById("real").value=""
 
 }
 
@@ -164,13 +215,13 @@ function render(){
 
 let tabla = document.getElementById("tabla")
 
-tabla.innerHTML = ""
+tabla.innerHTML=""
 
-let curvaTotal = 0
-let realTotal = 0
-let cobroTotal = 0
+let curvaTotal=0
+let realTotal=0
+let cobroTotal=0
 
-datos.forEach(d=>{
+datos.forEach((d,i)=>{
 
 curvaTotal += d.curva
 realTotal += d.real
@@ -178,20 +229,29 @@ cobroTotal += d.cobro
 
 tabla.innerHTML += `
 <tr class="border-b">
+
 <td class="p-2">${d.empresa}</td>
 <td class="p-2">${d.servicio}</td>
 <td class="p-2">${d.curva}</td>
 <td class="p-2">${d.real}</td>
 <td class="p-2">${d.cobro}</td>
+
+<td class="p-2">
+<button onclick="eliminar(${i})"
+class="text-red-600">
+Eliminar
+</button>
+</td>
+
 </tr>
 `
 
 })
 
-document.getElementById("curva").innerText = curvaTotal
-document.getElementById("real").innerText = realTotal
-document.getElementById("cobro").innerText = cobroTotal
-document.getElementById("produccion").innerText = Math.max(curvaTotal,realTotal)
+document.getElementById("curvaTotal").innerText = curvaTotal
+document.getElementById("realTotal").innerText = realTotal
+document.getElementById("cobroTotal").innerText = cobroTotal
+document.getElementById("produccionTotal").innerText = Math.max(curvaTotal, realTotal)
 
 }
 
