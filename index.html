@@ -1,381 +1,450 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Control Operacional de Raciones</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-  <style>
-    html, body { height: 100%; }
-    body { background:#eef2f7; }
-    .matrix-top-scroll { overflow-x:auto; overflow-y:hidden; height:16px; }
-    .matrix-top-scroll > div { height:1px; }
-    .matrix-wrap { overflow:auto; max-height:62vh; border:1px solid #e2e8f0; border-radius:1rem; background:#fff; }
-    .matrix { border-collapse:separate; border-spacing:0; min-width:max-content; width:max-content; }
-    .matrix th, .matrix td { border-right:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0; padding:10px 12px; font-size:14px; white-space:nowrap; }
-    .matrix th { position:sticky; top:0; z-index:20; background:#f8fafc; font-weight:700; }
-    .matrix .sticky-col { position:sticky; left:0; z-index:10; background:#fff; }
-    .matrix th.sticky-col { z-index:30; background:#f8fafc; }
-    .matrix tr:hover td { background:#fafcff; }
-    .matrix .tree-cell { display:flex; align-items:center; gap:8px; min-width:340px; }
-    .matrix .indent { display:inline-block; }
-    .matrix .toggle-btn { width:24px; height:24px; border-radius:8px; border:1px solid #cbd5e1; background:#fff; font-weight:700; }
-    .shadow-soft { box-shadow:0 10px 30px rgba(15,23,42,.08); }
-    .panel { background:#fff; border:1px solid #e2e8f0; border-radius:1.25rem; box-shadow:0 10px 30px rgba(15,23,42,.05); }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Operacional de Raciones</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+body{background:#f1f5f9}
+.table-scroll{overflow-x:auto}
+.sticky-col{position:sticky;left:0;background:white}
+</style>
 </head>
 <body class="text-slate-900">
-  <div class="min-h-screen grid grid-cols-[290px_1fr] max-lg:grid-cols-1">
-    <aside class="bg-slate-950 text-white p-5 max-lg:relative lg:sticky lg:top-0 lg:h-screen overflow-auto">
-      <div class="pb-5 border-b border-slate-800">
-        <h1 class="text-2xl font-extrabold">Control Raciones</h1>
-        <p class="text-slate-400 text-sm mt-1">Faena minera · control operacional y contractual</p>
-      </div>
 
-      <div class="mt-4 space-y-3">
-        <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-          <label class="block text-xs text-slate-400 mb-1">Perfil</label>
-          <select id="perfilSelector" class="w-full rounded-xl px-3 py-2 text-slate-900">
-            <option value="ADMIN">Administrador</option>
-            <option value="SUPERVISOR">Supervisor</option>
-          </select>
-        </div>
-        <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-          <label class="block text-xs text-slate-400 mb-1">Período activo</label>
-          <input id="periodoSelector" type="month" class="w-full rounded-xl px-3 py-2 text-slate-900" />
-        </div>
-        <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 space-y-2">
-          <label class="block text-xs text-slate-400">Turno de análisis</label>
-          <select id="turnoFiltroGlobal" class="w-full rounded-xl px-3 py-2 text-slate-900"></select>
-          <label class="block text-xs text-slate-400">Permutas</label>
-          <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="chkAgruparPermutas" class="rounded"> Agrupar como COLACION TERRENO</label>
-        </div>
-      </div>
+<div class="flex min-h-screen">
 
-      <nav id="menu" class="mt-5 space-y-2"></nav>
+<!-- SIDEBAR -->
+<aside class="w-72 bg-slate-950 text-white p-4 space-y-2">
+<h1 class="text-xl font-bold mb-4">Control Raciones</h1>
 
-      <div class="mt-5 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 space-y-2">
-        <button id="btnExportCurrentExcel" class="w-full rounded-xl bg-white text-slate-900 px-4 py-2 font-semibold">Excel actual</button>
-        <button id="btnExportDetailExcel" class="w-full rounded-xl bg-slate-800 text-white px-4 py-2 font-semibold">Excel detalle</button>
-        <button id="btnExportPDF" class="w-full rounded-xl bg-slate-800 text-white px-4 py-2 font-semibold">PDF visible</button>
-        <button id="btnReset" class="w-full rounded-xl bg-rose-700 text-white px-4 py-2 font-semibold">Reset local</button>
-      </div>
-    </aside>
+<button data-section="dashboard" class="menu w-full text-left p-2 bg-slate-700 rounded">Dashboard</button>
+<button data-section="supervisores" class="menu w-full text-left p-2 hover:bg-slate-800 rounded">Venta supervisores</button>
+<button data-section="produccion" class="menu w-full text-left p-2 hover:bg-slate-800 rounded">Producción</button>
+<button data-section="sistema" class="menu w-full text-left p-2 hover:bg-slate-800 rounded">Venta sistema</button>
+<button data-section="manual" class="menu w-full text-left p-2 hover:bg-slate-800 rounded">Venta manual</button>
+<button data-section="analisis" class="menu w-full text-left p-2 hover:bg-slate-800 rounded">Análisis</button>
+<button data-section="comparativo" class="menu w-full text-left p-2 hover:bg-slate-800 rounded">Comparativos</button>
+<button data-section="curva" class="menu w-full text-left p-2 hover:bg-slate-800 rounded">Curva</button>
+<button data-section="cobro" class="menu w-full text-left p-2 hover:bg-slate-800 rounded">Base cobro</button>
+<button data-section="cierre" class="menu w-full text-left p-2 hover:bg-slate-800 rounded">Cierre periodo</button>
+<button data-section="config" class="menu w-full text-left p-2 hover:bg-slate-800 rounded">Configuración</button>
 
-    <main class="p-6 md:p-8 space-y-5 min-w-0">
-      <div class="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 id="pageTitle" class="text-5xl font-light tracking-tight">Dashboard</h2>
-          <p id="pageSubtitle" class="text-slate-500 text-xl mt-2">Resumen del período.</p>
-        </div>
-        <div class="flex gap-3 flex-wrap items-center text-sm font-bold">
-          <span class="px-3 py-2 rounded-full bg-slate-100 text-slate-700" id="perfilTag">ADMINISTRADOR</span>
-          <span class="px-3 py-2 rounded-full bg-blue-50 text-blue-700" id="periodoTag"></span>
-          <span class="px-3 py-2 rounded-full bg-slate-100 text-slate-700" id="turnoTag">TURNO: TODOS</span>
-        </div>
-      </div>
+</aside>
 
-      <div id="appContent"></div>
-    </main>
-  </div>
 
-  <datalist id="empresasList"></datalist>
-  <datalist id="serviciosList"></datalist>
+<main class="flex-1 p-6 space-y-6">
+
+<!-- DASHBOARD -->
+<section id="section-dashboard" class="app">
+<h2 class="text-3xl font-bold">Dashboard</h2>
+
+<div class="grid grid-cols-4 gap-4 mt-4">
+<div class="bg-white p-4 rounded shadow">
+<div class="text-sm">Total real</div>
+<div id="kpiReal" class="text-3xl font-bold">0</div>
+</div>
+
+<div class="bg-white p-4 rounded shadow">
+<div class="text-sm">Total curva</div>
+<div id="kpiCurva" class="text-3xl font-bold">0</div>
+</div>
+
+<div class="bg-white p-4 rounded shadow">
+<div class="text-sm">Total cobro</div>
+<div id="kpiCobro" class="text-3xl font-bold">0</div>
+</div>
+
+<div class="bg-white p-4 rounded shadow">
+<div class="text-sm">Registros</div>
+<div id="kpiRegistros" class="text-3xl font-bold">0</div>
+</div>
+</div>
+
+<div class="bg-white p-4 rounded shadow mt-6">
+<h3 class="font-bold mb-2">Asistente análisis</h3>
+<div class="flex gap-2 flex-wrap">
+<button class="ai p-2 bg-slate-900 text-white rounded">Promedio por día</button>
+<button class="ai p-2 bg-slate-900 text-white rounded">Consumo por casino</button>
+<button class="ai p-2 bg-slate-900 text-white rounded">Comparar turnos</button>
+<button class="ai p-2 bg-slate-900 text-white rounded">Detectar anomalías</button>
+</div>
+</div>
+</section>
+
+
+<!-- VENTA SUPERVISORES -->
+<section id="section-supervisores" class="app hidden">
+<h2 class="text-3xl font-bold mb-4">Venta supervisores</h2>
+
+<div class="bg-white p-4 rounded shadow grid grid-cols-5 gap-3">
+<input id="supFecha" type="date" class="border p-2 rounded">
+<input id="supServicio" placeholder="Servicio" class="border p-2 rounded">
+<select id="supPunto" class="border p-2 rounded"></select>
+<input id="supCantidad" type="number" placeholder="Cantidad" class="border p-2 rounded">
+<button id="btnSupGuardar" class="bg-slate-900 text-white rounded">Guardar</button>
+</div>
+
+<div class="bg-white p-4 rounded shadow mt-4">
+<table class="w-full text-sm">
+<thead>
+<tr class="border-b">
+<th>Fecha</th>
+<th>Servicio</th>
+<th>Punto</th>
+<th>Cantidad</th>
+<th></th>
+</tr>
+</thead>
+<tbody id="tablaSupervisores"></tbody>
+</table>
+</div>
+</section>
+
+
+<!-- PRODUCCION -->
+<section id="section-produccion" class="app hidden">
+<h2 class="text-3xl font-bold mb-4">Producción</h2>
+
+<div class="bg-white p-4 rounded shadow grid grid-cols-5 gap-3">
+<input id="prodFecha" type="date" class="border p-2 rounded">
+<input id="prodServicio" placeholder="Servicio" class="border p-2 rounded">
+<select id="prodPunto" class="border p-2 rounded"></select>
+<input id="prodCantidad" type="number" placeholder="Cantidad" class="border p-2 rounded">
+<button id="btnProdGuardar" class="bg-slate-900 text-white rounded">Guardar</button>
+</div>
+
+<div class="bg-white p-4 rounded shadow mt-4">
+<table class="w-full text-sm">
+<thead>
+<tr class="border-b">
+<th>Fecha</th>
+<th>Servicio</th>
+<th>Punto</th>
+<th>Cantidad</th>
+<th></th>
+</tr>
+</thead>
+<tbody id="tablaProduccion"></tbody>
+</table>
+</div>
+</section>
+
+
+<!-- VENTA SISTEMA -->
+<section id="section-sistema" class="app hidden">
+<h2 class="text-3xl font-bold mb-4">Venta sistema</h2>
+
+<div class="bg-white p-4 rounded shadow">
+<input id="fileSistema" type="file" accept=".xlsx,.csv" class="border p-2 rounded">
+<button id="btnImportSistema" class="bg-slate-900 text-white p-2 rounded">Importar</button>
+</div>
+
+<div class="bg-white p-4 rounded shadow mt-4 table-scroll">
+<table class="w-full text-sm">
+<thead>
+<tr class="border-b">
+<th>Fecha</th>
+<th>Empresa</th>
+<th>Servicio</th>
+<th>Punto</th>
+<th>Cantidad</th>
+</tr>
+</thead>
+<tbody id="tablaSistema"></tbody>
+</table>
+</div>
+</section>
+
+
+<!-- VENTA MANUAL -->
+<section id="section-manual" class="app hidden">
+<h2 class="text-3xl font-bold mb-4">Venta manual</h2>
+
+<div class="bg-white p-4 rounded shadow grid grid-cols-5 gap-3">
+<input id="manFecha" type="date" class="border p-2 rounded">
+<input id="manEmpresa" placeholder="Empresa" class="border p-2 rounded">
+<input id="manServicio" placeholder="Servicio" class="border p-2 rounded">
+<select id="manPunto" class="border p-2 rounded"></select>
+<input id="manCantidad" type="number" placeholder="Cantidad" class="border p-2 rounded">
+<button id="btnManGuardar" class="bg-slate-900 text-white rounded">Guardar</button>
+</div>
+
+<div class="bg-white p-4 rounded shadow mt-4">
+<table class="w-full text-sm">
+<thead>
+<tr class="border-b">
+<th>Fecha</th>
+<th>Empresa</th>
+<th>Servicio</th>
+<th>Punto</th>
+<th>Cantidad</th>
+<th></th>
+</tr>
+</thead>
+<tbody id="tablaManual"></tbody>
+</table>
+</div>
+</section>
+
+
+<!-- ANALISIS -->
+<section id="section-analisis" class="app hidden">
+<h2 class="text-3xl font-bold mb-4">Análisis</h2>
+
+<div class="bg-white p-4 rounded shadow flex gap-3 mb-4">
+<select id="tipoAnalisis" class="border p-2 rounded">
+<option value="empresa">Empresa</option>
+<option value="servicio">Servicio</option>
+<option value="punto">Punto servicio</option>
+</select>
+
+<button id="btnAnalizar" class="bg-slate-900 text-white p-2 rounded">Aplicar filtros</button>
+<button id="btnExpandir" class="border p-2 rounded">Expandir todo</button>
+<button id="btnContraer" class="border p-2 rounded">Contraer todo</button>
+
+<button id="btnExcel" class="border p-2 rounded">Excel</button>
+<button id="btnPdf" class="border p-2 rounded">PDF</button>
+
+</div>
+
+<div class="bg-white p-4 rounded shadow table-scroll">
+<table class="w-full text-sm">
+<thead id="analisisHead"></thead>
+<tbody id="analisisBody"></tbody>
+</table>
+</div>
+</section>
+
+
+</main>
+</div>
+
 
 <script>
-const STORAGE_KEY = 'control_raciones_full_v10';
-const SETTINGS_KEY = 'control_raciones_full_v10_settings';
-const TURNOS_KEY = 'control_raciones_turnos_v10';
-const MENU_ITEMS = [
-  { key:'dashboard', label:'Dashboard', roles:['ADMIN'] },
-  { key:'supervisores', label:'Venta supervisores', roles:['ADMIN','SUPERVISOR'] },
-  { key:'produccion', label:'Producción', roles:['ADMIN'] },
-  { key:'sistema', label:'Venta sistema', roles:['ADMIN'] },
-  { key:'manual', label:'Venta manual', roles:['ADMIN'] },
-  { key:'empresa', label:'Consumos por empresas', roles:['ADMIN'] },
-  { key:'servicio', label:'Consumos por servicios', roles:['ADMIN'] },
-  { key:'punto', label:'Consumos por puntos de servicio', roles:['ADMIN'] },
-  { key:'comparativos', label:'Comparativos', roles:['ADMIN'] },
-  { key:'curva', label:'Curva mensual', roles:['ADMIN'] },
-  { key:'cobro', label:'Base de cobro', roles:['ADMIN'] },
-  { key:'cierre', label:'Cierre mensual', roles:['ADMIN'] },
-  { key:'turnos', label:'Configuración de turnos', roles:['ADMIN'] }
-];
-const PUNTOS_BASE = [
-  'DP (PLANTA)','DM (MINA)','CAP','AÑAÑUCAS','CF','CAES','DELIVERY CAES','DELIVERY CF','COMEDOR SATELITAL 1','COMEDOR SATELITAL 2'
-];
-const EQUIPO_MAP = {
-  'A':'DP (PLANTA)','B':'DM (MINA)','C':'CAP','D':'AÑAÑUCAS','E':'CF','F':'CAES','H':'DELIVERY CAES','I':'DELIVERY CF','J':'COMEDOR SATELITAL 1','K':'COMEDOR SATELITAL 2'
-};
-const DEFAULT_DB = {
-  ventaSupervisores:[],
-  produccion:[],
-  ventaSistema:[],
-  ventaManual:[],
-  curvaMensual:[],
-  cierresMensuales:[],
-  maestros:{
-    empresas:[],
-    servicios:[
-      'DESAYUNO','ALMUERZO','CENA','CENA TRASNOCHE','COLACION REFORZADA','COLACION CORDILLERA','COLACION TERRENO',
-      'PERMUTA DESAYUNO','PERMUTA ALMUERZO','PERMUTA CENA','PERMUTA CENA 24H','PERMUTA CENA TRASNOCHE',
-      'AGUAS 500CC','BIDONES','COFFEE STANDARD','COFFEE PLUS','COFFEE BASICO'
-    ],
-    puntosServicio:[...PUNTOS_BASE]
-  }
-};
-const DEFAULT_SETTINGS = {
-  perfil:'ADMIN',
-  periodo:getCurrentMonth(),
-  currentModule:'dashboard',
-  filtroTurnoGlobal:'',
-  agruparPermutas:true
-};
-const DEFAULT_TURNOS = {
-  fecha_inicio_ciclo:'',
-  duracion_turno:7,
-  cantidad_turnos:2,
-  nombres_turnos:['A','B']
-};
-let db = loadDb();
-let settings = loadSettings();
-let turnosConfig = loadTurnos();
-let currentExport = { current:{headers:[],rows:[],filename:'export'}, detail:{headers:[],rows:[],filename:'export_detalle'} };
-const treeState = { empresa:new Set(), servicio:new Set(), punto:new Set(), supervisores:new Set(), produccion:new Set(), sistema:new Set(), manual:new Set(), comparativo_supervisor:new Set() };
-const matrixFilters = {
-  empresa:{empresa:'',servicio:'',punto_servicio:''},
-  servicio:{empresa:'',servicio:'',punto_servicio:''},
-  punto:{empresa:'',servicio:'',punto_servicio:''}
-};
 
-function getCurrentMonth(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
-function structuredCloneSafe(obj){ return JSON.parse(JSON.stringify(obj)); }
-function loadDb(){ try{ return { ...structuredCloneSafe(DEFAULT_DB), ...JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'), maestros:{...DEFAULT_DB.maestros,...(JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}').maestros||{})} }; }catch{return structuredCloneSafe(DEFAULT_DB);} }
-function saveDb(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
-function loadSettings(){ try{ return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}') }; }catch{return structuredCloneSafe(DEFAULT_SETTINGS);} }
-function saveSettings(){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
-function loadTurnos(){ try{ return { ...DEFAULT_TURNOS, ...JSON.parse(localStorage.getItem(TURNOS_KEY)||'{}') }; }catch{return structuredCloneSafe(DEFAULT_TURNOS);} }
-function saveTurnos(){ localStorage.setItem(TURNOS_KEY, JSON.stringify(turnosConfig)); }
-function normalizeText(v){ return String(v||'').trim().replace(/\s+/g,' ').toUpperCase(); }
-function monthOf(fecha){ return String(fecha||'').slice(0,7); }
-function inSelectedMonth(fecha){ return monthOf(fecha)===settings.periodo; }
-function formatNumber(n){ return new Intl.NumberFormat('es-CL',{maximumFractionDigits:2}).format(Number(n||0)); }
-function parseDateToISO(value){
-  if(value===null||value===undefined||value==='') return '';
-  if(typeof value==='number'){ const d=XLSX.SSF.parse_date_code(value); if(d&&d.y&&d.m&&d.d) return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`; }
-  const s=String(value).trim();
-  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  let m=s.match(/^(\d{2})-(\d{2})-(\d{4})$/); if(m) return `${m[3]}-${m[2]}-${m[1]}`;
-  m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if(m) return `${m[3]}-${m[2]}-${m[1]}`;
-  return '';
+const STORAGE="raciones_v4"
+
+let db=JSON.parse(localStorage.getItem(STORAGE)||"{}")
+
+if(!db.supervisores)db.supervisores=[]
+if(!db.produccion)db.produccion=[]
+if(!db.manual)db.manual=[]
+if(!db.sistema)db.sistema=[]
+if(!db.curva)db.curva=[]
+
+
+const puntos=[
+"DP (PLANTA)",
+"DM (MINA)",
+"CAP",
+"AÑAÑUCAS",
+"CF",
+"CAES",
+"DELIVERY CAES",
+"DELIVERY CF",
+"COMEDOR SATELITAL 1",
+"COMEDOR SATELITAL 2"
+]
+
+
+function initSelects(){
+["supPunto","prodPunto","manPunto"].forEach(id=>{
+const el=document.getElementById(id)
+el.innerHTML=puntos.map(p=>`<option>${p}</option>`).join("")
+})
 }
-function csvValue(v){ const s=String(v??''); return /[;"\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; }
-function isPeriodoCerrado(periodo=settings.periodo){ return db.cierresMensuales.some(x=>x.periodo===periodo && x.estado==='CERRADO'); }
-function guardPeriodoAbierto(){ if(isPeriodoCerrado()){ alert(`El período ${settings.periodo} está cerrado.`); return false; } return true; }
-function ensureMasters(empresa, servicio){ const e=normalizeText(empresa); const s=normalizeText(servicio); if(e && !db.maestros.empresas.includes(e)) db.maestros.empresas.push(e); if(s && !db.maestros.servicios.includes(s)) db.maestros.servicios.push(s); db.maestros.empresas.sort((a,b)=>a.localeCompare(b)); db.maestros.servicios.sort((a,b)=>a.localeCompare(b)); }
-function normalizeServiceFamily(servicio){ const s=normalizeText(servicio); if(settings.agruparPermutas && s.includes('PERMUTA')) return 'COLACION TERRENO'; return s; }
-function getTurno(fecha){
-  if(!turnosConfig.fecha_inicio_ciclo) return '';
-  const inicio=new Date(turnosConfig.fecha_inicio_ciclo+'T00:00:00');
-  const f=new Date(fecha+'T00:00:00');
-  if(Number.isNaN(inicio.getTime())||Number.isNaN(f.getTime())) return '';
-  const diff=Math.floor((f-inicio)/(1000*60*60*24));
-  const ciclo=(Number(turnosConfig.duracion_turno)||0)*(Number(turnosConfig.cantidad_turnos)||0);
-  if(!ciclo || !turnosConfig.nombres_turnos?.length) return '';
-  const pos=((diff % ciclo)+ciclo)%ciclo;
-  const idx=Math.floor(pos/Number(turnosConfig.duracion_turno||1));
-  return turnosConfig.nombres_turnos[idx] || '';
+
+
+function save(){
+localStorage.setItem(STORAGE,JSON.stringify(db))
 }
-function getTurnosDisponibles(){ return (turnosConfig.nombres_turnos||[]).filter(Boolean); }
-function applyTurnoFilter(rows){ return settings.filtroTurnoGlobal ? rows.filter(r=>getTurno(r.fecha)===settings.filtroTurnoGlobal) : rows; }
-function getVentasSupervisoresMes(){ return db.ventaSupervisores.filter(x=>inSelectedMonth(x.fecha)); }
-function getProduccionMes(){ return db.produccion.filter(x=>inSelectedMonth(x.fecha)); }
-function getVentasSistemaMes(){ return db.ventaSistema.filter(x=>inSelectedMonth(x.fecha)); }
-function getVentasManualMes(){ return db.ventaManual.filter(x=>inSelectedMonth(x.fecha)); }
-function getCurvaMes(){ return db.curvaMensual.filter(x=>x.periodo===settings.periodo); }
-function getVentaRealMes(){ return [...getVentasSistemaMes().map(x=>({...x,origen:'SISTEMA'})), ...getVentasManualMes().map(x=>({...x,origen:'MANUAL'}))]; }
-function updateDatalists(){ document.getElementById('empresasList').innerHTML=db.maestros.empresas.map(x=>`<option value="${x}"></option>`).join(''); document.getElementById('serviciosList').innerHTML=db.maestros.servicios.map(x=>`<option value="${x}"></option>`).join(''); }
-function updateTurnoSelector(){ const sel=document.getElementById('turnoFiltroGlobal'); sel.innerHTML=`<option value="">Todos</option>${getTurnosDisponibles().map(x=>`<option value="${x}">${x}</option>`).join('')}`; sel.value=settings.filtroTurnoGlobal||''; }
-function visibleMenuItems(){ return MENU_ITEMS.filter(x=>x.roles.includes(settings.perfil)); }
-function ensureAllowedModule(){ const allowed=visibleMenuItems().map(x=>x.key); if(!allowed.includes(settings.currentModule)) settings.currentModule=allowed[0]; }
-function updateHeader(title, subtitle){ document.getElementById('pageTitle').textContent=title; document.getElementById('pageSubtitle').textContent=subtitle; document.getElementById('perfilTag').textContent=settings.perfil==='ADMIN'?'ADMINISTRADOR':'SUPERVISOR'; document.getElementById('periodoTag').textContent=`PERÍODO ${settings.periodo}`; document.getElementById('turnoTag').textContent=`TURNO: ${settings.filtroTurnoGlobal||'TODOS'}`; }
-function renderMenu(){ ensureAllowedModule(); const menu=document.getElementById('menu'); menu.innerHTML=visibleMenuItems().map(item=>`<button class="w-full text-left px-4 py-3 rounded-2xl transition ${settings.currentModule===item.key?'bg-white text-slate-900 font-bold':'bg-slate-900/70 hover:bg-slate-800'}" data-module="${item.key}">${item.label}</button>`).join(''); menu.querySelectorAll('[data-module]').forEach(btn=>btn.addEventListener('click',()=>{ settings.currentModule=btn.dataset.module; saveSettings(); renderApp(); })); }
-function renderSummaryCards(items){ return `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">${items.map(item=>`<div class="panel p-5"><div class="text-sm text-slate-500 font-semibold">${item.label}</div><div class="text-4xl font-black mt-2">${item.value}</div><div class="text-xs text-slate-400 mt-2">${item.sub||''}</div></div>`).join('')}</div>`; }
-function getUniqueValues(rows, field){ return [...new Set(rows.map(x=>x[field]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b))); }
-function getSelectedDates(rows){
-  const all = [];
-  const [year, month] = settings.periodo.split('-').map(Number);
-  const days = new Date(year, month, 0).getDate();
-  for(let d=1; d<=days; d++){ all.push(`${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`); }
-  if(!rows.length) return all;
-  return all;
+
+
+function show(section){
+document.querySelectorAll(".app").forEach(x=>x.classList.add("hidden"))
+document.getElementById("section-"+section).classList.remove("hidden")
 }
-function filterConsumptionRows(rows, filters){ return rows.filter(r=>{ if(filters.empresa && r.empresa!==filters.empresa) return false; if(filters.servicio && r.servicio!==filters.servicio) return false; if(filters.punto_servicio && r.punto_servicio!==filters.punto_servicio) return false; return true; }); }
-function buildTree(rows, levels){
-  const root=[];
-  function find(children, label){ let node=children.find(x=>x.label===label); if(!node){ node={label, children:[], totalsByDate:{}, total:0}; children.push(node);} return node; }
-  rows.forEach(row=>{ let current=root; levels.forEach(level=>{ const label=row[level]||'SIN DATO'; const node=find(current,label); node.totalsByDate[row.fecha]=(node.totalsByDate[row.fecha]||0)+Number(row.cantidad||0); node.total+=Number(row.cantidad||0); current=node.children; }); });
-  const sortNodes=nodes=>{ nodes.sort((a,b)=>a.label.localeCompare(b.label)); nodes.forEach(n=>sortNodes(n.children)); };
-  sortNodes(root); return root;
+
+
+document.querySelectorAll(".menu").forEach(b=>{
+b.onclick=()=>show(b.dataset.section)
+})
+
+
+function renderSupervisores(){
+const tb=document.getElementById("tablaSupervisores")
+tb.innerHTML=db.supervisores.map((r,i)=>`
+<tr class="border-b">
+<td>${r.fecha}</td>
+<td>${r.servicio}</td>
+<td>${r.punto}</td>
+<td>${r.cantidad}</td>
+<td><button onclick="delSup(${i})">❌</button></td>
+</tr>
+`).join("")
 }
-function flattenTree(nodes, moduleKey, level=0, parent=''){ const out=[]; nodes.forEach(node=>{ const path=parent?`${parent}|||${node.label}`:node.label; const expanded=treeState[moduleKey]?.has(path)||false; out.push({...node, path, level, expanded, hasChildren:node.children.length>0}); if(node.children.length && expanded) out.push(...flattenTree(node.children,moduleKey,level+1,path)); }); return out; }
-function expandAllTree(nodes, moduleKey, parent=''){ nodes.forEach(node=>{ const path=parent?`${parent}|||${node.label}`:node.label; if(node.children.length){ treeState[moduleKey].add(path); expandAllTree(node.children,moduleKey,path); } }); }
-function buildDetailRows(rows, levels){ return rows.slice().sort((a,b)=>levels.map(k=>String(a[k]||'')).join('|').localeCompare(levels.map(k=>String(b[k]||'')).join('|')) || a.fecha.localeCompare(b.fecha)).map(r=>[...levels.map(k=>r[k]||''), r.fecha, r.cantidad]); }
-function syncMatrixScrolls(topId, wrapId){ const top=document.getElementById(topId); const wrap=document.getElementById(wrapId); if(!top||!wrap) return; let locked=false; top.addEventListener('scroll',()=>{ if(locked) return; locked=true; wrap.scrollLeft=top.scrollLeft; locked=false; }); wrap.addEventListener('scroll',()=>{ if(locked) return; locked=true; top.scrollLeft=wrap.scrollLeft; locked=false; }); }
-function renderMatrixTable(moduleKey, levels, rows, firstColumnLabel, filenameBase){
-  const dates=getSelectedDates(rows); const tree=buildTree(rows,levels); const flat=flattenTree(tree,moduleKey);
-  currentExport.current={ headers:[firstColumnLabel,...dates,'Total'], rows:flat.map(r=>[`${'  '.repeat(r.level)}${r.label}`,...dates.map(d=>r.totalsByDate[d]||0),r.total]), filename:`${filenameBase}_${settings.periodo}_actual` };
-  currentExport.detail={ headers:[...levels.map(x=>x.toUpperCase()),'FECHA','CANTIDAD'], rows:buildDetailRows(rows,levels), filename:`${filenameBase}_${settings.periodo}_detalle` };
-  const topId=`top_${moduleKey}`; const wrapId=`wrap_${moduleKey}`;
-  return `<div id="${topId}" class="matrix-top-scroll mb-2"><div style="width:${420 + dates.length*120}px"></div></div><div id="${wrapId}" class="matrix-wrap"><table class="matrix"><thead><tr><th class="sticky-col">${firstColumnLabel}</th>${dates.map(d=>`<th class="text-right">${d}</th>`).join('')}<th class="text-right">Total</th></tr></thead><tbody>${flat.length?flat.map(r=>`<tr><td class="sticky-col"><div class="tree-cell"><span class="indent" style="width:${r.level*18}px"></span>${r.hasChildren?`<button class="toggle-btn" data-tree-module="${moduleKey}" data-tree-path="${encodeURIComponent(r.path)}">${r.expanded?'−':'+'}</button>`:'<span style="display:inline-block;width:24px"></span>'}<span class="font-${r.level===0?'bold':'semibold'}">${r.label}</span></div></td>${dates.map(d=>`<td class="text-right">${formatNumber(r.totalsByDate[d]||0)}</td>`).join('')}<td class="text-right font-bold">${formatNumber(r.total)}</td></tr>`).join(''):`<tr><td colspan="${dates.length+2}" class="p-0"><div class="empty">No hay información para el período seleccionado.</div></td></tr>`}</tbody></table></div><script>setTimeout(()=>syncMatrixScrolls('${topId}','${wrapId}'),0)<\/script>`;
+
+
+function delSup(i){
+db.supervisores.splice(i,1)
+save()
+renderSupervisores()
 }
-function bindTreeToggles(){ document.querySelectorAll('[data-tree-module]').forEach(btn=>btn.addEventListener('click',()=>{ const moduleKey=btn.dataset.treeModule; const path=decodeURIComponent(btn.dataset.treePath); if(treeState[moduleKey].has(path)) treeState[moduleKey].delete(path); else treeState[moduleKey].add(path); renderApp(); })); }
-function renderFilterBar(moduleKey, rows, levels){
-  const empresas=getUniqueValues(rows,'empresa'); const servicios=getUniqueValues(rows,'servicio'); const puntos=getUniqueValues(rows,'punto_servicio'); const current=matrixFilters[moduleKey];
-  return `<div class="panel p-5"><h3 class="text-2xl font-semibold mb-2">Filtros de vista</h3><p class="text-slate-500 mb-5">Estos filtros afectan solo el módulo actual.</p><div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4"><div><label class="block text-sm text-slate-500 font-semibold mb-2">Empresa</label><select id="${moduleKey}_empresa" class="select"><option value="">Todas</option>${empresas.map(x=>`<option value="${x}" ${current.empresa===x?'selected':''}>${x}</option>`).join('')}</select></div><div><label class="block text-sm text-slate-500 font-semibold mb-2">Servicio</label><select id="${moduleKey}_servicio" class="select"><option value="">Todos</option>${servicios.map(x=>`<option value="${x}" ${current.servicio===x?'selected':''}>${x}</option>`).join('')}</select></div><div><label class="block text-sm text-slate-500 font-semibold mb-2">Punto de servicio</label><select id="${moduleKey}_punto" class="select"><option value="">Todos</option>${puntos.map(x=>`<option value="${x}" ${current.punto_servicio===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="flex items-end"><button id="${moduleKey}_aplicar" class="btn primary w-full">Aplicar filtros</button></div><div class="flex items-end"><button id="${moduleKey}_limpiar" class="btn secondary w-full">Limpiar filtros</button></div></div><div class="flex gap-3 mt-4"><button id="${moduleKey}_expand" class="btn secondary">Expandir todo</button><button id="${moduleKey}_collapse" class="btn secondary">Contraer todo</button></div></div>`;
+
+
+document.getElementById("btnSupGuardar").onclick=()=>{
+
+const r={
+fecha:supFecha.value,
+servicio:supServicio.value,
+punto:supPunto.value,
+cantidad:Number(supCantidad.value)
 }
-function bindConsumptionFilterBar(moduleKey, levels, allRows){
-  const e=document.getElementById(`${moduleKey}_empresa`), s=document.getElementById(`${moduleKey}_servicio`), p=document.getElementById(`${moduleKey}_punto`), a=document.getElementById(`${moduleKey}_aplicar`), l=document.getElementById(`${moduleKey}_limpiar`), ex=document.getElementById(`${moduleKey}_expand`), co=document.getElementById(`${moduleKey}_collapse`);
-  if(a) a.addEventListener('click',()=>{ matrixFilters[moduleKey]={ empresa:e.value, servicio:s.value, punto_servicio:p.value }; renderApp(); });
-  if(l) l.addEventListener('click',()=>{ matrixFilters[moduleKey]={ empresa:'', servicio:'', punto_servicio:'' }; renderApp(); });
-  if(ex) ex.addEventListener('click',()=>{ const filtered=filterConsumptionRows(allRows,matrixFilters[moduleKey]); const tree=buildTree(filtered,levels); treeState[moduleKey].clear(); expandAllTree(tree,moduleKey); renderApp(); });
-  if(co) co.addEventListener('click',()=>{ treeState[moduleKey].clear(); renderApp(); });
+
+db.supervisores.push(r)
+save()
+renderSupervisores()
 }
-function setFormValues(prefix, row){ Object.entries(row).forEach(([k,v])=>{ const el=document.getElementById(`${prefix}_${k}`); if(el) el.value=v??''; }); }
-function upsertRecord(collectionName, payload){ const idx = db[collectionName].findIndex(x=>x.id===payload.id); if(idx>=0) db[collectionName][idx]=payload; else db[collectionName].push(payload); }
-function removeRecord(collectionName,id){ db[collectionName]=db[collectionName].filter(x=>x.id!==id); saveDb(); renderApp(); }
-function exportExcel(which='current'){ const exp=currentExport[which]; const ws=XLSX.utils.aoa_to_sheet([exp.headers,...exp.rows]); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Datos'); XLSX.writeFile(wb,`${exp.filename}.xlsx`); }
-function exportPDF(){ const exp=currentExport.current; const { jsPDF }=window.jspdf; const doc=new jsPDF({orientation: exp.headers.length>8?'landscape':'portrait', unit:'pt', format:'a4'}); doc.setFontSize(14); doc.text(exp.filename.replace(/_/g,' ').toUpperCase(),40,34); doc.autoTable({ head:[exp.headers], body:exp.rows.map(r=>r.map(c=>typeof c==='number'?formatNumber(c):String(c))), startY:48, styles:{fontSize:8,cellPadding:4}, headStyles:{fillColor:[37,99,235]}, margin:{left:24,right:24} }); doc.save(`${exp.filename}.pdf`); }
-function parseImportedRows(rows, type){
-  const out=[];
-  if(type==='sistema'){
-    rows.forEach(row=>{ const empresa=normalizeText(getHeaderValue(row,'NOMBRE_EMPRESA')); const servicio=normalizeText(getHeaderValue(row,'SERVICIO')); const fecha=parseDateToISO(getHeaderValue(row,'FECHA')); const equipo=normalizeText(getHeaderValue(row,'EQUIPO')); const punto=EQUIPO_MAP[equipo]||equipo||'SIN MAPEO'; let cantidad=getHeaderValue(row,'PRECIO'); if(typeof cantidad==='string') cantidad=cantidad.replace(/\./g,'').replace(',','.'); cantidad=Number(cantidad); if(!empresa||!servicio||!fecha||Number.isNaN(cantidad)) return; out.push({ id:`${Date.now()}_${Math.random()}`, fecha, empresa, servicio, familia:normalizeServiceFamily(servicio), punto_servicio:punto, cantidad }); });
-  }
-  if(type==='simple'){
-    rows.forEach(row=>{ const fecha=parseDateToISO(getHeaderValue(row,'FECHA')); const servicio=normalizeText(getHeaderValue(row,'SERVICIO')); const punto=normalizeText(getHeaderValue(row,'PUNTO_SERVICIO')); let cantidad=getHeaderValue(row,'CANTIDAD'); if(typeof cantidad==='string') cantidad=cantidad.replace(',','.'); cantidad=Number(cantidad); if(!fecha||!servicio||!punto||Number.isNaN(cantidad)) return; out.push({ id:`${Date.now()}_${Math.random()}`, fecha, servicio, familia:normalizeServiceFamily(servicio), punto_servicio:punto, cantidad }); });
-  }
-  if(type==='curva'){
-    rows.forEach(row=>{ const periodo=String(getHeaderValue(row,'PERIODO')||'').trim(); const empresa=normalizeText(getHeaderValue(row,'EMPRESA')); const servicio=normalizeText(getHeaderValue(row,'SERVICIO')); let cantidad=getHeaderValue(row,'CANTIDAD'); if(typeof cantidad==='string') cantidad=cantidad.replace(',','.'); cantidad=Number(cantidad); if(!periodo||!empresa||!servicio||Number.isNaN(cantidad)) return; out.push({ id:`${Date.now()}_${Math.random()}`, periodo, empresa, servicio, familia:normalizeServiceFamily(servicio), cantidad }); });
-  }
-  return out;
+
+
+function renderProduccion(){
+const tb=document.getElementById("tablaProduccion")
+tb.innerHTML=db.produccion.map((r,i)=>`
+<tr class="border-b">
+<td>${r.fecha}</td>
+<td>${r.servicio}</td>
+<td>${r.punto}</td>
+<td>${r.cantidad}</td>
+<td><button onclick="delProd(${i})">❌</button></td>
+</tr>
+`).join("")
 }
-function getHeaderValue(row, headerName){ const key=Object.keys(row).find(k=>normalizeText(k)===headerName); return key?row[key]:''; }
-function readWorkbookFile(file, callback){ const reader=new FileReader(); reader.onload=function(e){ try{ let workbook; if(file.name.toLowerCase().endsWith('.csv')) workbook=XLSX.read(e.target.result,{type:'string'}); else workbook=XLSX.read(new Uint8Array(e.target.result),{type:'array'}); const sheet=workbook.Sheets[workbook.SheetNames[0]]; const rows=XLSX.utils.sheet_to_json(sheet,{defval:''}); callback(null, rows); }catch(err){ callback(err); } }; if(file.name.toLowerCase().endsWith('.csv')) reader.readAsText(file,'utf-8'); else reader.readAsArrayBuffer(file); }
-function computeSupervisorVsRealRows(){
-  const sup = applyTurnoFilter(getVentasSupervisoresMes());
-  const real = applyTurnoFilter(getVentaRealMes());
-  const map = new Map();
-  sup.forEach(r=>{ const key=`${r.fecha}|${r.punto_servicio}|${normalizeServiceFamily(r.servicio)}`; if(!map.has(key)) map.set(key,{fecha:r.fecha,punto_servicio:r.punto_servicio,servicio:normalizeServiceFamily(r.servicio),supervisor:0,real:0,diferencia:0}); map.get(key).supervisor += Number(r.cantidad||0); });
-  real.forEach(r=>{ const key=`${r.fecha}|${r.punto_servicio}|${normalizeServiceFamily(r.servicio)}`; if(!map.has(key)) map.set(key,{fecha:r.fecha,punto_servicio:r.punto_servicio,servicio:normalizeServiceFamily(r.servicio),supervisor:0,real:0,diferencia:0}); map.get(key).real += Number(r.cantidad||0); });
-  return [...map.values()].map(x=>({...x,diferencia:x.supervisor-x.real})).sort((a,b)=>(a.fecha+a.punto_servicio+a.servicio).localeCompare(b.fecha+b.punto_servicio+b.servicio));
+
+function delProd(i){
+db.produccion.splice(i,1)
+save()
+renderProduccion()
 }
-function computeCobroRows(){
-  const realRows=getVentaRealMes(); const map=new Map();
-  realRows.forEach(r=>{ const key=`${settings.periodo}|${r.empresa}|${normalizeServiceFamily(r.servicio)}`; if(!map.has(key)) map.set(key,{periodo:settings.periodo,empresa:r.empresa,servicio:normalizeServiceFamily(r.servicio),sistema:0,manual:0,real:0,curva:0,real_ajustado:0}); const obj=map.get(key); if(r.origen==='SISTEMA') obj.sistema += Number(r.cantidad||0); if(r.origen==='MANUAL') obj.manual += Number(r.cantidad||0); obj.real += Number(r.cantidad||0); });
-  getCurvaMes().forEach(r=>{ const key=`${r.periodo}|${r.empresa}|${normalizeServiceFamily(r.servicio)}`; if(!map.has(key)) map.set(key,{periodo:r.periodo,empresa:r.empresa,servicio:normalizeServiceFamily(r.servicio),sistema:0,manual:0,real:0,curva:0,real_ajustado:0}); map.get(key).curva += Number(r.cantidad||0); });
-  return [...map.values()].map(r=>({...r, real_ajustado:Math.max(r.real,r.curva)})).sort((a,b)=>(a.empresa+a.servicio).localeCompare(b.empresa+b.servicio));
+
+
+document.getElementById("btnProdGuardar").onclick=()=>{
+
+const r={
+fecha:prodFecha.value,
+servicio:prodServicio.value,
+punto:prodPunto.value,
+cantidad:Number(prodCantidad.value)
 }
-function analyzeAssistant(mode, prompt=''){
-  const rows = applyTurnoFilter(getVentaRealMes());
-  if(!rows.length) return 'No hay datos para analizar en el período seleccionado.';
-  if(mode==='promedio_dia'){
-    const byDate={}; rows.forEach(r=>byDate[r.fecha]=(byDate[r.fecha]||0)+Number(r.cantidad||0));
-    const vals=Object.entries(byDate).sort((a,b)=>a[0].localeCompare(b[0]));
-    const avg=vals.reduce((a,b)=>a+b[1],0)/vals.length; const max=vals.slice().sort((a,b)=>b[1]-a[1])[0]; const min=vals.slice().sort((a,b)=>a[1]-b[1])[0];
-    return `Promedio diario del período: ${formatNumber(avg)} raciones.\nDía más alto: ${max[0]} con ${formatNumber(max[1])}.\nDía más bajo: ${min[0]} con ${formatNumber(min[1])}.`;
-  }
-  if(mode==='por_casino'){
-    const by={}; rows.forEach(r=>by[r.punto_servicio]=(by[r.punto_servicio]||0)+Number(r.cantidad||0)); const top=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    return 'Top puntos de servicio del período:\n' + top.map((x,i)=>`${i+1}. ${x[0]}: ${formatNumber(x[1])}`).join('\n');
-  }
-  if(mode==='comparar_turnos'){
-    const names=getTurnosDisponibles(); if(names.length<2) return 'Configura al menos dos turnos para comparar.'; const by={}; rows.forEach(r=>{ const t=getTurno(r.fecha)||'SIN TURNO'; by[t]=(by[t]||0)+Number(r.cantidad||0); });
-    return names.map(t=>`${t}: ${formatNumber(by[t]||0)} raciones`).join('\n');
-  }
-  if(mode==='anomalias'){
-    const byDate={}; rows.forEach(r=>byDate[r.fecha]=(byDate[r.fecha]||0)+Number(r.cantidad||0)); const vals=Object.entries(byDate); const avg=vals.reduce((a,b)=>a+b[1],0)/Math.max(vals.length,1); const out=vals.filter(x=>x[1] > avg*1.25 || x[1] < avg*0.75).sort((a,b)=>a[0].localeCompare(b[0]));
-    return out.length ? 'Días atípicos detectados:\n' + out.map(x=>`${x[0]}: ${formatNumber(x[1])}`).join('\n') : 'No se detectaron anomalías relevantes con la regla actual.';
-  }
-  const p=prompt.toLowerCase();
-  if(p.includes('casino') || p.includes('punto')) return analyzeAssistant('por_casino');
-  if(p.includes('promedio')) return analyzeAssistant('promedio_dia');
-  if(p.includes('turno')) return analyzeAssistant('comparar_turnos');
-  if(p.includes('anomal')) return analyzeAssistant('anomalias');
-  return 'No pude clasificar la consulta libre. Usa una consulta como: “promedio por día”, “comparar turnos”, “consumo por casino” o “detectar anomalías”.';
+
+db.produccion.push(r)
+save()
+renderProduccion()
 }
+
+
+function renderManual(){
+const tb=document.getElementById("tablaManual")
+tb.innerHTML=db.manual.map((r,i)=>`
+<tr class="border-b">
+<td>${r.fecha}</td>
+<td>${r.empresa}</td>
+<td>${r.servicio}</td>
+<td>${r.punto}</td>
+<td>${r.cantidad}</td>
+<td><button onclick="delMan(${i})">❌</button></td>
+</tr>
+`).join("")
+}
+
+function delMan(i){
+db.manual.splice(i,1)
+save()
+renderManual()
+}
+
+
+document.getElementById("btnManGuardar").onclick=()=>{
+
+const r={
+fecha:manFecha.value,
+empresa:manEmpresa.value,
+servicio:manServicio.value,
+punto:manPunto.value,
+cantidad:Number(manCantidad.value)
+}
+
+db.manual.push(r)
+save()
+renderManual()
+}
+
+
+function importSistema(){
+
+const file=fileSistema.files[0]
+if(!file)return
+
+const reader=new FileReader()
+
+reader.onload=e=>{
+
+const wb=XLSX.read(e.target.result,{type:"array"})
+const sheet=wb.Sheets[wb.SheetNames[0]]
+const rows=XLSX.utils.sheet_to_json(sheet)
+
+rows.forEach(r=>{
+
+db.sistema.push({
+fecha:r.FECHA,
+empresa:r.NOMBRE_EMPRESA,
+servicio:r.SERVICIO,
+punto:r.EQUIPO,
+cantidad:Number(r.PRECIO)
+})
+
+})
+
+save()
+renderSistema()
+
+}
+
+reader.readAsArrayBuffer(file)
+}
+
+
+function renderSistema(){
+const tb=document.getElementById("tablaSistema")
+tb.innerHTML=db.sistema.map(r=>`
+<tr class="border-b">
+<td>${r.fecha}</td>
+<td>${r.empresa}</td>
+<td>${r.servicio}</td>
+<td>${r.punto}</td>
+<td>${r.cantidad}</td>
+</tr>
+`).join("")
+}
+
+
+document.getElementById("btnImportSistema").onclick=importSistema
+
+
+function init(){
+initSelects()
+renderSupervisores()
+renderProduccion()
+renderManual()
+renderSistema()
+}
+
+
+init()
+
 </script>
-<script>
-function renderDashboard(){
-  updateHeader('Dashboard','Resumen operativo y asistente compacto del período.');
-  const sup=applyTurnoFilter(getVentasSupervisoresMes()); const real=applyTurnoFilter(getVentaRealMes()); const prod=applyTurnoFilter(getProduccionMes()); const cobro=computeCobroRows();
-  const totalSup=sup.reduce((a,b)=>a+Number(b.cantidad||0),0); const totalReal=real.reduce((a,b)=>a+Number(b.cantidad||0),0); const totalProd=prod.reduce((a,b)=>a+Number(b.cantidad||0),0); const totalCobro=cobro.reduce((a,b)=>a+b.real_ajustado,0);
-  const topEmpresas=Object.entries(real.reduce((acc,r)=>(acc[r.empresa]=(acc[r.empresa]||0)+Number(r.cantidad||0),acc),{})).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const topServicios=Object.entries(real.reduce((acc,r)=>(acc[normalizeServiceFamily(r.servicio)]=(acc[normalizeServiceFamily(r.servicio)]||0)+Number(r.cantidad||0),acc),{})).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const topPuntos=Object.entries(real.reduce((acc,r)=>(acc[r.punto_servicio]=(acc[r.punto_servicio]||0)+Number(r.cantidad||0),acc),{})).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  setCurrentExport(['KPI','Valor'], [['Venta supervisores',totalSup],['Venta real',totalReal],['Producción',totalProd],['Cobro ajustado',totalCobro]], `dashboard_${settings.periodo}`);
-  return `${renderSummaryCards([{label:'Venta supervisores',value:formatNumber(totalSup),sub:'Carga de supervisión'},{label:'Venta real',value:formatNumber(totalReal),sub:'Sistema + manual'},{label:'Producción',value:formatNumber(totalProd),sub:'Planificada'},{label:'Real ajustado',value:formatNumber(totalCobro),sub:'Máx(real, curva)'}])}
-  <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
-    <div class="space-y-5">
-      <div class="panel p-5"><h3 class="text-2xl font-semibold mb-4">Alertas rápidas</h3><div class="space-y-3 text-sm"><div class="flex justify-between"><span>Brecha supervisor vs real</span><strong class="${(totalSup-totalReal)>=0?'success-text':'danger-text'}">${formatNumber(totalSup-totalReal)}</strong></div><div class="flex justify-between"><span>Mes cerrado</span><strong>${isPeriodoCerrado()?'Sí':'No'}</strong></div><div class="flex justify-between"><span>Permutas agrupadas</span><strong>${settings.agruparPermutas?'Sí':'No'}</strong></div></div></div>
-      <div class="panel p-5"><h3 class="text-2xl font-semibold mb-4">Top empresas</h3>${topEmpresas.length?topEmpresas.map(x=>`<div class="flex justify-between py-2 border-b border-slate-100 last:border-b-0"><span>${x[0]}</span><strong>${formatNumber(x[1])}</strong></div>`).join(''):'<div class="text-slate-500">Sin datos</div>'}</div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5"><div class="panel p-5"><h3 class="text-xl font-semibold mb-4">Top servicios</h3>${topServicios.length?topServicios.map(x=>`<div class="flex justify-between py-2 border-b border-slate-100 last:border-b-0"><span>${x[0]}</span><strong>${formatNumber(x[1])}</strong></div>`).join(''):'<div class="text-slate-500">Sin datos</div>'}</div><div class="panel p-5"><h3 class="text-xl font-semibold mb-4">Top puntos</h3>${topPuntos.length?topPuntos.map(x=>`<div class="flex justify-between py-2 border-b border-slate-100 last:border-b-0"><span>${x[0]}</span><strong>${formatNumber(x[1])}</strong></div>`).join(''):'<div class="text-slate-500">Sin datos</div>'}</div></div>
-    </div>
-    <div class="panel p-5"><div class="flex items-center justify-between mb-4"><div><h3 class="text-2xl font-semibold">Asistente de análisis</h3><p class="text-slate-500 text-sm mt-1">Lectura rápida del período actual.</p></div><span class="px-3 py-2 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">BETA</span></div><div class="grid grid-cols-2 gap-3"><button class="btn secondary" data-ai-mode="promedio_dia">Promedio por día</button><button class="btn secondary" data-ai-mode="por_casino">Consumo por casino</button><button class="btn secondary" data-ai-mode="comparar_turnos">Comparar turnos</button><button class="btn secondary" data-ai-mode="anomalias">Detectar anomalías</button></div><textarea id="dashboardAIInput" class="textarea mt-4" placeholder="Consulta libre sobre los datos"></textarea><div class="flex gap-3 mt-3"><button id="btnDashboardAI" class="btn primary">Analizar</button><button id="btnDashboardAIExpand" class="btn secondary">Ver análisis completo</button></div><div id="dashboardAIOutput" class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 whitespace-pre-wrap leading-7">Aquí aparecerá el análisis.</div></div></div>`;
-}
-function renderCaptureModule({title,subtitle,collectionName,rows,moduleKey,prefix,showEmpresa=false,massive=false}){
-  updateHeader(title,subtitle);
-  setCurrentExport(
-    [...(showEmpresa?['Empresa']:[]),'Fecha','Servicio','Punto de servicio','Cantidad'],
-    rows.map(r=>[...(showEmpresa?[r.empresa]:[]),r.fecha,r.servicio,r.punto_servicio,r.cantidad]),
-    `${moduleKey}_${settings.periodo}`
-  );
-  return `<div class="panel p-5"><h3 class="text-2xl font-semibold mb-5">Registrar ${title.toLowerCase()}</h3><div class="grid grid-cols-1 md:grid-cols-${showEmpresa?5:4} xl:grid-cols-${showEmpresa?5:5} gap-4">${showEmpresa?`<div><label class="block text-sm text-slate-500 font-semibold mb-2">Empresa</label><input id="${prefix}_empresa" list="empresasList" class="input"></div>`:''}<div><label class="block text-sm text-slate-500 font-semibold mb-2">Fecha</label><input id="${prefix}_fecha" type="date" class="input"></div><div><label class="block text-sm text-slate-500 font-semibold mb-2">Servicio</label><input id="${prefix}_servicio" list="serviciosList" class="input"></div><div><label class="block text-sm text-slate-500 font-semibold mb-2">Punto de servicio</label><select id="${prefix}_punto_servicio" class="select">${db.maestros.puntosServicio.map(x=>`<option value="${x}">${x}</option>`).join('')}</select></div><div><label class="block text-sm text-slate-500 font-semibold mb-2">Cantidad</label><input id="${prefix}_cantidad" type="number" step="0.01" class="input"></div></div><div class="flex gap-3 mt-5 flex-wrap"><button id="btn_${prefix}_guardar" class="btn primary">Guardar</button><button id="btn_${prefix}_limpiar" class="btn secondary">Limpiar</button>${massive?`<input id="${prefix}_file" type="file" accept=".xlsx,.xls,.csv" class="input max-w-md"><button id="btn_${prefix}_import" class="btn secondary">Carga masiva inicial</button>`:''}</div><div id="${prefix}_notice"></div></div><div class="panel p-5"><h3 class="text-2xl font-semibold mb-4">Registros del período</h3>${renderMatrixTable(moduleKey, showEmpresa?['empresa','servicio','punto_servicio']:['punto_servicio','servicio'], rows, showEmpresa?'Empresa / Servicio / Punto':'Punto / Servicio', `${moduleKey}_matriz`)}<div class="table-wrap mt-5"><table><thead><tr>${showEmpresa?'<th>Empresa</th>':''}<th>Fecha</th><th>Servicio</th><th>Punto</th><th class="right">Cantidad</th><th></th></tr></thead><tbody>${rows.length?rows.slice().sort((a,b)=>(b.fecha+b.servicio).localeCompare(a.fecha+a.servicio)).map(r=>`<tr>${showEmpresa?`<td>${r.empresa}</td>`:''}<td>${r.fecha}</td><td>${r.servicio}</td><td>${r.punto_servicio}</td><td class="right">${formatNumber(r.cantidad)}</td><td class="text-right"><button class="btn secondary px-3 py-2 mr-2" data-edit-${prefix}="${r.id}">Editar</button><button class="btn danger px-3 py-2" data-del-${prefix}="${r.id}">Eliminar</button></td></tr>`).join(''):`<tr><td colspan="${showEmpresa?6:5}"><div class="empty">No hay información para el período seleccionado.</div></td></tr>`}</tbody></table></div></div>`;
-}
-function bindCaptureModule({collectionName, prefix, showEmpresa=false, massiveType=''}){
-  const saveBtn=document.getElementById(`btn_${prefix}_guardar`); const clearBtn=document.getElementById(`btn_${prefix}_limpiar`); const importBtn=document.getElementById(`btn_${prefix}_import`); const notice=document.getElementById(`${prefix}_notice`);
-  let editingId='';
-  saveBtn?.addEventListener('click',()=>{
-    if(!guardPeriodoAbierto()) return;
-    const payload={ id: editingId || `${Date.now()}_${Math.random()}`, fecha:document.getElementById(`${prefix}_fecha`).value, servicio:normalizeText(document.getElementById(`${prefix}_servicio`).value), familia:normalizeServiceFamily(document.getElementById(`${prefix}_servicio`).value), punto_servicio:document.getElementById(`${prefix}_punto_servicio`).value, cantidad:Number(document.getElementById(`${prefix}_cantidad`).value||0) };
-    if(showEmpresa) payload.empresa=normalizeText(document.getElementById(`${prefix}_empresa`).value);
-    if(!payload.fecha || !payload.servicio || !payload.punto_servicio || Number.isNaN(payload.cantidad)) { notice.innerHTML='<div class="notice danger">Completa todos los campos.</div>'; return; }
-    if(showEmpresa && !payload.empresa){ notice.innerHTML='<div class="notice danger">Ingresa empresa.</div>'; return; }
-    upsertRecord(collectionName,payload); if(showEmpresa) ensureMasters(payload.empresa,payload.servicio); else ensureMasters('',payload.servicio); saveDb(); renderApp();
-  });
-  clearBtn?.addEventListener('click',()=>{ ['fecha','servicio','punto_servicio','cantidad','empresa'].forEach(k=>{ const el=document.getElementById(`${prefix}_${k}`); if(el) el.value=k==='punto_servicio'?db.maestros.puntosServicio[0]:''; }); editingId=''; notice.innerHTML=''; });
-  document.querySelectorAll(`[data-edit-${prefix}]`).forEach(btn=>btn.addEventListener('click',()=>{ const row=db[collectionName].find(x=>x.id===btn.dataset[`edit${prefix.charAt(0).toUpperCase()+prefix.slice(1)}`]); if(!row) return; editingId=row.id; if(showEmpresa) document.getElementById(`${prefix}_empresa`).value=row.empresa||''; document.getElementById(`${prefix}_fecha`).value=row.fecha; document.getElementById(`${prefix}_servicio`).value=row.servicio; document.getElementById(`${prefix}_punto_servicio`).value=row.punto_servicio; document.getElementById(`${prefix}_cantidad`).value=row.cantidad; window.scrollTo({top:0,behavior:'smooth'}); }));
-  document.querySelectorAll(`[data-del-${prefix}]`).forEach(btn=>btn.addEventListener('click',()=>{ if(!guardPeriodoAbierto()) return; const id=btn.dataset[`del${prefix.charAt(0).toUpperCase()+prefix.slice(1)}`]; removeRecord(collectionName,id); }));
-  importBtn?.addEventListener('click',()=>{
-    if(!guardPeriodoAbierto()) return;
-    const file=document.getElementById(`${prefix}_file`).files[0]; if(!file){ notice.innerHTML='<div class="notice danger">Selecciona un archivo.</div>'; return; }
-    notice.innerHTML='<div class="notice">Procesando archivo...</div>';
-    readWorkbookFile(file,(err,rows)=>{ if(err){ notice.innerHTML=`<div class="notice danger">${err.message}</div>`; return; } const imported=parseImportedRows(rows,massiveType); imported.forEach(r=>{ if(showEmpresa) ensureMasters(r.empresa,r.servicio); else ensureMasters('',r.servicio); }); db[collectionName].push(...imported); saveDb(); notice.innerHTML=`<div class="notice success">Carga masiva completada: ${formatNumber(imported.length)} registros.</div>`; renderApp(); });
-  });
-}
-function renderVentaSupervisores(){ const rows=applyTurnoFilter(getVentasSupervisoresMes()); return renderCaptureModule({title:'Venta supervisores',subtitle:'Captura de venta diaria desde supervisión.',collectionName:'ventaSupervisores',rows,moduleKey:'supervisores',prefix:'sup',showEmpresa:false,massive:true}); }
-function renderProduccion(){ const rows=applyTurnoFilter(getProduccionMes()); return renderCaptureModule({title:'Producción',subtitle:'Carga de raciones planificadas por casino.',collectionName:'produccion',rows,moduleKey:'produccion',prefix:'prod',showEmpresa:false,massive:true}); }
-function renderVentaManual(){ const rows=applyTurnoFilter(getVentasManualMes()); return renderCaptureModule({title:'Venta manual',subtitle:'Registro manual de ventas.',collectionName:'ventaManual',rows,moduleKey:'manual',prefix:'man',showEmpresa:true,massive:false}); }
-function renderVentaSistema(){ updateHeader('Venta sistema','Importación desde BBDD.'); const rows=applyTurnoFilter(getVentasSistemaMes()); setCurrentExport(['Fecha','Empresa','Servicio','Familia','Punto','Cantidad'], rows.map(r=>[r.fecha,r.empresa,r.servicio,r.familia,r.punto_servicio,r.cantidad]), `venta_sistema_${settings.periodo}`); return `<div class="panel p-5"><h3 class="text-2xl font-semibold mb-4">Importar archivo</h3><div class="notice">El archivo debe contener columnas: NOMBRE_EMPRESA, SERVICIO, FECHA, EQUIPO, PRECIO</div><div class="flex gap-3 mt-4 flex-wrap"><input id="archivo_importar" type="file" accept=".xlsx,.xls,.csv" class="input max-w-lg"><button id="btn_importar_sistema" class="btn primary">Importar</button><button id="btn_limpiar_sistema" class="btn secondary">Limpiar selección</button><button id="btn_vaciar_sistema_mes" class="btn secondary">Vaciar período actual</button></div><div id="resultado_importacion"></div></div><div class="panel p-5"><h3 class="text-2xl font-semibold mb-4">Venta sistema cargada</h3>${renderMatrixTable('sistema',['empresa','servicio','punto_servicio'],rows,'Empresa / Servicio / Punto',`venta_sistema_${settings.periodo}`)}</div>`; }
-function bindVentaSistemaEvents(){ const importBtn=document.getElementById('btn_importar_sistema'); const clearBtn=document.getElementById('btn_limpiar_sistema'); const emptyBtn=document.getElementById('btn_vaciar_sistema_mes'); const out=document.getElementById('resultado_importacion'); importBtn?.addEventListener('click',()=>{ if(!guardPeriodoAbierto()) return; const file=document.getElementById('archivo_importar').files[0]; if(!file){ out.innerHTML='<div class="notice danger">Selecciona un archivo antes de importar.</div>'; return; } out.innerHTML='<div class="notice">Procesando archivo...</div>'; readWorkbookFile(file,(err,rows)=>{ if(err){ out.innerHTML=`<div class="notice danger">Error al leer archivo: ${err.message}</div>`; return; } const imported=parseImportedRows(rows,'sistema'); imported.forEach(r=>ensureMasters(r.empresa,r.servicio)); db.ventaSistema.push(...imported); saveDb(); out.innerHTML=`<div class="notice success">Importación correcta: ${formatNumber(imported.length)} registros consolidados.</div>`; renderApp(); }); }); clearBtn?.addEventListener('click',()=>{ document.getElementById('archivo_importar').value=''; out.innerHTML=''; }); emptyBtn?.addEventListener('click',()=>{ if(!guardPeriodoAbierto()) return; if(!confirm(`Se eliminará toda la venta sistema del período ${settings.periodo}.`)) return; db.ventaSistema=db.ventaSistema.filter(x=>monthOf(x.fecha)!==settings.periodo); saveDb(); renderApp(); }); }
-function renderConsumoEmpresa(){ updateHeader('Consumos por empresa','Vista matricial por fecha.'); const allRows=applyTurnoFilter(getVentaRealMes().map(x=>({...x, servicio:normalizeServiceFamily(x.servicio)}))); const rows=filterConsumptionRows(allRows,matrixFilters.empresa); return `${renderFilterBar('empresa',allRows,['empresa','servicio','punto_servicio'])}<div class="panel p-5">${renderMatrixTable('empresa',['empresa','servicio','punto_servicio'],rows,'Empresa / Servicio / Punto',`consumo_empresa_${settings.periodo}`)}</div>`; }
-function renderConsumoServicio(){ updateHeader('Consumos por servicios','Vista matricial por fecha.'); const allRows=applyTurnoFilter(getVentaRealMes().map(x=>({...x, servicio:normalizeServiceFamily(x.servicio)}))); const rows=filterConsumptionRows(allRows,matrixFilters.servicio); return `${renderFilterBar('servicio',allRows,['servicio','punto_servicio','empresa'])}<div class="panel p-5">${renderMatrixTable('servicio',['servicio','punto_servicio','empresa'],rows,'Servicio / Punto / Empresa',`consumo_servicio_${settings.periodo}`)}</div>`; }
-function renderConsumoPunto(){ updateHeader('Consumos por puntos de servicio','Vista matricial por fecha.'); const allRows=applyTurnoFilter(getVentaRealMes().map(x=>({...x, servicio:normalizeServiceFamily(x.servicio)}))); const rows=filterConsumptionRows(allRows,matrixFilters.punto); return `${renderFilterBar('punto',allRows,['punto_servicio','servicio','empresa'])}<div class="panel p-5">${renderMatrixTable('punto',['punto_servicio','servicio','empresa'],rows,'Punto / Servicio / Empresa',`consumo_punto_${settings.periodo}`)}</div>`; }
-function renderComparativos(){ updateHeader('Comparativos','Supervisor vs real y real vs curva ajustado.'); const rows=computeSupervisorVsRealRows(); const cobro=computeCobroRows(); setCurrentExport(['Fecha','Punto','Servicio','Supervisor','Real','Diferencia'], rows.map(r=>[r.fecha,r.punto_servicio,r.servicio,r.supervisor,r.real,r.diferencia]), `comparativo_supervisor_real_${settings.periodo}`); currentExport.detail={ headers:['Periodo','Empresa','Servicio','Sistema','Manual','Real','Curva','Real Ajustado'], rows:cobro.map(r=>[r.periodo,r.empresa,r.servicio,r.sistema,r.manual,r.real,r.curva,r.real_ajustado]), filename:`comparativo_real_curva_${settings.periodo}`}; return `${renderSummaryCards([{label:'Supervisor',value:formatNumber(rows.reduce((a,b)=>a+b.supervisor,0)),sub:'Total supervisión'},{label:'Real',value:formatNumber(rows.reduce((a,b)=>a+b.real,0)),sub:'Sistema + manual'},{label:'Curva',value:formatNumber(cobro.reduce((a,b)=>a+b.curva,0)),sub:'Contractual'},{label:'Real ajustado',value:formatNumber(cobro.reduce((a,b)=>a+b.real_ajustado,0)),sub:'Máx(real, curva)'}])}<div class="panel p-5"><h3 class="text-2xl font-semibold mb-4">Supervisor vs Real</h3><div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Punto</th><th>Servicio</th><th class="right">Supervisor</th><th class="right">Real</th><th class="right">Diferencia</th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${r.fecha}</td><td>${r.punto_servicio}</td><td>${r.servicio}</td><td class="right">${formatNumber(r.supervisor)}</td><td class="right">${formatNumber(r.real)}</td><td class="right ${r.diferencia>=0?'success-text':'danger-text'}">${formatNumber(r.diferencia)}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty">Sin información.</div></td></tr>`}</tbody></table></div></div><div class="panel p-5"><h3 class="text-2xl font-semibold mb-4">Real vs Curva</h3><div class="table-wrap"><table><thead><tr><th>Empresa</th><th>Servicio</th><th class="right">Sistema</th><th class="right">Manual</th><th class="right">Real</th><th class="right">Curva</th><th class="right">Real Ajustado</th></tr></thead><tbody>${cobro.length?cobro.map(r=>`<tr><td>${r.empresa}</td><td>${r.servicio}</td><td class="right">${formatNumber(r.sistema)}</td><td class="right">${formatNumber(r.manual)}</td><td class="right">${formatNumber(r.real)}</td><td class="right">${formatNumber(r.curva)}</td><td class="right font-bold">${formatNumber(r.real_ajustado)}</td></tr>`).join(''):`<tr><td colspan="7"><div class="empty">Sin información.</div></td></tr>`}</tbody></table></div></div>`; }
-function renderCurva(){ updateHeader('Curva mensual','Carga contractual del período.'); const rows=getCurvaMes(); setCurrentExport(['Periodo','Empresa','Servicio','Familia','Cantidad'], rows.map(r=>[r.periodo,r.empresa,r.servicio,r.familia,r.cantidad]), `curva_${settings.periodo}`); return `<div class="panel p-5"><h3 class="text-2xl font-semibold mb-5">Registrar curva</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-4"><div><label class="block text-sm text-slate-500 font-semibold mb-2">Empresa</label><input id="curva_empresa" list="empresasList" class="input"></div><div><label class="block text-sm text-slate-500 font-semibold mb-2">Servicio</label><input id="curva_servicio" list="serviciosList" class="input"></div><div><label class="block text-sm text-slate-500 font-semibold mb-2">Cantidad</label><input id="curva_cantidad" type="number" step="0.01" class="input"></div><div class="flex items-end gap-3"><button id="btn_guardar_curva" class="btn primary w-full">Guardar</button></div></div><div class="flex gap-3 mt-4 flex-wrap"><input id="curva_file" type="file" accept=".xlsx,.xls,.csv" class="input max-w-md"><button id="btn_import_curva" class="btn secondary">Carga masiva inicial</button></div><div id="curva_notice"></div></div><div class="panel p-5"><h3 class="text-2xl font-semibold mb-4">Curva registrada</h3><div class="table-wrap"><table><thead><tr><th>Empresa</th><th>Servicio</th><th class="right">Cantidad</th><th></th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${r.empresa}</td><td>${r.servicio}</td><td class="right">${formatNumber(r.cantidad)}</td><td class="text-right"><button class="btn secondary px-3 py-2 mr-2" data-edit-curva="${r.id}">Editar</button><button class="btn danger px-3 py-2" data-del-curva="${r.id}">Eliminar</button></td></tr>`).join(''):`<tr><td colspan="4"><div class="empty">Sin datos.</div></td></tr>`}</tbody></table></div></div>`; }
-function bindCurva(){ const notice=document.getElementById('curva_notice'); let editingId=''; document.getElementById('btn_guardar_curva')?.addEventListener('click',()=>{ if(!guardPeriodoAbierto()) return; const empresa=normalizeText(document.getElementById('curva_empresa').value); const servicio=normalizeText(document.getElementById('curva_servicio').value); const cantidad=Number(document.getElementById('curva_cantidad').value||0); if(!empresa||!servicio||Number.isNaN(cantidad)){ notice.innerHTML='<div class="notice danger">Completa empresa, servicio y cantidad.</div>'; return; } upsertRecord('curvaMensual',{ id:editingId || `${Date.now()}_${Math.random()}`, periodo:settings.periodo, empresa, servicio, familia:normalizeServiceFamily(servicio), cantidad }); ensureMasters(empresa,servicio); saveDb(); renderApp(); }); document.getElementById('btn_import_curva')?.addEventListener('click',()=>{ if(!guardPeriodoAbierto()) return; const file=document.getElementById('curva_file').files[0]; if(!file){ notice.innerHTML='<div class="notice danger">Selecciona un archivo.</div>'; return; } readWorkbookFile(file,(err,rows)=>{ if(err){ notice.innerHTML=`<div class="notice danger">${err.message}</div>`; return; } const imported=parseImportedRows(rows,'curva'); imported.forEach(r=>ensureMasters(r.empresa,r.servicio)); db.curvaMensual.push(...imported); saveDb(); notice.innerHTML=`<div class="notice success">Curva importada: ${formatNumber(imported.length)} registros.</div>`; renderApp(); }); }); document.querySelectorAll('[data-edit-curva]').forEach(btn=>btn.addEventListener('click',()=>{ const row=db.curvaMensual.find(x=>x.id===btn.dataset.editCurva); editingId=row.id; document.getElementById('curva_empresa').value=row.empresa; document.getElementById('curva_servicio').value=row.servicio; document.getElementById('curva_cantidad').value=row.cantidad; window.scrollTo({top:0,behavior:'smooth'}); })); document.querySelectorAll('[data-del-curva]').forEach(btn=>btn.addEventListener('click',()=>{ if(!guardPeriodoAbierto()) return; removeRecord('curvaMensual', btn.dataset.delCurva); })); }
-function renderCobro(){ updateHeader('Base de cobro','Resultado contractual del período.'); const rows=computeCobroRows(); setCurrentExport(['Periodo','Empresa','Servicio','Sistema','Manual','Real','Curva','Real Ajustado'], rows.map(r=>[r.periodo,r.empresa,r.servicio,r.sistema,r.manual,r.real,r.curva,r.real_ajustado]), `base_cobro_${settings.periodo}`); return `${renderSummaryCards([{label:'Venta real',value:formatNumber(rows.reduce((a,b)=>a+b.real,0)),sub:'Sistema + manual'},{label:'Curva',value:formatNumber(rows.reduce((a,b)=>a+b.curva,0)),sub:'Contractual'},{label:'Real ajustado',value:formatNumber(rows.reduce((a,b)=>a+b.real_ajustado,0)),sub:'Cobro final'},{label:'Registros',value:formatNumber(rows.length),sub:'Empresa + servicio'}])}<div class="panel p-5"><div class="table-wrap"><table><thead><tr><th>Empresa</th><th>Servicio</th><th class="right">Sistema</th><th class="right">Manual</th><th class="right">Real</th><th class="right">Curva</th><th class="right">Real Ajustado</th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${r.empresa}</td><td>${r.servicio}</td><td class="right">${formatNumber(r.sistema)}</td><td class="right">${formatNumber(r.manual)}</td><td class="right">${formatNumber(r.real)}</td><td class="right">${formatNumber(r.curva)}</td><td class="right font-bold">${formatNumber(r.real_ajustado)}</td></tr>`).join(''):`<tr><td colspan="7"><div class="empty">Sin datos.</div></td></tr>`}</tbody></table></div></div>`; }
-function renderCierre(){ updateHeader('Cierre mensual','Bloquea modificaciones del período.'); const cerrado=isPeriodoCerrado(); setCurrentExport(['Periodo','Estado'], [[settings.periodo, cerrado?'CERRADO':'ABIERTO']], `cierre_${settings.periodo}`); return `<div class="panel p-6"><h3 class="text-2xl font-semibold mb-4">Estado del período</h3><div class="mb-4">${cerrado?'<span class="inline-flex px-4 py-2 rounded-full bg-rose-100 text-rose-700 font-bold">CERRADO</span>':'<span class="inline-flex px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 font-bold">ABIERTO</span>'}</div><div class="notice">Si el período está cerrado no se puede guardar, editar, importar ni eliminar información.</div><div class="mt-4 flex gap-3">${cerrado?'<button id="btnReabrirPeriodo" class="btn warning">Reabrir período</button>':'<button id="btnCerrarPeriodo" class="btn danger">Cerrar período</button>'}</div></div>`; }
-function bindCierre(){ document.getElementById('btnCerrarPeriodo')?.addEventListener('click',()=>{ db.cierresMensuales = db.cierresMensuales.filter(x=>x.periodo!==settings.periodo); db.cierresMensuales.push({periodo:settings.periodo, estado:'CERRADO', fecha:new Date().toISOString()}); saveDb(); renderApp(); }); document.getElementById('btnReabrirPeriodo')?.addEventListener('click',()=>{ db.cierresMensuales = db.cierresMensuales.filter(x=>x.periodo!==settings.periodo); saveDb(); renderApp(); }); }
-function renderTurnos(){ updateHeader('Configuración de turnos','Sistema configurable por ciclos.'); setCurrentExport(['Parámetro','Valor'], [['Fecha inicio ciclo',turnosConfig.fecha_inicio_ciclo],['Duración turno',turnosConfig.duracion_turno],['Cantidad turnos',turnosConfig.cantidad_turnos],['Nombres',turnosConfig.nombres_turnos.join(', ')]], 'config_turnos'); const preview=[]; if(turnosConfig.fecha_inicio_ciclo){ for(let i=0;i<28;i++){ const d=new Date(turnosConfig.fecha_inicio_ciclo+'T00:00:00'); d.setDate(d.getDate()+i); const fecha=d.toISOString().slice(0,10); preview.push([fecha,getTurno(fecha)]); } }
-  return `<div class="panel p-5"><h3 class="text-2xl font-semibold mb-5">Parámetros del ciclo</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-4"><div><label class="block text-sm text-slate-500 font-semibold mb-2">Fecha inicio ciclo</label><input id="turno_inicio" type="date" class="input" value="${turnosConfig.fecha_inicio_ciclo}"></div><div><label class="block text-sm text-slate-500 font-semibold mb-2">Días por turno</label><input id="turno_duracion" type="number" class="input" value="${turnosConfig.duracion_turno}"></div><div><label class="block text-sm text-slate-500 font-semibold mb-2">Cantidad turnos</label><input id="turno_cantidad" type="number" class="input" value="${turnosConfig.cantidad_turnos}"></div><div><label class="block text-sm text-slate-500 font-semibold mb-2">Nombres turnos (coma)</label><input id="turno_nombres" class="input" value="${turnosConfig.nombres_turnos.join(',')}"></div></div><div class="mt-4"><button id="btn_guardar_turnos" class="btn primary">Guardar configuración</button></div></div><div class="panel p-5"><h3 class="text-2xl font-semibold mb-4">Vista previa calendario</h3><div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Turno</th></tr></thead><tbody>${preview.length?preview.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join(''):`<tr><td colspan="2"><div class="empty">Configura el ciclo para ver una vista previa.</div></td></tr>`}</tbody></table></div></div>`; }
-function bindTurnos(){ document.getElementById('btn_guardar_turnos')?.addEventListener('click',()=>{ turnosConfig={ fecha_inicio_ciclo:document.getElementById('turno_inicio').value, duracion_turno:Number(document.getElementById('turno_duracion').value||0), cantidad_turnos:Number(document.getElementById('turno_cantidad').value||0), nombres_turnos:document.getElementById('turno_nombres').value.split(',').map(x=>x.trim()).filter(Boolean) }; saveTurnos(); updateTurnoSelector(); renderApp(); }); }
-function renderApp(){ renderMenu(); updateDatalists(); updateTurnoSelector(); const app=document.getElementById('appContent'); switch(settings.currentModule){ case 'dashboard': app.innerHTML=renderDashboard(); break; case 'supervisores': app.innerHTML=renderVentaSupervisores(); break; case 'produccion': app.innerHTML=renderProduccion(); break; case 'sistema': app.innerHTML=renderVentaSistema(); break; case 'manual': app.innerHTML=renderVentaManual(); break; case 'empresa': app.innerHTML=renderConsumoEmpresa(); break; case 'servicio': app.innerHTML=renderConsumoServicio(); break; case 'punto': app.innerHTML=renderConsumoPunto(); break; case 'comparativos': app.innerHTML=renderComparativos(); break; case 'curva': app.innerHTML=renderCurva(); break; case 'cobro': app.innerHTML=renderCobro(); break; case 'cierre': app.innerHTML=renderCierre(); break; case 'turnos': app.innerHTML=renderTurnos(); break; } bindTreeToggles(); if(settings.currentModule==='supervisores') bindCaptureModule({collectionName:'ventaSupervisores',prefix:'sup',showEmpresa:false,massiveType:'simple'}); if(settings.currentModule==='produccion') bindCaptureModule({collectionName:'produccion',prefix:'prod',showEmpresa:false,massiveType:'simple'}); if(settings.currentModule==='manual') bindCaptureModule({collectionName:'ventaManual',prefix:'man',showEmpresa:true,massiveType:''}); if(settings.currentModule==='sistema') bindVentaSistemaEvents(); if(settings.currentModule==='empresa') bindConsumptionFilterBar('empresa',['empresa','servicio','punto_servicio'],applyTurnoFilter(getVentaRealMes().map(x=>({...x,servicio:normalizeServiceFamily(x.servicio)})))); if(settings.currentModule==='servicio') bindConsumptionFilterBar('servicio',['servicio','punto_servicio','empresa'],applyTurnoFilter(getVentaRealMes().map(x=>({...x,servicio:normalizeServiceFamily(x.servicio)})))); if(settings.currentModule==='punto') bindConsumptionFilterBar('punto',['punto_servicio','servicio','empresa'],applyTurnoFilter(getVentaRealMes().map(x=>({...x,servicio:normalizeServiceFamily(x.servicio)})))); if(settings.currentModule==='curva') bindCurva(); if(settings.currentModule==='cierre') bindCierre(); if(settings.currentModule==='turnos') bindTurnos(); if(settings.currentModule==='dashboard'){ document.querySelectorAll('[data-ai-mode]').forEach(btn=>btn.addEventListener('click',()=>{ document.getElementById('dashboardAIOutput').textContent=analyzeAssistant(btn.dataset.aiMode); })); document.getElementById('btnDashboardAI')?.addEventListener('click',()=>{ document.getElementById('dashboardAIOutput').textContent=analyzeAssistant('free', document.getElementById('dashboardAIInput').value); }); document.getElementById('btnDashboardAIExpand')?.addEventListener('click',()=>{ alert(analyzeAssistant('free', document.getElementById('dashboardAIInput').value)); }); }
-}
-function init(){ document.getElementById('perfilSelector').value=settings.perfil; document.getElementById('periodoSelector').value=settings.periodo; document.getElementById('chkAgruparPermutas').checked=settings.agruparPermutas; document.getElementById('perfilSelector').addEventListener('change',e=>{ settings.perfil=e.target.value; saveSettings(); renderApp(); }); document.getElementById('periodoSelector').addEventListener('change',e=>{ settings.periodo=e.target.value||getCurrentMonth(); saveSettings(); renderApp(); }); document.getElementById('turnoFiltroGlobal').addEventListener('change',e=>{ settings.filtroTurnoGlobal=e.target.value; saveSettings(); renderApp(); }); document.getElementById('chkAgruparPermutas').addEventListener('change',e=>{ settings.agruparPermutas=e.target.checked; saveSettings(); renderApp(); }); document.getElementById('btnExportCurrentExcel').addEventListener('click',()=>exportExcel('current')); document.getElementById('btnExportDetailExcel').addEventListener('click',()=>exportExcel('detail')); document.getElementById('btnExportPDF').addEventListener('click',exportPDF); document.getElementById('btnReset').addEventListener('click',()=>{ if(confirm('Esto borrará toda la información guardada en este navegador.')){ localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(SETTINGS_KEY); localStorage.removeItem(TURNOS_KEY); db=structuredCloneSafe(DEFAULT_DB); settings=structuredCloneSafe(DEFAULT_SETTINGS); turnosConfig=structuredCloneSafe(DEFAULT_TURNOS); renderApp(); } }); renderApp(); }
-init();
-</script>
+
 </body>
 </html>
