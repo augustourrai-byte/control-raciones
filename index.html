@@ -4,12 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Control Operacional de Raciones</title>
+
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
   <style>
     :root{
       --bg:#f3f5f9;
       --panel:#ffffff;
-      --panel-2:#f8fafc;
+      --panel-soft:#f8fafc;
       --line:#e5e7eb;
       --text:#0f172a;
       --muted:#64748b;
@@ -20,7 +24,7 @@
       --success:#059669;
       --warning:#d97706;
       --danger:#dc2626;
-      --shadow:0 10px 30px rgba(15,23,42,.08);
+      --shadow:0 10px 28px rgba(15,23,42,.08);
       --radius:18px;
     }
 
@@ -28,19 +32,19 @@
     html,body{height:100%}
     body{
       margin:0;
-      font-family: Inter, Segoe UI, Arial, sans-serif;
+      font-family:Inter,Segoe UI,Arial,sans-serif;
       background:var(--bg);
       color:var(--text);
     }
 
     .app{
       display:grid;
-      grid-template-columns: 300px 1fr;
+      grid-template-columns:300px 1fr;
       min-height:100vh;
     }
 
     .sidebar{
-      background:linear-gradient(180deg,#111827 0%, #1f2937 100%);
+      background:linear-gradient(180deg,#111827 0%,#1f2937 100%);
       color:#fff;
       padding:22px 18px;
       position:sticky;
@@ -50,24 +54,20 @@
     }
 
     .brand{
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-      margin-bottom:20px;
-      padding:6px 8px 16px;
+      padding:2px 6px 16px;
       border-bottom:1px solid rgba(255,255,255,.08);
+      margin-bottom:18px;
     }
 
     .brand h1{
-      margin:0;
+      margin:0 0 4px;
       font-size:22px;
       font-weight:800;
-      letter-spacing:.2px;
     }
 
     .brand p{
       margin:0;
-      color:rgba(255,255,255,.65);
+      color:rgba(255,255,255,.7);
       font-size:13px;
     }
 
@@ -80,14 +80,14 @@
 
     .menu-btn{
       width:100%;
-      text-align:left;
       border:none;
+      border-radius:14px;
+      padding:14px 16px;
       background:rgba(255,255,255,.08);
       color:#fff;
-      padding:14px 16px;
-      border-radius:14px;
-      cursor:pointer;
+      text-align:left;
       font-size:15px;
+      cursor:pointer;
       transition:.18s ease;
     }
 
@@ -117,9 +117,9 @@
     }
 
     .sidebar-card label{
-      font-size:12px;
-      color:rgba(255,255,255,.75);
       display:block;
+      font-size:12px;
+      color:rgba(255,255,255,.78);
       margin:0 0 6px;
     }
 
@@ -129,9 +129,9 @@
       border:none;
       border-radius:12px;
       padding:10px 12px;
-      background:#fff;
-      color:#111827;
       font-size:14px;
+      color:#111827;
+      background:#fff;
     }
 
     .main{
@@ -141,27 +141,21 @@
 
     .topbar{
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       gap:16px;
-      margin-bottom:20px;
       flex-wrap:wrap;
+      margin-bottom:20px;
     }
 
-    .page-title{
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-    }
-
-    .page-title h2{
+    .title-wrap h2{
       margin:0;
       font-size:34px;
       line-height:1.05;
     }
 
-    .page-title p{
-      margin:0;
+    .title-wrap p{
+      margin:6px 0 0;
       color:var(--muted);
       font-size:14px;
     }
@@ -173,62 +167,78 @@
       flex-wrap:wrap;
     }
 
-    .toolbar input,
-    .toolbar select,
-    .toolbar button,
-    .field input,
-    .field select,
-    .field textarea{
-      border:1px solid var(--line);
-      background:#fff;
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      background:#eff6ff;
+      color:#1d4ed8;
+    }
+
+    .tag.gray{
+      background:#f1f5f9;
+      color:#475569;
+    }
+
+    .tag.success{
+      background:#ecfdf5;
+      color:#047857;
+    }
+
+    .tag.warning{
+      background:#fffbeb;
+      color:#b45309;
+    }
+
+    .tag.danger{
+      background:#fef2f2;
+      color:#b91c1c;
+    }
+
+    .btn,
+    .input,
+    .select,
+    .textarea{
       border-radius:12px;
       padding:11px 12px;
       font-size:14px;
-      color:var(--text);
       outline:none;
     }
 
-    .toolbar button,
+    .input,.select,.textarea{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+      width:100%;
+    }
+
+    .textarea{
+      min-height:90px;
+      resize:vertical;
+    }
+
     .btn{
+      border:none;
       cursor:pointer;
       background:var(--dark);
       color:#fff;
-      border:none;
-      padding:11px 14px;
-      border-radius:12px;
       font-weight:700;
     }
 
-    .btn:hover,
-    .toolbar button:hover{
-      background:var(--dark-2);
-    }
-
+    .btn:hover{background:var(--dark-2)}
+    .btn.primary{background:var(--primary)}
+    .btn.primary:hover{background:var(--primary-2)}
     .btn.secondary{
       background:#fff;
       color:var(--text);
       border:1px solid var(--line);
     }
-
-    .btn.secondary:hover{
-      background:var(--panel-2);
-    }
-
-    .btn.primary{
-      background:var(--primary);
-    }
-
-    .btn.primary:hover{
-      background:var(--primary-2);
-    }
-
-    .btn.danger{
-      background:var(--danger);
-    }
-
-    .btn.danger:hover{
-      filter:brightness(.95);
-    }
+    .btn.secondary:hover{background:var(--panel-soft)}
+    .btn.danger{background:var(--danger)}
+    .btn.danger:hover{filter:brightness(.95)}
 
     .panel{
       background:var(--panel);
@@ -240,12 +250,12 @@
     }
 
     .panel h3{
-      margin:0 0 12px;
+      margin:0 0 10px;
       font-size:20px;
     }
 
-    .panel-subtitle{
-      margin:-4px 0 14px;
+    .panel-sub{
+      margin:-2px 0 14px;
       color:var(--muted);
       font-size:14px;
     }
@@ -255,33 +265,34 @@
       gap:14px;
     }
 
-    .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-    .grid.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
-    .grid.cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}
-    .grid.cols-6{grid-template-columns:repeat(6,minmax(0,1fr))}
+    .grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .grid-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+    .grid-6{grid-template-columns:repeat(6,minmax(0,1fr))}
+    .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 
     .kpi{
-      background:linear-gradient(180deg,#fff 0%, #f8fafc 100%);
+      background:linear-gradient(180deg,#fff 0%,#f8fafc 100%);
       border:1px solid var(--line);
       border-radius:16px;
       padding:16px;
-      min-height:100px;
+      min-height:98px;
       display:flex;
       flex-direction:column;
       justify-content:space-between;
     }
 
     .kpi .label{
-      color:var(--muted);
       font-size:13px;
-      font-weight:600;
+      color:var(--muted);
+      font-weight:700;
     }
 
     .kpi .value{
       font-size:32px;
       font-weight:800;
-      letter-spacing:-.5px;
+      line-height:1;
+      letter-spacing:-.4px;
     }
 
     .kpi .sub{
@@ -308,168 +319,174 @@
       font-weight:700;
     }
 
-    .field textarea{
-      min-height:92px;
-      resize:vertical;
-    }
-
-    .table-wrap{
-      overflow:auto;
-      border:1px solid var(--line);
-      border-radius:16px;
-    }
-
-    table{
-      width:100%;
-      border-collapse:collapse;
-      background:#fff;
-    }
-
-    th, td{
-      padding:12px 12px;
-      border-bottom:1px solid var(--line);
-      text-align:left;
-      font-size:14px;
-      vertical-align:top;
-      white-space:nowrap;
-    }
-
-    th{
-      background:#f8fafc;
-      color:#334155;
-      font-size:13px;
-      text-transform:uppercase;
-      letter-spacing:.35px;
-    }
-
-    tr:last-child td{border-bottom:none}
-
-    .muted{color:var(--muted)}
-    .tag{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:6px 10px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:700;
-      background:#eff6ff;
-      color:#1d4ed8;
-    }
-
-    .tag.success{background:#ecfdf5;color:#047857}
-    .tag.warning{background:#fffbeb;color:#b45309}
-    .tag.danger{background:#fef2f2;color:#b91c1c}
-    .tag.gray{background:#f1f5f9;color:#475569}
-
-    .accordion{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-
-    details{
-      border:1px solid var(--line);
-      border-radius:16px;
-      background:#fff;
-      overflow:hidden;
-    }
-
-    summary{
-      list-style:none;
-      cursor:pointer;
-      padding:14px 16px;
-      font-weight:800;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      background:#fbfdff;
-    }
-
-    summary::-webkit-details-marker{display:none}
-
-    .summary-left{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-
-    .summary-right{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      color:var(--muted);
-      font-size:13px;
-      flex-wrap:wrap;
-    }
-
-    .details-body{
-      padding:0 14px 14px;
-      background:#fff;
-    }
-
-    .nested{
-      margin-top:10px;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
-
-    .empty{
-      border:1px dashed var(--line);
-      border-radius:16px;
-      padding:22px;
-      text-align:center;
-      color:var(--muted);
-      background:#fcfcfd;
-    }
-
-    .stat-row{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 0;
-      border-bottom:1px solid var(--line);
-      font-size:14px;
-    }
-
-    .stat-row:last-child{border-bottom:none}
-
     .flex{
       display:flex;
-      gap:12px;
+      gap:10px;
       flex-wrap:wrap;
       align-items:center;
-    }
-
-    .right{text-align:right}
-    .danger-text{color:var(--danger); font-weight:700}
-    .success-text{color:var(--success); font-weight:700}
-    .warning-text{color:var(--warning); font-weight:700}
-
-    .hidden{display:none!important}
-
-    .file-note{
-      font-size:13px;
-      color:var(--muted);
-      margin-top:4px;
     }
 
     .notice{
+      margin-top:12px;
       padding:12px 14px;
       border-radius:14px;
       border:1px solid var(--line);
       background:#f8fafc;
       color:#334155;
       font-size:14px;
-      margin-top:12px;
+    }
+
+    .empty{
+      border:1px dashed var(--line);
+      border-radius:16px;
+      background:#fcfcfd;
+      color:var(--muted);
+      text-align:center;
+      padding:24px;
+    }
+
+    .table-wrap{
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#fff;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:900px;
+    }
+
+    th,td{
+      border-bottom:1px solid var(--line);
+      padding:11px 12px;
+      text-align:left;
+      font-size:14px;
+      white-space:nowrap;
+    }
+
+    th{
+      background:#f8fafc;
+      color:#334155;
+      text-transform:uppercase;
+      font-size:12px;
+      letter-spacing:.4px;
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+
+    tr:last-child td{border-bottom:none}
+    .right{text-align:right}
+    .muted{color:var(--muted)}
+    .success-text{color:var(--success);font-weight:800}
+    .warning-text{color:var(--warning);font-weight:800}
+    .danger-text{color:var(--danger);font-weight:800}
+
+    .matrix-wrap{
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#fff;
+    }
+
+    .matrix-table{
+      width:max-content;
+      min-width:100%;
+      border-collapse:collapse;
+      background:#fff;
+    }
+
+    .matrix-table th,
+    .matrix-table td{
+      border-bottom:1px solid var(--line);
+      border-right:1px solid var(--line);
+      padding:10px 12px;
+      font-size:13px;
+      white-space:nowrap;
+    }
+
+    .matrix-table th{
+      background:#f8fafc;
+      text-transform:none;
+      font-size:12px;
+      font-weight:800;
+      color:#334155;
+    }
+
+    .matrix-table th:first-child,
+    .matrix-table td:first-child{
+      position:sticky;
+      left:0;
+      z-index:2;
+      background:#fff;
+      min-width:320px;
+      max-width:320px;
+    }
+
+    .matrix-table th:first-child{
+      z-index:3;
+      background:#f8fafc;
+    }
+
+    .matrix-row:hover td{
+      background:#fafcff;
+    }
+
+    .tree-cell{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-width:0;
+    }
+
+    .tree-indent{
+      display:inline-block;
+      width:calc(var(--level, 0) * 18px);
+      flex:0 0 auto;
+    }
+
+    .tree-toggle{
+      width:24px;
+      height:24px;
+      border-radius:8px;
+      border:1px solid var(--line);
+      background:#fff;
+      cursor:pointer;
+      font-weight:800;
+      color:#475569;
+      flex:0 0 auto;
+    }
+
+    .tree-toggle:hover{
+      background:#f8fafc;
+    }
+
+    .tree-spacer{
+      width:24px;
+      flex:0 0 auto;
+    }
+
+    .tree-label{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      font-weight:700;
+    }
+
+    .row-level-0 .tree-label{font-weight:800}
+    .row-level-1 .tree-label{font-weight:700}
+    .row-level-2 .tree-label{font-weight:600;color:#334155}
+
+    .sticky-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
     }
 
     @media (max-width: 1250px){
-      .grid.cols-6{grid-template-columns:repeat(3,minmax(0,1fr))}
-      .grid.cols-5{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .grid-6{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .grid-5{grid-template-columns:repeat(3,minmax(0,1fr))}
       .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
     }
 
@@ -478,14 +495,10 @@
       .sidebar{
         position:relative;
         height:auto;
-        border-bottom:1px solid rgba(255,255,255,.08);
       }
-      .grid.cols-4,
-      .grid.cols-3,
-      .grid.cols-2{grid-template-columns:1fr}
+      .grid-4,.grid-3,.grid-2{grid-template-columns:1fr}
       .form-grid{grid-template-columns:1fr}
-      .topbar{align-items:flex-start}
-      .page-title h2{font-size:28px}
+      .title-wrap h2{font-size:28px}
     }
   </style>
 </head>
@@ -494,7 +507,7 @@
     <aside class="sidebar">
       <div class="brand">
         <h1>Control Raciones</h1>
-        <p>Faena minera · histórico mensual · base de cobro</p>
+        <p>Histórico mensual · matrices por fecha · base de cobro</p>
       </div>
 
       <div class="sidebar-card">
@@ -515,10 +528,8 @@
       <nav class="menu" id="menu"></nav>
 
       <div class="sidebar-card">
-        <h3>Acciones</h3>
+        <h3>Base local</h3>
         <div class="flex">
-          <button class="btn secondary" id="btnExportarCobro" style="width:100%">Exportar base cobro</button>
-          <button class="btn secondary" id="btnExportarReal" style="width:100%">Exportar venta real</button>
           <button class="btn danger" id="btnReset" style="width:100%">Reset local</button>
         </div>
       </div>
@@ -526,7 +537,7 @@
 
     <main class="main">
       <div class="topbar">
-        <div class="page-title">
+        <div class="title-wrap">
           <h2 id="pageTitle">Venta supervisores</h2>
           <p id="pageSubtitle">Captura y control operacional por período.</p>
         </div>
@@ -534,6 +545,10 @@
         <div class="toolbar">
           <span class="tag gray" id="perfilTag">ADMINISTRADOR</span>
           <span class="tag" id="periodoTag"></span>
+          <div class="sticky-actions">
+            <button class="btn secondary" id="btnExportExcel">Exportar Excel</button>
+            <button class="btn secondary" id="btnExportPDF">Exportar PDF</button>
+          </div>
         </div>
       </div>
 
@@ -541,9 +556,27 @@
     </main>
   </div>
 
+  <datalist id="empresasList"></datalist>
+  <datalist id="serviciosList"></datalist>
+
   <script>
-    const STORAGE_KEY = "control_raciones_v4_full";
-    const SETTINGS_KEY = "control_raciones_v4_settings";
+    const DB_NAME = "control_raciones_db_v2";
+    const DB_VERSION = 1;
+    const DB_STORE = "appdata";
+    const DB_KEY = "main";
+    const SETTINGS_KEY = "control_raciones_settings_v2";
+
+    const MENU_ITEMS = [
+      { key:"supervisores", label:"Venta supervisores", roles:["ADMIN","SUPERVISOR"] },
+      { key:"produccion", label:"Producción", roles:["ADMIN"] },
+      { key:"sistema", label:"Venta sistema", roles:["ADMIN"] },
+      { key:"manual", label:"Venta manuales", roles:["ADMIN"] },
+      { key:"empresa", label:"Consumos por empresas", roles:["ADMIN"] },
+      { key:"servicio", label:"Consumos por servicios", roles:["ADMIN"] },
+      { key:"casino", label:"Consumos por casinos", roles:["ADMIN"] },
+      { key:"curva", label:"Curva mensual", roles:["ADMIN"] },
+      { key:"cobro", label:"Base de cobro", roles:["ADMIN"] }
+    ];
 
     const CASINOS = [
       "DP (PLANTA)",
@@ -564,18 +597,6 @@
       "F":"CAES",
       "G":"PDA 1"
     };
-
-    const MENU_ITEMS = [
-      { key: "supervisores", label: "Venta supervisores", roles: ["ADMIN","SUPERVISOR"] },
-      { key: "produccion", label: "Producción", roles: ["ADMIN"] },
-      { key: "sistema", label: "Venta sistema", roles: ["ADMIN"] },
-      { key: "manual", label: "Venta manuales", roles: ["ADMIN"] },
-      { key: "empresa", label: "Consumos por empresas", roles: ["ADMIN"] },
-      { key: "servicio", label: "Consumos por servicios", roles: ["ADMIN"] },
-      { key: "casino", label: "Consumos por casinos", roles: ["ADMIN"] },
-      { key: "curva", label: "Curva mensual", roles: ["ADMIN"] },
-      { key: "cobro", label: "Base de cobro", roles: ["ADMIN"] }
-    ];
 
     const DEFAULT_DB = {
       ventaSupervisores: [],
@@ -613,41 +634,23 @@
       currentModule: "supervisores"
     };
 
-    let db = loadDb();
+    let db = structuredCloneSafe(DEFAULT_DB);
     let settings = loadSettings();
+    let currentExport = { headers: [], rows: [], filename: "exportacion" };
 
-    function getCurrentMonth(){
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-    }
+    const treeState = {
+      empresa: new Set(),
+      servicio: new Set(),
+      casino: new Set()
+    };
 
     function structuredCloneSafe(obj){
       return JSON.parse(JSON.stringify(obj));
     }
 
-    function loadDb(){
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if(!raw){
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DB));
-        return structuredCloneSafe(DEFAULT_DB);
-      }
-      try{
-        const parsed = JSON.parse(raw);
-        return {
-          ventaSupervisores: parsed.ventaSupervisores || [],
-          produccion: parsed.produccion || [],
-          ventaSistema: parsed.ventaSistema || [],
-          ventaManual: parsed.ventaManual || [],
-          curvaMensual: parsed.curvaMensual || [],
-          maestros: {
-            empresas: parsed?.maestros?.empresas || [],
-            servicios: parsed?.maestros?.servicios || DEFAULT_DB.maestros.servicios
-          }
-        };
-      }catch{
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DB));
-        return structuredCloneSafe(DEFAULT_DB);
-      }
+    function getCurrentMonth(){
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
     }
 
     function loadSettings(){
@@ -664,12 +667,84 @@
       }
     }
 
-    function saveDb(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-    }
-
     function saveSettings(){
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    }
+
+    function openIndexedDb(){
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onupgradeneeded = function(event){
+          const database = event.target.result;
+          if(!database.objectStoreNames.contains(DB_STORE)){
+            database.createObjectStore(DB_STORE);
+          }
+        };
+
+        request.onsuccess = function(){
+          resolve(request.result);
+        };
+
+        request.onerror = function(){
+          reject(request.error);
+        };
+      });
+    }
+
+    async function loadDb(){
+      try{
+        const database = await openIndexedDb();
+        return await new Promise((resolve, reject) => {
+          const tx = database.transaction(DB_STORE, "readonly");
+          const store = tx.objectStore(DB_STORE);
+          const request = store.get(DB_KEY);
+
+          request.onsuccess = function(){
+            const parsed = request.result;
+            if(!parsed){
+              resolve(structuredCloneSafe(DEFAULT_DB));
+              return;
+            }
+
+            resolve({
+              ventaSupervisores: parsed.ventaSupervisores || [],
+              produccion: parsed.produccion || [],
+              ventaSistema: parsed.ventaSistema || [],
+              ventaManual: parsed.ventaManual || [],
+              curvaMensual: parsed.curvaMensual || [],
+              maestros: {
+                empresas: parsed?.maestros?.empresas || [],
+                servicios: parsed?.maestros?.servicios || DEFAULT_DB.maestros.servicios
+              }
+            });
+          };
+
+          request.onerror = function(){
+            reject(request.error);
+          };
+        });
+      }catch(error){
+        console.error("Error cargando IndexedDB:", error);
+        return structuredCloneSafe(DEFAULT_DB);
+      }
+    }
+
+    async function saveDb(){
+      try{
+        const database = await openIndexedDb();
+        await new Promise((resolve, reject) => {
+          const tx = database.transaction(DB_STORE, "readwrite");
+          const store = tx.objectStore(DB_STORE);
+          const request = store.put(db, DB_KEY);
+
+          request.onsuccess = function(){ resolve(); };
+          request.onerror = function(){ reject(request.error); };
+        });
+      }catch(error){
+        console.error("Error guardando IndexedDB:", error);
+        throw error;
+      }
     }
 
     function normalizeText(v){
@@ -691,15 +766,28 @@
           return `${d.y}-${String(d.m).padStart(2,"0")}-${String(d.d).padStart(2,"0")}`;
         }
       }
+
       const s = String(value).trim();
       if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
       let m = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
       if(m) return `${m[3]}-${m[2]}-${m[1]}`;
+
       m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
       if(m) return `${m[3]}-${m[2]}-${m[1]}`;
+
       m = s.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
       if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+
       return "";
+    }
+
+    function monthOf(fecha){
+      return String(fecha || "").slice(0,7);
+    }
+
+    function inSelectedMonth(fecha){
+      return monthOf(fecha) === settings.periodo;
     }
 
     function formatNumber(n){
@@ -714,19 +802,13 @@
       return s;
     }
 
-    function monthOf(fecha){
-      return String(fecha || "").slice(0,7);
-    }
-
-    function inSelectedMonth(fecha){
-      return monthOf(fecha) === settings.periodo;
-    }
-
     function ensureMasters(empresa, servicio){
       const e = normalizeText(empresa);
       const s = normalizeText(servicio);
       if(e && !db.maestros.empresas.includes(e)) db.maestros.empresas.push(e);
       if(s && !db.maestros.servicios.includes(s)) db.maestros.servicios.push(s);
+      db.maestros.empresas.sort((a,b)=>a.localeCompare(b));
+      db.maestros.servicios.sort((a,b)=>a.localeCompare(b));
     }
 
     function getVisibleMenuItems(){
@@ -739,6 +821,13 @@
         settings.currentModule = allowed[0];
         saveSettings();
       }
+    }
+
+    function setHeader(title, subtitle){
+      document.getElementById("pageTitle").textContent = title;
+      document.getElementById("pageSubtitle").textContent = subtitle;
+      document.getElementById("perfilTag").textContent = settings.perfil === "ADMIN" ? "ADMINISTRADOR" : "SUPERVISOR";
+      document.getElementById("periodoTag").textContent = `PERÍODO ${settings.periodo}`;
     }
 
     function renderMenu(){
@@ -759,19 +848,22 @@
       });
     }
 
-    function setHeader(title, subtitle){
-      document.getElementById("pageTitle").textContent = title;
-      document.getElementById("pageSubtitle").textContent = subtitle;
-      document.getElementById("perfilTag").textContent = settings.perfil === "ADMIN" ? "ADMINISTRADOR" : "SUPERVISOR";
-      document.getElementById("periodoTag").textContent = `PERÍODO ${settings.periodo}`;
+    function updateDatalists(){
+      document.getElementById("empresasList").innerHTML = db.maestros.empresas
+        .map(x => `<option value="${x}"></option>`).join("");
+      document.getElementById("serviciosList").innerHTML = db.maestros.servicios
+        .map(x => `<option value="${x}"></option>`).join("");
     }
 
-    function getVentasSistemaMes(){
-      return db.ventaSistema.filter(x => inSelectedMonth(x.fecha));
-    }
-
-    function getVentasManualMes(){
-      return db.ventaManual.filter(x => inSelectedMonth(x.fecha));
+    function renderSummaryCards(items){
+      const cls = items.length === 4 ? "grid-4" : items.length === 3 ? "grid-3" : "grid-4";
+      return `<div class="grid ${cls}">` + items.map(item => `
+        <div class="kpi">
+          <div class="label">${item.label}</div>
+          <div class="value">${item.value}</div>
+          <div class="sub">${item.sub || ""}</div>
+        </div>
+      `).join("") + `</div>`;
     }
 
     function getVentasSupervisoresMes(){
@@ -780,6 +872,14 @@
 
     function getProduccionMes(){
       return db.produccion.filter(x => inSelectedMonth(x.fecha));
+    }
+
+    function getVentasSistemaMes(){
+      return db.ventaSistema.filter(x => inSelectedMonth(x.fecha));
+    }
+
+    function getVentasManualMes(){
+      return db.ventaManual.filter(x => inSelectedMonth(x.fecha));
     }
 
     function getCurvaMes(){
@@ -792,166 +892,139 @@
       return [...sistema, ...manual];
     }
 
-    function groupSum(rows, keyFn, amountFn){
-      const map = new Map();
+    function getSelectedDates(rows){
+      return [...new Set(rows.map(x => x.fecha).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    }
+
+    function buildTree(rows, levels){
+      const root = [];
+
+      function findChild(children, label){
+        let node = children.find(x => x.label === label);
+        if(!node){
+          node = { label, children: [], totalsByDate: {}, total: 0 };
+          children.push(node);
+        }
+        return node;
+      }
+
       rows.forEach(row => {
-        const key = keyFn(row);
-        map.set(key, (map.get(key) || 0) + Number(amountFn(row) || 0));
-      });
-      return map;
-    }
+        let current = root;
+        levels.forEach(level => {
+          const label = row[level] || "SIN DATO";
+          const node = findChild(current, label);
+          const date = row.fecha;
+          const amount = Number(row.cantidad || 0);
 
-    function sortDatesAsc(arr){
-      return [...arr].sort((a,b) => a.localeCompare(b));
-    }
-
-    function sortDatesDesc(arr){
-      return [...arr].sort((a,b) => b.localeCompare(a));
-    }
-
-    function nestedAccordionByDayCasinoServiceCompany(rows){
-      const byDate = {};
-      rows.forEach(r => {
-        if(!byDate[r.fecha]) byDate[r.fecha] = {};
-        if(!byDate[r.fecha][r.casino]) byDate[r.fecha][r.casino] = {};
-        if(!byDate[r.fecha][r.casino][r.servicio]) byDate[r.fecha][r.casino][r.servicio] = {};
-        if(!byDate[r.fecha][r.casino][r.servicio][r.empresa || "SIN EMPRESA"]) byDate[r.fecha][r.casino][r.servicio][r.empresa || "SIN EMPRESA"] = 0;
-        byDate[r.fecha][r.casino][r.servicio][r.empresa || "SIN EMPRESA"] += Number(r.cantidad || 0);
+          node.totalsByDate[date] = (node.totalsByDate[date] || 0) + amount;
+          node.total += amount;
+          current = node.children;
+        });
       });
 
-      const dates = sortDatesAsc(Object.keys(byDate));
-      if(!dates.length) return `<div class="empty">No hay información para el período seleccionado.</div>`;
+      function sortNodes(nodes){
+        nodes.sort((a,b)=>a.label.localeCompare(b.label));
+        nodes.forEach(n => sortNodes(n.children));
+      }
 
-      return `<div class="accordion">` + dates.map(fecha => {
-        const casinos = byDate[fecha];
-        const totalDia = Object.values(casinos).flatMap(servs => Object.values(servs)).flatMap(emps => Object.values(emps)).reduce((a,b)=>a+b,0);
-
-        return `
-          <details ${dates.length <= 7 ? "open" : ""}>
-            <summary>
-              <div class="summary-left">
-                <span>${fecha}</span>
-                <span class="tag gray">${Object.keys(casinos).length} casinos</span>
-              </div>
-              <div class="summary-right">
-                <strong>${formatNumber(totalDia)}</strong>
-              </div>
-            </summary>
-            <div class="details-body">
-              <div class="nested">
-                ${Object.entries(casinos).sort((a,b)=>a[0].localeCompare(b[0])).map(([casino, servicios]) => {
-                  const totalCasino = Object.values(servicios).flatMap(emps => Object.values(emps)).reduce((a,b)=>a+b,0);
-                  return `
-                    <details>
-                      <summary>
-                        <div class="summary-left">
-                          <span>${casino}</span>
-                        </div>
-                        <div class="summary-right">
-                          <strong>${formatNumber(totalCasino)}</strong>
-                        </div>
-                      </summary>
-                      <div class="details-body">
-                        <div class="nested">
-                          ${Object.entries(servicios).sort((a,b)=>a[0].localeCompare(b[0])).map(([servicio, empresas]) => {
-                            const totalServicio = Object.values(empresas).reduce((a,b)=>a+b,0);
-                            return `
-                              <details>
-                                <summary>
-                                  <div class="summary-left">
-                                    <span>${servicio}</span>
-                                  </div>
-                                  <div class="summary-right">
-                                    <strong>${formatNumber(totalServicio)}</strong>
-                                  </div>
-                                </summary>
-                                <div class="details-body">
-                                  ${Object.entries(empresas).sort((a,b)=>a[0].localeCompare(b[0])).map(([empresa, cantidad]) => `
-                                    <div class="stat-row">
-                                      <span>${empresa}</span>
-                                      <strong>${formatNumber(cantidad)}</strong>
-                                    </div>
-                                  `).join("")}
-                                </div>
-                              </details>
-                            `;
-                          }).join("")}
-                        </div>
-                      </div>
-                    </details>
-                  `;
-                }).join("")}
-              </div>
-            </div>
-          </details>
-        `;
-      }).join("") + `</div>`;
+      sortNodes(root);
+      return root;
     }
 
-    function nestedAccordionSimpleByDayCasinoService(rows){
-      const byDate = {};
-      rows.forEach(r => {
-        if(!byDate[r.fecha]) byDate[r.fecha] = {};
-        if(!byDate[r.fecha][r.casino]) byDate[r.fecha][r.casino] = {};
-        if(!byDate[r.fecha][r.casino][r.servicio]) byDate[r.fecha][r.casino][r.servicio] = 0;
-        byDate[r.fecha][r.casino][r.servicio] += Number(r.cantidad || 0);
+    function flattenTree(nodes, moduleKey, dates, level = 0, parentPath = ""){
+      const result = [];
+      nodes.forEach(node => {
+        const path = parentPath ? `${parentPath}|||${node.label}` : node.label;
+        const hasChildren = node.children.length > 0;
+        const expanded = treeState[moduleKey].has(path);
+
+        result.push({
+          path,
+          label: node.label,
+          level,
+          hasChildren,
+          expanded,
+          totalsByDate: node.totalsByDate,
+          total: node.total
+        });
+
+        if(hasChildren && expanded){
+          result.push(...flattenTree(node.children, moduleKey, dates, level + 1, path));
+        }
       });
-
-      const dates = sortDatesAsc(Object.keys(byDate));
-      if(!dates.length) return `<div class="empty">No hay información para el período seleccionado.</div>`;
-
-      return `<div class="accordion">` + dates.map(fecha => {
-        const casinos = byDate[fecha];
-        const totalDia = Object.values(casinos).flatMap(servicios => Object.values(servicios)).reduce((a,b)=>a+b,0);
-
-        return `
-          <details ${dates.length <= 7 ? "open" : ""}>
-            <summary>
-              <div class="summary-left">
-                <span>${fecha}</span>
-                <span class="tag gray">${Object.keys(casinos).length} casinos</span>
-              </div>
-              <div class="summary-right">
-                <strong>${formatNumber(totalDia)}</strong>
-              </div>
-            </summary>
-            <div class="details-body">
-              <div class="nested">
-                ${Object.entries(casinos).sort((a,b)=>a[0].localeCompare(b[0])).map(([casino, servicios]) => `
-                  <details>
-                    <summary>
-                      <div class="summary-left">
-                        <span>${casino}</span>
-                      </div>
-                      <div class="summary-right">
-                        <strong>${formatNumber(Object.values(servicios).reduce((a,b)=>a+b,0))}</strong>
-                      </div>
-                    </summary>
-                    <div class="details-body">
-                      ${Object.entries(servicios).sort((a,b)=>a[0].localeCompare(b[0])).map(([servicio, cantidad]) => `
-                        <div class="stat-row">
-                          <span>${servicio}</span>
-                          <strong>${formatNumber(cantidad)}</strong>
-                        </div>
-                      `).join("")}
-                    </div>
-                  </details>
-                `).join("")}
-              </div>
-            </div>
-          </details>
-        `;
-      }).join("") + `</div>`;
+      return result;
     }
 
-    function renderSummaryCards(items){
-      return `<div class="grid cols-4">` + items.map(item => `
-        <div class="kpi">
-          <div class="label">${item.label}</div>
-          <div class="value">${item.value}</div>
-          <div class="sub">${item.sub || ""}</div>
+    function renderMatrixTable(moduleKey, levels, rows, firstColumnLabel, filenameBase){
+      const dates = getSelectedDates(rows);
+      const tree = buildTree(rows, levels);
+      const flat = flattenTree(tree, moduleKey, dates);
+
+      currentExport = {
+        headers: [firstColumnLabel, ...dates, "Total"],
+        rows: flat.map(r => [
+          `${"  ".repeat(r.level)}${r.label}`,
+          ...dates.map(d => r.totalsByDate[d] || 0),
+          r.total
+        ]),
+        filename: `${filenameBase}_${settings.periodo}`
+      };
+
+      if(!dates.length){
+        return `<div class="empty">No hay información para el período seleccionado.</div>`;
+      }
+
+      return `
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>${firstColumnLabel}</th>
+                ${dates.map(d => `<th class="right">${d}</th>`).join("")}
+                <th class="right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                flat.length
+                ? flat.map(r => `
+                    <tr class="matrix-row row-level-${r.level}">
+                      <td>
+                        <div class="tree-cell">
+                          <span class="tree-indent" style="--level:${r.level}"></span>
+                          ${
+                            r.hasChildren
+                            ? `<button class="tree-toggle" data-tree-module="${moduleKey}" data-tree-path="${encodeURIComponent(r.path)}">${r.expanded ? "−" : "+"}</button>`
+                            : `<span class="tree-spacer"></span>`
+                          }
+                          <span class="tree-label">${r.label}</span>
+                        </div>
+                      </td>
+                      ${dates.map(d => `<td class="right">${formatNumber(r.totalsByDate[d] || 0)}</td>`).join("")}
+                      <td class="right"><strong>${formatNumber(r.total)}</strong></td>
+                    </tr>
+                  `).join("")
+                : `<tr><td colspan="${dates.length + 2}"><div class="empty">No hay filas para mostrar.</div></td></tr>`
+              }
+            </tbody>
+          </table>
         </div>
-      `).join("") + `</div>`;
+      `;
+    }
+
+    function bindTreeToggles(){
+      document.querySelectorAll("[data-tree-module]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const moduleKey = btn.dataset.treeModule;
+          const path = decodeURIComponent(btn.dataset.treePath);
+          if(treeState[moduleKey].has(path)){
+            treeState[moduleKey].delete(path);
+          }else{
+            treeState[moduleKey].add(path);
+          }
+          renderApp();
+        });
+      });
     }
 
     function renderSupervisorModule(){
@@ -966,16 +1039,25 @@
       const casinos = new Set(rows.map(x=>x.casino)).size;
       const servicios = new Set(rows.map(x=>x.servicio)).size;
 
+      currentExport = {
+        headers:["Fecha","Casino","Servicio","Cantidad"],
+        rows: rows
+          .slice()
+          .sort((a,b)=>(a.fecha+a.casino+a.servicio).localeCompare(b.fecha+b.casino+b.servicio))
+          .map(r => [r.fecha, r.casino, r.servicio, r.cantidad]),
+        filename:`venta_supervisores_${settings.periodo}`
+      };
+
       document.getElementById("appContent").innerHTML = `
         <div class="panel">
           <h3>Ingreso de venta supervisores</h3>
-          <div class="panel-subtitle">Registro rápido operativo. Este origen no entra directo a cobro.</div>
+          <div class="panel-sub">Registro operativo sin empresa. No entra directo a la base de cobro.</div>
 
           ${renderSummaryCards([
             { label:"Total período", value:formatNumber(total), sub:"Cantidad cargada por supervisión" },
             { label:"Días con carga", value:formatNumber(dias), sub:"Fechas con movimiento" },
-            { label:"Casinos usados", value:formatNumber(casinos), sub:"Casinos distintos en el período" },
-            { label:"Servicios usados", value:formatNumber(servicios), sub:"Servicios distintos en el período" }
+            { label:"Casinos usados", value:formatNumber(casinos), sub:"Casinos distintos" },
+            { label:"Servicios usados", value:formatNumber(servicios), sub:"Servicios distintos" }
           ])}
 
           <div style="height:14px"></div>
@@ -983,19 +1065,21 @@
           <div class="form-grid">
             <div class="field">
               <label>Fecha</label>
-              <input type="date" id="supFecha">
+              <input class="input" type="date" id="supFecha">
             </div>
             <div class="field">
               <label>Servicio</label>
-              <input list="serviciosList" id="supServicio" placeholder="Ej. ALMUERZO">
+              <input class="input" list="serviciosList" id="supServicio" placeholder="Ej. ALMUERZO">
             </div>
             <div class="field">
               <label>Casino</label>
-              <select id="supCasino">${CASINOS.map(x=>`<option value="${x}">${x}</option>`).join("")}</select>
+              <select class="select" id="supCasino">
+                ${CASINOS.map(x => `<option value="${x}">${x}</option>`).join("")}
+              </select>
             </div>
             <div class="field">
               <label>Cantidad</label>
-              <input type="number" min="0" step="0.01" id="supCantidad" placeholder="0">
+              <input class="input" type="number" min="0" step="0.01" id="supCantidad" placeholder="0">
             </div>
             <div class="field">
               <label>&nbsp;</label>
@@ -1005,9 +1089,15 @@
         </div>
 
         <div class="panel">
-          <h3>Resumen del período</h3>
-          <div class="panel-subtitle">Vista diaria desplegable por casino y servicio.</div>
-          ${nestedAccordionSimpleByDayCasinoService(rows)}
+          <h3>Resumen diario</h3>
+          <div class="panel-sub">Matriz por casino con fechas en columnas.</div>
+          ${renderMatrixTable("casino", ["casino","servicio"], rows.map(r => ({
+            fecha:r.fecha,
+            casino:r.casino,
+            servicio:r.servicio,
+            empresa:"",
+            cantidad:r.cantidad
+          })), "Casino / Servicio", "supervisores_resumen")}
         </div>
 
         <div class="panel">
@@ -1026,20 +1116,16 @@
               <tbody>
                 ${
                   rows.length
-                  ? sortDatesDesc([...new Set(rows.map(x => `${x.fecha}|${x.casino}|${x.servicio}|${x.cantidad}|${x.id}`))]).map(key => {
-                      const [, , , , id] = key.split("|");
-                      const r = rows.find(x => String(x.id) === String(id));
-                      return `
-                        <tr>
-                          <td>${r.fecha}</td>
-                          <td>${r.casino}</td>
-                          <td>${r.servicio}</td>
-                          <td class="right">${formatNumber(r.cantidad)}</td>
-                          <td><button class="btn secondary" data-del-supervisor="${r.id}">Eliminar</button></td>
-                        </tr>
-                      `;
-                    }).join("")
-                  : `<tr><td colspan="5"><div class="empty">No hay registros de venta supervisores en este período.</div></td></tr>`
+                  ? rows.slice().sort((a,b)=>(b.fecha+b.casino+b.servicio).localeCompare(a.fecha+a.casino+a.servicio)).map(r => `
+                      <tr>
+                        <td>${r.fecha}</td>
+                        <td>${r.casino}</td>
+                        <td>${r.servicio}</td>
+                        <td class="right">${formatNumber(r.cantidad)}</td>
+                        <td><button class="btn secondary" data-del-supervisor="${r.id}">Eliminar</button></td>
+                      </tr>
+                    `).join("")
+                  : `<tr><td colspan="5"><div class="empty">No hay registros en el período seleccionado.</div></td></tr>`
                 }
               </tbody>
             </table>
@@ -1047,7 +1133,9 @@
         </div>
       `;
 
-      document.getElementById("btnGuardarSupervisor").addEventListener("click", () => {
+      bindTreeToggles();
+
+      document.getElementById("btnGuardarSupervisor").addEventListener("click", async () => {
         const fecha = document.getElementById("supFecha").value;
         const servicio = normalizeText(document.getElementById("supServicio").value);
         const casino = document.getElementById("supCasino").value;
@@ -1059,7 +1147,7 @@
         }
 
         db.ventaSupervisores.push({
-          id: Date.now().toString(),
+          id: `${Date.now()}_${Math.random()}`,
           fecha,
           servicio,
           familia: normalizeServiceFamily(servicio),
@@ -1068,15 +1156,15 @@
         });
 
         ensureMasters("", servicio);
-        saveDb();
+        await saveDb();
         renderApp();
       });
 
       document.querySelectorAll("[data-del-supervisor]").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           const id = btn.dataset.delSupervisor;
           db.ventaSupervisores = db.ventaSupervisores.filter(x => String(x.id) !== String(id));
-          saveDb();
+          await saveDb();
           renderApp();
         });
       });
@@ -1085,7 +1173,7 @@
     function renderProduccionModule(){
       setHeader(
         "Producción",
-        "Carga operativa por fecha, servicio, casino y cantidad. Histórico mensual con resumen diario."
+        "Carga operativa por fecha, servicio, casino y cantidad."
       );
 
       const rows = getProduccionMes();
@@ -1094,13 +1182,22 @@
       const casinos = new Set(rows.map(x=>x.casino)).size;
       const servicios = new Set(rows.map(x=>x.servicio)).size;
 
+      currentExport = {
+        headers:["Fecha","Casino","Servicio","Cantidad"],
+        rows: rows
+          .slice()
+          .sort((a,b)=>(a.fecha+a.casino+a.servicio).localeCompare(b.fecha+b.casino+b.servicio))
+          .map(r => [r.fecha, r.casino, r.servicio, r.cantidad]),
+        filename:`produccion_${settings.periodo}`
+      };
+
       document.getElementById("appContent").innerHTML = `
         <div class="panel">
           <h3>Carga de producción</h3>
-          <div class="panel-subtitle">Esta vista no lleva empresa. Es control operacional.</div>
+          <div class="panel-sub">Vista sin empresa. Control operacional diario.</div>
 
           ${renderSummaryCards([
-            { label:"Producción período", value:formatNumber(total), sub:"Total planificado/cargado" },
+            { label:"Producción período", value:formatNumber(total), sub:"Cantidad cargada" },
             { label:"Días con carga", value:formatNumber(dias), sub:"Fechas con movimiento" },
             { label:"Casinos usados", value:formatNumber(casinos), sub:"Casinos distintos" },
             { label:"Servicios usados", value:formatNumber(servicios), sub:"Servicios distintos" }
@@ -1111,19 +1208,21 @@
           <div class="form-grid">
             <div class="field">
               <label>Fecha</label>
-              <input type="date" id="prodFecha">
+              <input class="input" type="date" id="prodFecha">
             </div>
             <div class="field">
               <label>Servicio</label>
-              <input list="serviciosList" id="prodServicio" placeholder="Ej. ALMUERZO">
+              <input class="input" list="serviciosList" id="prodServicio" placeholder="Ej. ALMUERZO">
             </div>
             <div class="field">
               <label>Casino</label>
-              <select id="prodCasino">${CASINOS.map(x=>`<option value="${x}">${x}</option>`).join("")}</select>
+              <select class="select" id="prodCasino">
+                ${CASINOS.map(x => `<option value="${x}">${x}</option>`).join("")}
+              </select>
             </div>
             <div class="field">
               <label>Cantidad</label>
-              <input type="number" min="0" step="0.01" id="prodCantidad" placeholder="0">
+              <input class="input" type="number" min="0" step="0.01" id="prodCantidad" placeholder="0">
             </div>
             <div class="field">
               <label>&nbsp;</label>
@@ -1133,9 +1232,15 @@
         </div>
 
         <div class="panel">
-          <h3>Resumen del período</h3>
-          <div class="panel-subtitle">Día → casino → servicio.</div>
-          ${nestedAccordionSimpleByDayCasinoService(rows)}
+          <h3>Resumen diario</h3>
+          <div class="panel-sub">Matriz por casino con fechas en columnas.</div>
+          ${renderMatrixTable("casino", ["casino","servicio"], rows.map(r => ({
+            fecha:r.fecha,
+            casino:r.casino,
+            servicio:r.servicio,
+            empresa:"",
+            cantidad:r.cantidad
+          })), "Casino / Servicio", "produccion_resumen")}
         </div>
 
         <div class="panel">
@@ -1163,7 +1268,7 @@
                         <td><button class="btn secondary" data-del-produccion="${r.id}">Eliminar</button></td>
                       </tr>
                     `).join("")
-                  : `<tr><td colspan="5"><div class="empty">No hay registros de producción en este período.</div></td></tr>`
+                  : `<tr><td colspan="5"><div class="empty">No hay registros en el período seleccionado.</div></td></tr>`
                 }
               </tbody>
             </table>
@@ -1171,7 +1276,9 @@
         </div>
       `;
 
-      document.getElementById("btnGuardarProduccion").addEventListener("click", () => {
+      bindTreeToggles();
+
+      document.getElementById("btnGuardarProduccion").addEventListener("click", async () => {
         const fecha = document.getElementById("prodFecha").value;
         const servicio = normalizeText(document.getElementById("prodServicio").value);
         const casino = document.getElementById("prodCasino").value;
@@ -1183,7 +1290,7 @@
         }
 
         db.produccion.push({
-          id: Date.now().toString(),
+          id: `${Date.now()}_${Math.random()}`,
           fecha,
           servicio,
           familia: normalizeServiceFamily(servicio),
@@ -1192,15 +1299,15 @@
         });
 
         ensureMasters("", servicio);
-        saveDb();
+        await saveDb();
         renderApp();
       });
 
       document.querySelectorAll("[data-del-produccion]").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           const id = btn.dataset.delProduccion;
           db.produccion = db.produccion.filter(x => String(x.id) !== String(id));
-          saveDb();
+          await saveDb();
           renderApp();
         });
       });
@@ -1209,7 +1316,7 @@
     function renderSistemaModule(){
       setHeader(
         "Venta sistema",
-        "Importación de Excel o CSV desde BBDD. PRECIO se interpreta como cantidad de servicios."
+        "Importación desde BBDD. PRECIO se interpreta como cantidad de servicios."
       );
 
       const rows = getVentasSistemaMes();
@@ -1218,10 +1325,19 @@
       const casinos = new Set(rows.map(x=>x.casino)).size;
       const servicios = new Set(rows.map(x=>x.servicio)).size;
 
+      currentExport = {
+        headers:["Fecha","Empresa","Servicio","Familia","Casino","Cantidad"],
+        rows: rows
+          .slice()
+          .sort((a,b)=>(a.fecha+a.empresa+a.servicio+a.casino).localeCompare(b.fecha+b.empresa+b.servicio+b.casino))
+          .map(r => [r.fecha, r.empresa, r.servicio, r.familia, r.casino, r.cantidad]),
+        filename:`venta_sistema_${settings.periodo}`
+      };
+
       document.getElementById("appContent").innerHTML = `
         <div class="panel">
           <h3>Importar archivo</h3>
-          <div class="panel-subtitle">Columnas obligatorias: NOMBRE_EMPRESA, SERVICIO, FECHA, EQUIPO, PRECIO.</div>
+          <div class="panel-sub">Columnas obligatorias: NOMBRE_EMPRESA, SERVICIO, FECHA, EQUIPO, PRECIO.</div>
 
           ${renderSummaryCards([
             { label:"Sistema período", value:formatNumber(total), sub:"Cantidad total importada" },
@@ -1235,8 +1351,7 @@
           <div class="form-grid">
             <div class="field" style="grid-column: span 2;">
               <label>Archivo Excel / CSV</label>
-              <input type="file" id="fileSistema" accept=".xlsx,.xls,.csv">
-              <div class="file-note">Se lee la primera hoja del archivo.</div>
+              <input class="input" type="file" id="fileSistema" accept=".xlsx,.xls,.csv">
             </div>
             <div class="field">
               <label>&nbsp;</label>
@@ -1257,8 +1372,8 @@
 
         <div class="panel">
           <h3>Resumen del período</h3>
-          <div class="panel-subtitle">Día → casino → servicio → empresa.</div>
-          ${nestedAccordionByDayCasinoServiceCompany(rows)}
+          <div class="panel-sub">Matriz día → empresa → servicio → casino según fechas en columnas.</div>
+          ${renderMatrixTable("empresa", ["empresa","servicio","casino"], rows, "Empresa / Servicio / Casino", "sistema_resumen")}
         </div>
 
         <div class="panel">
@@ -1290,7 +1405,7 @@
                         <td><button class="btn secondary" data-del-sistema="${r.id}">Eliminar</button></td>
                       </tr>
                     `).join("")
-                  : `<tr><td colspan="7"><div class="empty">No hay venta sistema en este período.</div></td></tr>`
+                  : `<tr><td colspan="7"><div class="empty">No hay venta sistema en el período seleccionado.</div></td></tr>`
                 }
               </tbody>
             </table>
@@ -1298,29 +1413,33 @@
         </div>
       `;
 
+      bindTreeToggles();
+
       document.getElementById("btnImportarSistema").addEventListener("click", importSistemaFromFile);
+
       document.getElementById("btnLimpiarSistema").addEventListener("click", () => {
         document.getElementById("fileSistema").value = "";
         document.getElementById("resultadoImportacionSistema").innerHTML = "";
       });
-      document.getElementById("btnVaciarSistemaMes").addEventListener("click", () => {
+
+      document.getElementById("btnVaciarSistemaMes").addEventListener("click", async () => {
         if(!confirm(`Se eliminará toda la venta sistema del período ${settings.periodo}.`)) return;
         db.ventaSistema = db.ventaSistema.filter(x => monthOf(x.fecha) !== settings.periodo);
-        saveDb();
+        await saveDb();
         renderApp();
       });
 
       document.querySelectorAll("[data-del-sistema]").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           const id = btn.dataset.delSistema;
           db.ventaSistema = db.ventaSistema.filter(x => String(x.id) !== String(id));
-          saveDb();
+          await saveDb();
           renderApp();
         });
       });
     }
 
-    function importSistemaFromFile(){
+    async function importSistemaFromFile(){
       const input = document.getElementById("fileSistema");
       const file = input.files[0];
       const out = document.getElementById("resultadoImportacionSistema");
@@ -1333,7 +1452,8 @@
       out.innerHTML = `<div class="notice">Procesando archivo...</div>`;
 
       const reader = new FileReader();
-      reader.onload = function(e){
+
+      reader.onload = async function(e){
         try{
           const data = e.target.result;
           let workbook;
@@ -1356,13 +1476,14 @@
           const normalizedHeaders = Object.keys(rows[0]).map(h => normalizeText(h));
           const requiredHeaders = ["NOMBRE_EMPRESA","SERVICIO","FECHA","EQUIPO","PRECIO"];
           const missing = requiredHeaders.filter(h => !normalizedHeaders.includes(h));
+
           if(missing.length){
             out.innerHTML = `<div class="notice">Faltan columnas obligatorias: <strong>${missing.join(", ")}</strong></div>`;
             return;
           }
 
-          const getValue = (row, name) => {
-            const originalKey = Object.keys(row).find(k => normalizeText(k) === name);
+          const getValue = (row, headerName) => {
+            const originalKey = Object.keys(row).find(k => normalizeText(k) === headerName);
             return originalKey ? row[originalKey] : "";
           };
 
@@ -1377,11 +1498,11 @@
             const equipo = normalizeText(getValue(row, "EQUIPO"));
             const casino = EQUIPO_MAP[equipo] || equipo || "SIN MAPEO";
 
-            let rawCantidad = getValue(row, "PRECIO");
-            if(typeof rawCantidad === "string"){
-              rawCantidad = rawCantidad.replace(/\./g,"").replace(",",".");
+            let cantidadRaw = getValue(row, "PRECIO");
+            if(typeof cantidadRaw === "string"){
+              cantidadRaw = cantidadRaw.replace(/\./g,"").replace(",",".");
             }
-            const cantidad = Number(rawCantidad);
+            const cantidad = Number(cantidadRaw);
 
             if(!empresa || !servicio || !fecha || !casino || Number.isNaN(cantidad)) return;
 
@@ -1409,7 +1530,8 @@
             ensureMasters(r.empresa, r.servicio);
           });
 
-          saveDb();
+          await saveDb();
+
           out.innerHTML = `
             <div class="notice">
               ✔ Filas fuente leídas: <strong>${formatNumber(rawRows)}</strong><br>
@@ -1417,6 +1539,7 @@
               ✔ Cantidad total sumada: <strong>${formatNumber(total)}</strong>
             </div>
           `;
+
           renderApp();
         }catch(error){
           out.innerHTML = `<div class="notice">Error al leer el archivo: <strong>${error.message}</strong></div>`;
@@ -1433,7 +1556,7 @@
     function renderManualModule(){
       setHeader(
         "Venta manuales",
-        "Carga complementaria por fecha, empresa, servicio, casino y cantidad. Esta sí afecta la venta real."
+        "Carga complementaria por fecha, empresa, servicio, casino y cantidad."
       );
 
       const rows = getVentasManualMes();
@@ -1442,16 +1565,25 @@
       const casinos = new Set(rows.map(x=>x.casino)).size;
       const servicios = new Set(rows.map(x=>x.servicio)).size;
 
+      currentExport = {
+        headers:["Fecha","Empresa","Servicio","Familia","Casino","Cantidad"],
+        rows: rows
+          .slice()
+          .sort((a,b)=>(a.fecha+a.empresa+a.servicio+a.casino).localeCompare(b.fecha+b.empresa+b.servicio+b.casino))
+          .map(r => [r.fecha, r.empresa, r.servicio, r.familia, r.casino, r.cantidad]),
+        filename:`venta_manual_${settings.periodo}`
+      };
+
       document.getElementById("appContent").innerHTML = `
         <div class="panel">
           <h3>Ingreso de venta manual</h3>
-          <div class="panel-subtitle">Se suma a venta sistema para formar la venta real.</div>
+          <div class="panel-sub">Esta carga sí se suma a venta sistema para formar la venta real.</div>
 
           ${renderSummaryCards([
-            { label:"Manual período", value:formatNumber(total), sub:"Cantidad cargada manualmente" },
+            { label:"Manual período", value:formatNumber(total), sub:"Cantidad manual cargada" },
             { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con carga" },
-            { label:"Casinos", value:formatNumber(casinos), sub:"Casinos usados" },
-            { label:"Servicios", value:formatNumber(servicios), sub:"Servicios distintos" }
+            { label:"Casinos", value:formatNumber(casinos), sub:"Casinos con carga" },
+            { label:"Servicios", value:formatNumber(servicios), sub:"Servicios con carga" }
           ])}
 
           <div style="height:14px"></div>
@@ -1459,23 +1591,25 @@
           <div class="form-grid">
             <div class="field">
               <label>Fecha</label>
-              <input type="date" id="manFecha">
+              <input class="input" type="date" id="manFecha">
             </div>
             <div class="field">
               <label>Empresa</label>
-              <input list="empresasList" id="manEmpresa" placeholder="Empresa">
+              <input class="input" list="empresasList" id="manEmpresa" placeholder="Empresa">
             </div>
             <div class="field">
               <label>Servicio</label>
-              <input list="serviciosList" id="manServicio" placeholder="Servicio">
+              <input class="input" list="serviciosList" id="manServicio" placeholder="Servicio">
             </div>
             <div class="field">
               <label>Casino</label>
-              <select id="manCasino">${CASINOS.map(x=>`<option value="${x}">${x}</option>`).join("")}</select>
+              <select class="select" id="manCasino">
+                ${CASINOS.map(x => `<option value="${x}">${x}</option>`).join("")}
+              </select>
             </div>
             <div class="field">
               <label>Cantidad</label>
-              <input type="number" min="0" step="0.01" id="manCantidad" placeholder="0">
+              <input class="input" type="number" min="0" step="0.01" id="manCantidad" placeholder="0">
             </div>
           </div>
 
@@ -1489,8 +1623,8 @@
 
         <div class="panel">
           <h3>Resumen del período</h3>
-          <div class="panel-subtitle">Día → casino → servicio → empresa.</div>
-          ${nestedAccordionByDayCasinoServiceCompany(rows)}
+          <div class="panel-sub">Matriz día → empresa → servicio → casino según fechas en columnas.</div>
+          ${renderMatrixTable("empresa", ["empresa","servicio","casino"], rows, "Empresa / Servicio / Casino", "manual_resumen")}
         </div>
 
         <div class="panel">
@@ -1522,7 +1656,7 @@
                         <td><button class="btn secondary" data-del-manual="${r.id}">Eliminar</button></td>
                       </tr>
                     `).join("")
-                  : `<tr><td colspan="7"><div class="empty">No hay venta manual en este período.</div></td></tr>`
+                  : `<tr><td colspan="7"><div class="empty">No hay venta manual en el período seleccionado.</div></td></tr>`
                 }
               </tbody>
             </table>
@@ -1530,7 +1664,9 @@
         </div>
       `;
 
-      document.getElementById("btnGuardarManual").addEventListener("click", () => {
+      bindTreeToggles();
+
+      document.getElementById("btnGuardarManual").addEventListener("click", async () => {
         const fecha = document.getElementById("manFecha").value;
         const empresa = normalizeText(document.getElementById("manEmpresa").value);
         const servicio = normalizeText(document.getElementById("manServicio").value);
@@ -1543,7 +1679,7 @@
         }
 
         db.ventaManual.push({
-          id: Date.now().toString(),
+          id: `${Date.now()}_${Math.random()}`,
           fecha,
           empresa,
           servicio,
@@ -1553,22 +1689,22 @@
         });
 
         ensureMasters(empresa, servicio);
-        saveDb();
+        await saveDb();
         renderApp();
       });
 
-      document.getElementById("btnVaciarManualMes").addEventListener("click", () => {
+      document.getElementById("btnVaciarManualMes").addEventListener("click", async () => {
         if(!confirm(`Se eliminará toda la venta manual del período ${settings.periodo}.`)) return;
         db.ventaManual = db.ventaManual.filter(x => monthOf(x.fecha) !== settings.periodo);
-        saveDb();
+        await saveDb();
         renderApp();
       });
 
       document.querySelectorAll("[data-del-manual]").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           const id = btn.dataset.delManual;
           db.ventaManual = db.ventaManual.filter(x => String(x.id) !== String(id));
-          saveDb();
+          await saveDb();
           renderApp();
         });
       });
@@ -1577,345 +1713,106 @@
     function renderConsumoEmpresaModule(){
       setHeader(
         "Consumos por empresas",
-        "Vista analítica de la venta real del período. Jerarquía: día → empresa → servicio → casino."
+        "Matriz horizontal por fechas. Apertura: empresa → servicio → casino."
       );
 
-      const realRows = getVentaRealMes();
-      const empresaMap = new Map();
-      realRows.forEach(r => {
-        if(!empresaMap.has(r.empresa)){
-          empresaMap.set(r.empresa, { empresa:r.empresa, sistema:0, manual:0, real:0, casinos:new Set(), servicios:new Set() });
-        }
-        const obj = empresaMap.get(r.empresa);
-        if(r.origen === "SISTEMA") obj.sistema += Number(r.cantidad || 0);
-        if(r.origen === "MANUAL") obj.manual += Number(r.cantidad || 0);
-        obj.real += Number(r.cantidad || 0);
-        obj.casinos.add(r.casino);
-        obj.servicios.add(r.servicio);
-      });
-
-      const top = [...empresaMap.values()].sort((a,b)=>b.real-a.real).slice(0,8);
-      const totalReal = realRows.reduce((a,b)=>a+Number(b.cantidad||0),0);
-      const empresas = empresaMap.size;
-
-      const nestedByDay = (() => {
-        const byDate = {};
-        realRows.forEach(r => {
-          if(!byDate[r.fecha]) byDate[r.fecha] = {};
-          if(!byDate[r.fecha][r.empresa]) byDate[r.fecha][r.empresa] = {};
-          if(!byDate[r.fecha][r.empresa][r.servicio]) byDate[r.fecha][r.empresa][r.servicio] = {};
-          if(!byDate[r.fecha][r.empresa][r.servicio][r.casino]) byDate[r.fecha][r.empresa][r.servicio][r.casino] = 0;
-          byDate[r.fecha][r.empresa][r.servicio][r.casino] += Number(r.cantidad || 0);
-        });
-
-        const dates = sortDatesAsc(Object.keys(byDate));
-        if(!dates.length) return `<div class="empty">No hay venta real para el período seleccionado.</div>`;
-
-        return `<div class="accordion">` + dates.map(fecha => `
-          <details ${dates.length <= 7 ? "open" : ""}>
-            <summary>
-              <div class="summary-left">
-                <span>${fecha}</span>
-                <span class="tag gray">${Object.keys(byDate[fecha]).length} empresas</span>
-              </div>
-              <div class="summary-right">
-                <strong>${formatNumber(Object.values(byDate[fecha]).flatMap(servicios=>Object.values(servicios)).flatMap(casinos=>Object.values(casinos)).reduce((a,b)=>a+b,0))}</strong>
-              </div>
-            </summary>
-            <div class="details-body">
-              <div class="nested">
-                ${Object.entries(byDate[fecha]).sort((a,b)=>a[0].localeCompare(b[0])).map(([empresa, servicios]) => `
-                  <details>
-                    <summary>
-                      <div class="summary-left"><span>${empresa}</span></div>
-                      <div class="summary-right"><strong>${formatNumber(Object.values(servicios).flatMap(casinos => Object.values(casinos)).reduce((a,b)=>a+b,0))}</strong></div>
-                    </summary>
-                    <div class="details-body">
-                      <div class="nested">
-                        ${Object.entries(servicios).sort((a,b)=>a[0].localeCompare(b[0])).map(([servicio, casinos]) => `
-                          <details>
-                            <summary>
-                              <div class="summary-left"><span>${servicio}</span></div>
-                              <div class="summary-right"><strong>${formatNumber(Object.values(casinos).reduce((a,b)=>a+b,0))}</strong></div>
-                            </summary>
-                            <div class="details-body">
-                              ${Object.entries(casinos).sort((a,b)=>a[0].localeCompare(b[0])).map(([casino, cantidad]) => `
-                                <div class="stat-row">
-                                  <span>${casino}</span>
-                                  <strong>${formatNumber(cantidad)}</strong>
-                                </div>
-                              `).join("")}
-                            </div>
-                          </details>
-                        `).join("")}
-                      </div>
-                    </div>
-                  </details>
-                `).join("")}
-              </div>
-            </div>
-          </details>
-        `).join("") + `</div>`;
-      })();
+      const rows = getVentaRealMes();
+      const empresaCount = new Set(rows.map(x => x.empresa)).size;
+      const totalReal = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
+      const totalSistema = rows.filter(x=>x.origen==="SISTEMA").reduce((a,b)=>a+Number(b.cantidad||0),0);
+      const totalManual = rows.filter(x=>x.origen==="MANUAL").reduce((a,b)=>a+Number(b.cantidad||0),0);
 
       document.getElementById("appContent").innerHTML = `
         <div class="panel">
           <h3>Resumen ejecutivo</h3>
           ${renderSummaryCards([
-            { label:"Venta real período", value:formatNumber(totalReal), sub:"Sistema + manual" },
-            { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con consumo real" },
-            { label:"Venta sistema", value:formatNumber(realRows.filter(x=>x.origen==="SISTEMA").reduce((a,b)=>a+Number(b.cantidad||0),0)), sub:"Origen sistema" },
-            { label:"Venta manual", value:formatNumber(realRows.filter(x=>x.origen==="MANUAL").reduce((a,b)=>a+Number(b.cantidad||0),0)), sub:"Origen manual" }
+            { label:"Venta real", value:formatNumber(totalReal), sub:"Sistema + manual" },
+            { label:"Venta sistema", value:formatNumber(totalSistema), sub:"Origen sistema" },
+            { label:"Venta manual", value:formatNumber(totalManual), sub:"Origen manual" },
+            { label:"Empresas", value:formatNumber(empresaCount), sub:"Empresas con consumo real" }
           ])}
         </div>
 
         <div class="panel">
-          <h3>Top empresas del período</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Empresa</th>
-                  <th class="right">Sistema</th>
-                  <th class="right">Manual</th>
-                  <th class="right">Real</th>
-                  <th>Casinos</th>
-                  <th>Servicios</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${
-                  top.length
-                  ? top.map(r => `
-                      <tr>
-                        <td>${r.empresa}</td>
-                        <td class="right">${formatNumber(r.sistema)}</td>
-                        <td class="right">${formatNumber(r.manual)}</td>
-                        <td class="right"><strong>${formatNumber(r.real)}</strong></td>
-                        <td>${[...r.casinos].sort().join(", ")}</td>
-                        <td>${[...r.servicios].sort().slice(0,5).join(", ")}${r.servicios.size > 5 ? "..." : ""}</td>
-                      </tr>
-                    `).join("")
-                  : `<tr><td colspan="6"><div class="empty">No hay consumo real para el período.</div></td></tr>`
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h3>Detalle diario desplegable</h3>
-          <div class="panel-subtitle">Día → empresa → servicio → casino.</div>
-          ${nestedByDay}
+          <h3>Matriz por empresas</h3>
+          <div class="panel-sub">Filas principales por empresa. Fechas en columnas. Detalle expandible.</div>
+          ${renderMatrixTable("empresa", ["empresa","servicio","casino"], rows, "Empresa / Servicio / Casino", "consumo_empresas")}
         </div>
       `;
+
+      bindTreeToggles();
     }
 
     function renderConsumoServicioModule(){
       setHeader(
         "Consumos por servicios",
-        "Vista analítica de la venta real del período. Jerarquía: día → servicio → casino → empresa."
+        "Matriz horizontal por fechas. Apertura: servicio → casino → empresa."
       );
 
-      const realRows = getVentaRealMes();
-      const servicioMap = new Map();
-      realRows.forEach(r => {
-        const key = `${r.servicio}|${r.familia}`;
-        if(!servicioMap.has(key)){
-          servicioMap.set(key, { servicio:r.servicio, familia:r.familia, real:0, casinos:new Set(), empresas:new Set() });
-        }
-        const obj = servicioMap.get(key);
-        obj.real += Number(r.cantidad || 0);
-        obj.casinos.add(r.casino);
-        obj.empresas.add(r.empresa);
-      });
-
-      const top = [...servicioMap.values()].sort((a,b)=>b.real-a.real).slice(0,12);
-
-      const nested = (() => {
-        const byDate = {};
-        realRows.forEach(r => {
-          if(!byDate[r.fecha]) byDate[r.fecha] = {};
-          if(!byDate[r.fecha][r.servicio]) byDate[r.fecha][r.servicio] = {};
-          if(!byDate[r.fecha][r.servicio][r.casino]) byDate[r.fecha][r.servicio][r.casino] = {};
-          if(!byDate[r.fecha][r.servicio][r.casino][r.empresa]) byDate[r.fecha][r.servicio][r.casino][r.empresa] = 0;
-          byDate[r.fecha][r.servicio][r.casino][r.empresa] += Number(r.cantidad || 0);
-        });
-
-        const dates = sortDatesAsc(Object.keys(byDate));
-        if(!dates.length) return `<div class="empty">No hay venta real para el período seleccionado.</div>`;
-
-        return `<div class="accordion">` + dates.map(fecha => `
-          <details ${dates.length <= 7 ? "open" : ""}>
-            <summary>
-              <div class="summary-left">
-                <span>${fecha}</span>
-                <span class="tag gray">${Object.keys(byDate[fecha]).length} servicios</span>
-              </div>
-              <div class="summary-right">
-                <strong>${formatNumber(Object.values(byDate[fecha]).flatMap(casinos=>Object.values(casinos)).flatMap(empresas=>Object.values(empresas)).reduce((a,b)=>a+b,0))}</strong>
-              </div>
-            </summary>
-            <div class="details-body">
-              <div class="nested">
-                ${Object.entries(byDate[fecha]).sort((a,b)=>a[0].localeCompare(b[0])).map(([servicio, casinos]) => `
-                  <details>
-                    <summary>
-                      <div class="summary-left"><span>${servicio}</span></div>
-                      <div class="summary-right"><strong>${formatNumber(Object.values(casinos).flatMap(empresas=>Object.values(empresas)).reduce((a,b)=>a+b,0))}</strong></div>
-                    </summary>
-                    <div class="details-body">
-                      <div class="nested">
-                        ${Object.entries(casinos).sort((a,b)=>a[0].localeCompare(b[0])).map(([casino, empresas]) => `
-                          <details>
-                            <summary>
-                              <div class="summary-left"><span>${casino}</span></div>
-                              <div class="summary-right"><strong>${formatNumber(Object.values(empresas).reduce((a,b)=>a+b,0))}</strong></div>
-                            </summary>
-                            <div class="details-body">
-                              ${Object.entries(empresas).sort((a,b)=>a[0].localeCompare(b[0])).map(([empresa, cantidad]) => `
-                                <div class="stat-row">
-                                  <span>${empresa}</span>
-                                  <strong>${formatNumber(cantidad)}</strong>
-                                </div>
-                              `).join("")}
-                            </div>
-                          </details>
-                        `).join("")}
-                      </div>
-                    </div>
-                  </details>
-                `).join("")}
-              </div>
-            </div>
-          </details>
-        `).join("") + `</div>`;
-      })();
+      const rows = getVentaRealMes();
+      const servicios = new Set(rows.map(x => x.servicio)).size;
+      const totalReal = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
+      const casinos = new Set(rows.map(x => x.casino)).size;
+      const empresas = new Set(rows.map(x => x.empresa)).size;
 
       document.getElementById("appContent").innerHTML = `
         <div class="panel">
           <h3>Resumen ejecutivo</h3>
           ${renderSummaryCards([
-            { label:"Servicios con consumo", value:formatNumber(servicioMap.size), sub:"Servicios distintos" },
-            { label:"Venta real período", value:formatNumber(realRows.reduce((a,b)=>a+Number(b.cantidad||0),0)), sub:"Sistema + manual" },
-            { label:"Casinos activos", value:formatNumber(new Set(realRows.map(x=>x.casino)).size), sub:"Casinos con movimiento" },
-            { label:"Empresas activas", value:formatNumber(new Set(realRows.map(x=>x.empresa)).size), sub:"Empresas con movimiento" }
+            { label:"Servicios", value:formatNumber(servicios), sub:"Servicios con consumo real" },
+            { label:"Venta real", value:formatNumber(totalReal), sub:"Sistema + manual" },
+            { label:"Casinos", value:formatNumber(casinos), sub:"Casinos con movimiento" },
+            { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con movimiento" }
           ])}
         </div>
 
         <div class="panel">
-          <h3>Top servicios del período</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Servicio</th>
-                  <th>Familia</th>
-                  <th class="right">Real</th>
-                  <th class="right">Casinos</th>
-                  <th class="right">Empresas</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${
-                  top.length
-                  ? top.map(r => `
-                      <tr>
-                        <td>${r.servicio}</td>
-                        <td>${r.familia}</td>
-                        <td class="right"><strong>${formatNumber(r.real)}</strong></td>
-                        <td class="right">${formatNumber(r.casinos.size)}</td>
-                        <td class="right">${formatNumber(r.empresas.size)}</td>
-                      </tr>
-                    `).join("")
-                  : `<tr><td colspan="5"><div class="empty">No hay consumo real para el período.</div></td></tr>`
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h3>Detalle diario desplegable</h3>
-          <div class="panel-subtitle">Día → servicio → casino → empresa.</div>
-          ${nested}
+          <h3>Matriz por servicios</h3>
+          <div class="panel-sub">Filas principales por servicio. Fechas en columnas. Detalle expandible.</div>
+          ${renderMatrixTable("servicio", ["servicio","casino","empresa"], rows, "Servicio / Casino / Empresa", "consumo_servicios")}
         </div>
       `;
+
+      bindTreeToggles();
     }
 
     function renderConsumoCasinoModule(){
       setHeader(
         "Consumos por casinos",
-        "Vista operativa de la venta real del período. Jerarquía: día → casino → servicio → empresa."
+        "Matriz horizontal por fechas. Apertura: casino → servicio → empresa."
       );
 
-      const realRows = getVentaRealMes();
-      const casinoMap = new Map();
-      realRows.forEach(r => {
-        if(!casinoMap.has(r.casino)){
-          casinoMap.set(r.casino, { casino:r.casino, real:0, empresas:new Set(), servicios:new Set() });
-        }
-        const obj = casinoMap.get(r.casino);
-        obj.real += Number(r.cantidad || 0);
-        obj.empresas.add(r.empresa);
-        obj.servicios.add(r.servicio);
-      });
-
-      const top = [...casinoMap.values()].sort((a,b)=>b.real-a.real);
+      const rows = getVentaRealMes();
+      const casinos = new Set(rows.map(x => x.casino)).size;
+      const totalReal = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
+      const servicios = new Set(rows.map(x => x.servicio)).size;
+      const empresas = new Set(rows.map(x => x.empresa)).size;
 
       document.getElementById("appContent").innerHTML = `
         <div class="panel">
           <h3>Resumen ejecutivo</h3>
           ${renderSummaryCards([
-            { label:"Casinos con consumo", value:formatNumber(casinoMap.size), sub:"Casinos activos en el período" },
-            { label:"Venta real período", value:formatNumber(realRows.reduce((a,b)=>a+Number(b.cantidad||0),0)), sub:"Sistema + manual" },
-            { label:"Servicios activos", value:formatNumber(new Set(realRows.map(x=>x.servicio)).size), sub:"Servicios con movimiento" },
-            { label:"Empresas activas", value:formatNumber(new Set(realRows.map(x=>x.empresa)).size), sub:"Empresas con movimiento" }
+            { label:"Casinos", value:formatNumber(casinos), sub:"Casinos con consumo real" },
+            { label:"Venta real", value:formatNumber(totalReal), sub:"Sistema + manual" },
+            { label:"Servicios", value:formatNumber(servicios), sub:"Servicios con movimiento" },
+            { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con movimiento" }
           ])}
         </div>
 
         <div class="panel">
-          <h3>Totales por casino</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Casino</th>
-                  <th class="right">Real</th>
-                  <th class="right">Servicios</th>
-                  <th class="right">Empresas</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${
-                  top.length
-                  ? top.map(r => `
-                      <tr>
-                        <td>${r.casino}</td>
-                        <td class="right"><strong>${formatNumber(r.real)}</strong></td>
-                        <td class="right">${formatNumber(r.servicios.size)}</td>
-                        <td class="right">${formatNumber(r.empresas.size)}</td>
-                      </tr>
-                    `).join("")
-                  : `<tr><td colspan="4"><div class="empty">No hay consumo real para el período.</div></td></tr>`
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h3>Detalle diario desplegable</h3>
-          <div class="panel-subtitle">Día → casino → servicio → empresa.</div>
-          ${nestedAccordionByDayCasinoServiceCompany(realRows)}
+          <h3>Matriz por casinos</h3>
+          <div class="panel-sub">Filas principales por casino. Fechas en columnas. Detalle expandible.</div>
+          ${renderMatrixTable("casino", ["casino","servicio","empresa"], rows, "Casino / Servicio / Empresa", "consumo_casinos")}
         </div>
       `;
+
+      bindTreeToggles();
     }
 
     function renderCurvaModule(){
       setHeader(
         "Curva mensual",
-        "Carga contractual por período, empresa y servicio. Base de comparación para cobro."
+        "Carga contractual por período, empresa y servicio."
       );
 
       const rows = getCurvaMes();
@@ -1923,10 +1820,19 @@
       const empresas = new Set(rows.map(x=>x.empresa)).size;
       const servicios = new Set(rows.map(x=>x.servicio)).size;
 
+      currentExport = {
+        headers:["Período","Empresa","Servicio","Familia","Cantidad"],
+        rows: rows
+          .slice()
+          .sort((a,b)=>(a.empresa+a.servicio).localeCompare(b.empresa+b.servicio))
+          .map(r => [r.periodo, r.empresa, r.servicio, r.familia, r.cantidad]),
+        filename:`curva_mensual_${settings.periodo}`
+      };
+
       document.getElementById("appContent").innerHTML = `
         <div class="panel">
           <h3>Carga de curva</h3>
-          <div class="panel-subtitle">La curva se controla por empresa + servicio.</div>
+          <div class="panel-sub">La curva se controla por empresa + servicio.</div>
 
           ${renderSummaryCards([
             { label:"Curva período", value:formatNumber(total), sub:"Cantidad contractual cargada" },
@@ -1940,19 +1846,19 @@
           <div class="form-grid">
             <div class="field">
               <label>Período</label>
-              <input type="month" id="curvaPeriodo" value="${settings.periodo}">
+              <input class="input" type="month" id="curvaPeriodo" value="${settings.periodo}">
             </div>
             <div class="field">
               <label>Empresa</label>
-              <input list="empresasList" id="curvaEmpresa" placeholder="Empresa">
+              <input class="input" list="empresasList" id="curvaEmpresa" placeholder="Empresa">
             </div>
             <div class="field">
               <label>Servicio</label>
-              <input list="serviciosList" id="curvaServicio" placeholder="Servicio">
+              <input class="input" list="serviciosList" id="curvaServicio" placeholder="Servicio">
             </div>
             <div class="field">
               <label>Cantidad</label>
-              <input type="number" min="0" step="0.01" id="curvaCantidad" placeholder="0">
+              <input class="input" type="number" min="0" step="0.01" id="curvaCantidad" placeholder="0">
             </div>
             <div class="field">
               <label>&nbsp;</label>
@@ -1968,7 +1874,7 @@
         </div>
 
         <div class="panel">
-          <h3>Curva cargada del período</h3>
+          <h3>Curva del período</h3>
           <div class="table-wrap">
             <table>
               <thead>
@@ -1984,7 +1890,7 @@
               <tbody>
                 ${
                   rows.length
-                  ? rows.slice().sort((a,b)=>(a.empresa+a.servicio).localeCompare(b.empresa+b.servicio)).map(r => `
+                  ? rows.map(r => `
                       <tr>
                         <td>${r.periodo}</td>
                         <td>${r.empresa}</td>
@@ -1994,7 +1900,7 @@
                         <td><button class="btn secondary" data-del-curva="${r.id}">Eliminar</button></td>
                       </tr>
                     `).join("")
-                  : `<tr><td colspan="6"><div class="empty">No hay curva cargada para el período.</div></td></tr>`
+                  : `<tr><td colspan="6"><div class="empty">No hay curva cargada para el período seleccionado.</div></td></tr>`
                 }
               </tbody>
             </table>
@@ -2002,7 +1908,7 @@
         </div>
       `;
 
-      document.getElementById("btnGuardarCurva").addEventListener("click", () => {
+      document.getElementById("btnGuardarCurva").addEventListener("click", async () => {
         const periodo = document.getElementById("curvaPeriodo").value;
         const empresa = normalizeText(document.getElementById("curvaEmpresa").value);
         const servicio = normalizeText(document.getElementById("curvaServicio").value);
@@ -2014,7 +1920,7 @@
         }
 
         db.curvaMensual.push({
-          id: Date.now().toString(),
+          id: `${Date.now()}_${Math.random()}`,
           periodo,
           empresa,
           servicio,
@@ -2023,22 +1929,22 @@
         });
 
         ensureMasters(empresa, servicio);
-        saveDb();
+        await saveDb();
         renderApp();
       });
 
-      document.getElementById("btnVaciarCurvaMes").addEventListener("click", () => {
+      document.getElementById("btnVaciarCurvaMes").addEventListener("click", async () => {
         if(!confirm(`Se eliminará toda la curva del período ${settings.periodo}.`)) return;
         db.curvaMensual = db.curvaMensual.filter(x => x.periodo !== settings.periodo);
-        saveDb();
+        await saveDb();
         renderApp();
       });
 
       document.querySelectorAll("[data-del-curva]").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           const id = btn.dataset.delCurva;
           db.curvaMensual = db.curvaMensual.filter(x => String(x.id) !== String(id));
-          saveDb();
+          await saveDb();
           renderApp();
         });
       });
@@ -2101,7 +2007,7 @@
     function renderCobroModule(){
       setHeader(
         "Base de cobro",
-        "Consolidado contractual del período. Cobro = mayor entre venta real y curva."
+        "Cobro = mayor entre venta real y curva. Comparación por empresa + servicio."
       );
 
       const rows = getCobroRows();
@@ -2110,6 +2016,23 @@
       const totalReal = rows.reduce((a,b)=>a+Number(b.real||0),0);
       const totalCurva = rows.reduce((a,b)=>a+Number(b.curva||0),0);
       const totalCobro = rows.reduce((a,b)=>a+Number(b.cobro||0),0);
+
+      currentExport = {
+        headers:["Período","Empresa","Servicio","Familia","Sistema","Manual","Real","Curva","Cobro","Regla"],
+        rows: rows.map(r => [
+          r.periodo,
+          r.empresa,
+          r.servicio,
+          r.familia,
+          r.sistema,
+          r.manual,
+          r.real,
+          r.curva,
+          r.cobro,
+          r.regla
+        ]),
+        filename:`base_cobro_${settings.periodo}`
+      };
 
       document.getElementById("appContent").innerHTML = `
         <div class="panel">
@@ -2132,7 +2055,7 @@
         </div>
 
         <div class="panel">
-          <h3>Base de cobro del período</h3>
+          <h3>Detalle de base de cobro</h3>
           <div class="table-wrap">
             <table>
               <thead>
@@ -2163,14 +2086,16 @@
                         <td class="right"><strong>${formatNumber(r.real)}</strong></td>
                         <td class="right">${formatNumber(r.curva)}</td>
                         <td class="right"><strong>${formatNumber(r.cobro)}</strong></td>
-                        <td>${
-                          r.regla === "COBRA REAL" ? `<span class="tag success">${r.regla}</span>` :
-                          r.regla === "COBRA CURVA" ? `<span class="tag warning">${r.regla}</span>` :
-                          `<span class="tag gray">${r.regla}</span>`
-                        }</td>
+                        <td>
+                          ${
+                            r.regla === "COBRA REAL" ? `<span class="tag success">${r.regla}</span>` :
+                            r.regla === "COBRA CURVA" ? `<span class="tag warning">${r.regla}</span>` :
+                            `<span class="tag gray">${r.regla}</span>`
+                          }
+                        </td>
                       </tr>
                     `).join("")
-                  : `<tr><td colspan="10"><div class="empty">No hay información suficiente para calcular base de cobro en este período.</div></td></tr>`
+                  : `<tr><td colspan="10"><div class="empty">No hay información suficiente para calcular base de cobro.</div></td></tr>`
                 }
               </tbody>
             </table>
@@ -2179,38 +2104,70 @@
       `;
     }
 
-    function exportCobroCSV(){
-      const rows = getCobroRows();
-      const headers = ["periodo","empresa","servicio","familia","sistema","manual","real","curva","cobro","regla"];
-      const csv = [
-        headers.join(";"),
-        ...rows.map(r => headers.map(h => csvValue(r[h] ?? "")).join(";"))
-      ].join("\n");
+    async function resetDatabase(){
+      if(!confirm("Esto borrará toda la información guardada en este navegador.")) return;
 
-      const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `base_cobro_${settings.periodo}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      try{
+        const database = await openIndexedDb();
+        await new Promise((resolve, reject) => {
+          const tx = database.transaction(DB_STORE, "readwrite");
+          const store = tx.objectStore(DB_STORE);
+          const request = store.delete(DB_KEY);
+          request.onsuccess = function(){ resolve(); };
+          request.onerror = function(){ reject(request.error); };
+        });
+
+        localStorage.removeItem(SETTINGS_KEY);
+        db = structuredCloneSafe(DEFAULT_DB);
+        settings = loadSettings();
+        treeState.empresa.clear();
+        treeState.servicio.clear();
+        treeState.casino.clear();
+        updateDatalists();
+        renderApp();
+      }catch(error){
+        console.error(error);
+        alert("No se pudo limpiar la base local.");
+      }
     }
 
-    function exportVentaRealCSV(){
-      const rows = getVentaRealMes();
-      const headers = ["fecha","empresa","servicio","familia","casino","cantidad","origen"];
-      const csv = [
-        headers.join(";"),
-        ...rows.map(r => headers.map(h => csvValue(r[h] ?? "")).join(";"))
-      ].join("\n");
+    function exportCurrentExcel(){
+      const ws = XLSX.utils.aoa_to_sheet([currentExport.headers, ...currentExport.rows]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Datos");
+      XLSX.writeFile(wb, `${currentExport.filename}.xlsx`);
+    }
 
-      const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `venta_real_${settings.periodo}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+    function exportCurrentPDF(){
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        orientation: currentExport.headers.length > 8 ? "landscape" : "portrait",
+        unit: "pt",
+        format: "a4"
+      });
+
+      doc.setFontSize(14);
+      doc.text(currentExport.filename.replace(/_/g, " ").toUpperCase(), 40, 36);
+
+      doc.autoTable({
+        head: [currentExport.headers],
+        body: currentExport.rows.map(row => row.map(cell => {
+          if(typeof cell === "number") return formatNumber(cell);
+          return String(cell ?? "");
+        })),
+        startY: 52,
+        styles: {
+          fontSize: 8,
+          cellPadding: 4
+        },
+        headStyles: {
+          fillColor: [37, 99, 235]
+        },
+        theme: "grid",
+        margin: { left: 24, right: 24 }
+      });
+
+      doc.save(`${currentExport.filename}.pdf`);
     }
 
     function bindGlobalControls(){
@@ -2232,43 +2189,15 @@
         renderApp();
       });
 
-      document.getElementById("btnExportarCobro").addEventListener("click", exportCobroCSV);
-      document.getElementById("btnExportarReal").addEventListener("click", exportVentaRealCSV);
-      document.getElementById("btnReset").addEventListener("click", () => {
-        if(!confirm("Esto borrará toda la información guardada en este navegador.")) return;
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(SETTINGS_KEY);
-        db = loadDb();
-        settings = loadSettings();
-        renderApp();
-      });
-    }
-
-    function ensureDatalists(){
-      if(!document.getElementById("empresasList")){
-        const dl = document.createElement("datalist");
-        dl.id = "empresasList";
-        document.body.appendChild(dl);
-      }
-      if(!document.getElementById("serviciosList")){
-        const dl = document.createElement("datalist");
-        dl.id = "serviciosList";
-        document.body.appendChild(dl);
-      }
-
-      document.getElementById("empresasList").innerHTML = db.maestros.empresas
-        .slice().sort((a,b)=>a.localeCompare(b))
-        .map(x=>`<option value="${x}"></option>`).join("");
-
-      document.getElementById("serviciosList").innerHTML = db.maestros.servicios
-        .slice().sort((a,b)=>a.localeCompare(b))
-        .map(x=>`<option value="${x}"></option>`).join("");
+      document.getElementById("btnReset").addEventListener("click", resetDatabase);
+      document.getElementById("btnExportExcel").addEventListener("click", exportCurrentExcel);
+      document.getElementById("btnExportPDF").addEventListener("click", exportCurrentPDF);
     }
 
     function renderApp(){
       ensureCurrentModuleAllowed();
       renderMenu();
-      ensureDatalists();
+      updateDatalists();
 
       switch(settings.currentModule){
         case "supervisores":
@@ -2306,8 +2235,13 @@
       }
     }
 
-    bindGlobalControls();
-    renderApp();
+    async function initApp(){
+      db = await loadDb();
+      bindGlobalControls();
+      renderApp();
+    }
+
+    initApp();
   </script>
 </body>
 </html>
