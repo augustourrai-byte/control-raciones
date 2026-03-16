@@ -1,1720 +1,494 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Control Operacional de Raciones</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<meta charset="UTF-8">
+<title>Control Raciones Faena</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+margin:0;
+background:#f4f4f4;
+}
+
+.container{
+display:flex;
+height:100vh;
+}
+
+.menu{
+width:250px;
+background:#2c2c2c;
+color:white;
+padding:10px;
+overflow:auto;
+}
+
+.menu button{
+width:100%;
+margin-bottom:6px;
+padding:12px;
+border:none;
+background:#444;
+color:white;
+cursor:pointer;
+}
+
+.menu button:hover{
+background:#666;
+}
+
+.content{
+flex:1;
+padding:20px;
+overflow:auto;
+background:white;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:10px;
+}
+
+td,th{
+border:1px solid #ddd;
+padding:6px;
+text-align:left;
+}
+
+input,select{
+padding:6px;
+margin:3px;
+}
+
+.resumen{
+background:#efefef;
+padding:10px;
+margin-bottom:10px;
+}
+
+</style>
 </head>
-<body class="bg-slate-100 text-slate-900">
-  <div class="flex min-h-screen">
-    <!-- Sidebar -->
-    <aside class="w-80 bg-slate-950 text-white p-4 shrink-0">
-      <h1 class="text-2xl font-bold mb-6">Control Raciones</h1>
 
-      <nav class="space-y-2">
-        <button data-section="dashboard" class="menu-btn w-full text-left px-4 py-3 rounded-xl bg-slate-700">Dashboard</button>
-        <button data-section="ventas-sistema" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Ventas sistema</button>
-        <button data-section="ventas-manual" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Ventas manuales</button>
-        <button data-section="operacion" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Operación</button>
-        <button data-section="produccion" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Producción</button>
-        <button data-section="curva" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Curva mensual</button>
-        <button data-section="analisis" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Análisis</button>
-        <button data-section="cobro" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Base de cobro</button>
-        <button data-section="maestros" class="menu-btn w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800">Maestros</button>
-      </nav>
 
-      <div class="mt-8 border-t border-slate-800 pt-4 space-y-2">
-        <button id="btnExportarCobro" class="w-full bg-white text-slate-900 px-4 py-2 rounded-xl font-medium hover:bg-slate-100">
-          Exportar base cobro CSV
-        </button>
-        <button id="btnExportarReal" class="w-full bg-slate-800 text-white px-4 py-2 rounded-xl font-medium hover:bg-slate-700">
-          Exportar venta real CSV
-        </button>
-        <button id="btnReset" class="w-full bg-rose-700 text-white px-4 py-2 rounded-xl font-medium hover:bg-rose-600">
-          Reset local
-        </button>
-      </div>
-    </aside>
+<body>
 
-    <!-- Main -->
-    <main class="flex-1 p-6 md:p-8 space-y-6 min-w-0">
-      <!-- Filtros globales -->
-      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
-          <input id="filtroEmpresa" class="border border-slate-300 rounded-xl px-3 py-2" placeholder="Buscar empresa" />
-          <input id="filtroServicio" class="border border-slate-300 rounded-xl px-3 py-2" placeholder="Buscar servicio / familia" />
-          <input id="filtroCasino" class="border border-slate-300 rounded-xl px-3 py-2" placeholder="Buscar casino" />
-          <input id="filtroFechaDesde" type="date" class="border border-slate-300 rounded-xl px-3 py-2" />
-          <input id="filtroFechaHasta" type="date" class="border border-slate-300 rounded-xl px-3 py-2" />
-          <button id="btnLimpiarFiltros" class="bg-slate-900 text-white rounded-xl px-4 py-2">Limpiar filtros</button>
-        </div>
-      </section>
+<div class="container">
 
-      <!-- DASHBOARD -->
-      <section id="section-dashboard" class="app-section space-y-6">
-        <h2 class="text-4xl font-bold tracking-tight">Dashboard Operacional</h2>
+<div class="menu">
 
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-8 gap-4">
-          <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="text-sm text-slate-500">Venta sistema</div>
-            <div id="kpiVentaSistema" class="text-4xl font-bold mt-2">0</div>
-          </div>
-          <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="text-sm text-slate-500">Venta manual</div>
-            <div id="kpiVentaManual" class="text-4xl font-bold mt-2">0</div>
-          </div>
-          <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="text-sm text-slate-500">Venta real total</div>
-            <div id="kpiVentaReal" class="text-4xl font-bold mt-2">0</div>
-          </div>
-          <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="text-sm text-slate-500">Curva</div>
-            <div id="kpiCurva" class="text-4xl font-bold mt-2">0</div>
-          </div>
-          <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="text-sm text-slate-500">Cobro estimado</div>
-            <div id="kpiCobro" class="text-4xl font-bold mt-2">0</div>
-          </div>
-          <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="text-sm text-slate-500">Dif. operación</div>
-            <div id="kpiDifOperacion" class="text-4xl font-bold mt-2">0</div>
-          </div>
-          <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="text-sm text-slate-500">Dif. producción</div>
-            <div id="kpiDifProduccion" class="text-4xl font-bold mt-2">0</div>
-          </div>
-          <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="text-sm text-slate-500">Registros reales</div>
-            <div id="kpiRegistrosReales" class="text-4xl font-bold mt-2">0</div>
-          </div>
-        </div>
+<button onclick="showModule('supervisores')">Venta supervisores</button>
+<button onclick="showModule('produccion')">Producción</button>
+<button onclick="showModule('sistema')">Venta sistema</button>
+<button onclick="showModule('manual')">Venta manuales</button>
+<button onclick="showModule('empresa')">Consumos por empresas</button>
+<button onclick="showModule('servicio')">Consumos por servicios</button>
+<button onclick="showModule('casino')">Consumos por casinos</button>
+<button onclick="showModule('curva')">Curva mensual</button>
+<button onclick="showModule('cobro')">Base de cobro</button>
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <h3 class="text-xl font-semibold mb-4">Raciones por casino</h3>
-            <div id="dashboardCasinos" class="space-y-3"></div>
-          </div>
+</div>
 
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <h3 class="text-xl font-semibold mb-4">Raciones por día</h3>
-            <div id="dashboardDias" class="space-y-3"></div>
-          </div>
-        </div>
+<div class="content" id="content"></div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-            <h3 class="text-xl font-semibold mb-4">Top empresas</h3>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left">
-                  <th class="p-2">Empresa</th>
-                  <th class="p-2 text-right">Cantidad</th>
-                </tr>
-              </thead>
-              <tbody id="tablaTopEmpresas"></tbody>
-            </table>
-          </div>
-
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-            <h3 class="text-xl font-semibold mb-4">Top servicios</h3>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left">
-                  <th class="p-2">Servicio</th>
-                  <th class="p-2 text-right">Cantidad</th>
-                </tr>
-              </thead>
-              <tbody id="tablaTopServicios"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- VENTAS SISTEMA -->
-      <section id="section-ventas-sistema" class="app-section hidden space-y-6">
-        <h2 class="text-4xl font-bold tracking-tight">Ventas sistema</h2>
-
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-          <div class="text-sm text-slate-600">
-            Sube un archivo <b>.xlsx</b>, <b>.xls</b> o <b>.csv</b> con estas columnas obligatorias:
-            <b>NOMBRE_EMPRESA</b>, <b>SERVICIO</b>, <b>FECHA</b>, <b>EQUIPO</b> y <b>PRECIO</b>.
-            <br>
-            <b>PRECIO</b> se interpreta como <b>cantidad de servicios</b>, no como dinero.
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input id="fileVentasSistema" type="file" accept=".xlsx,.xls,.csv" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <button id="btnImportarVentasSistema" class="bg-slate-900 text-white rounded-xl px-4 py-2">Importar archivo</button>
-            <button id="btnLimpiarImportacionSistema" class="bg-white border border-slate-300 rounded-xl px-4 py-2">Limpiar</button>
-          </div>
-
-          <div id="resultadoImportacionSistema" class="text-sm"></div>
-        </div>
-
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-          <h3 class="text-xl font-semibold mb-4">Vista ventas sistema</h3>
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b text-left">
-                <th class="p-2">Fecha</th>
-                <th class="p-2">Empresa</th>
-                <th class="p-2">Servicio</th>
-                <th class="p-2">Familia</th>
-                <th class="p-2">Casino</th>
-                <th class="p-2 text-right">Cantidad</th>
-                <th class="p-2"></th>
-              </tr>
-            </thead>
-            <tbody id="tablaVentasSistema"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- VENTAS MANUAL -->
-      <section id="section-ventas-manual" class="app-section hidden space-y-6">
-        <h2 class="text-4xl font-bold tracking-tight">Ventas manuales</h2>
-
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-7 gap-4">
-            <input id="manualFecha" type="date" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="manualEmpresa" list="empresasList" placeholder="Empresa" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="manualServicio" list="serviciosList" placeholder="Servicio" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="manualCasino" list="casinosList" placeholder="Casino" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="manualCantidad" type="number" min="0" step="0.01" placeholder="Cantidad" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="manualObservacion" placeholder="Observación" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <button id="btnGuardarVentaManual" class="bg-slate-900 text-white rounded-xl px-4 py-2">Guardar manual</button>
-          </div>
-        </div>
-
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-          <h3 class="text-xl font-semibold mb-4">Vista ventas manuales</h3>
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b text-left">
-                <th class="p-2">Fecha</th>
-                <th class="p-2">Empresa</th>
-                <th class="p-2">Servicio</th>
-                <th class="p-2">Familia</th>
-                <th class="p-2">Casino</th>
-                <th class="p-2 text-right">Cantidad</th>
-                <th class="p-2">Obs.</th>
-                <th class="p-2"></th>
-              </tr>
-            </thead>
-            <tbody id="tablaVentasManual"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- OPERACION -->
-      <section id="section-operacion" class="app-section hidden space-y-6">
-        <h2 class="text-4xl font-bold tracking-tight">Operación</h2>
-
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
-            <input id="operacionFecha" type="date" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="operacionCasino" list="casinosList" placeholder="Casino" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="operacionServicio" list="serviciosList" placeholder="Servicio" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="operacionCantidad" type="number" min="0" step="0.01" placeholder="Cantidad operación" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="operacionObservacion" placeholder="Observación" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <button id="btnGuardarOperacion" class="bg-slate-900 text-white rounded-xl px-4 py-2">Guardar operación</button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-            <h3 class="text-xl font-semibold mb-4">Cargas operación</h3>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left">
-                  <th class="p-2">Fecha</th>
-                  <th class="p-2">Casino</th>
-                  <th class="p-2">Servicio</th>
-                  <th class="p-2">Familia</th>
-                  <th class="p-2 text-right">Cantidad</th>
-                  <th class="p-2">Obs.</th>
-                  <th class="p-2"></th>
-                </tr>
-              </thead>
-              <tbody id="tablaOperacion"></tbody>
-            </table>
-          </div>
-
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-            <h3 class="text-xl font-semibold mb-4">Comparación real vs operación</h3>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left">
-                  <th class="p-2">Fecha</th>
-                  <th class="p-2">Casino</th>
-                  <th class="p-2">Familia</th>
-                  <th class="p-2 text-right">Real</th>
-                  <th class="p-2 text-right">Operación</th>
-                  <th class="p-2 text-right">Dif.</th>
-                </tr>
-              </thead>
-              <tbody id="tablaComparacionOperacion"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- PRODUCCION -->
-      <section id="section-produccion" class="app-section hidden space-y-6">
-        <h2 class="text-4xl font-bold tracking-tight">Producción</h2>
-
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
-            <input id="produccionFecha" type="date" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="produccionCasino" list="casinosList" placeholder="Casino" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="produccionServicio" list="serviciosList" placeholder="Servicio" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="produccionCantidad" type="number" min="0" step="0.01" placeholder="Raciones planificadas" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="produccionObservacion" placeholder="Observación" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <button id="btnGuardarProduccion" class="bg-slate-900 text-white rounded-xl px-4 py-2">Guardar producción</button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-            <h3 class="text-xl font-semibold mb-4">Cargas producción</h3>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left">
-                  <th class="p-2">Fecha</th>
-                  <th class="p-2">Casino</th>
-                  <th class="p-2">Servicio</th>
-                  <th class="p-2">Familia</th>
-                  <th class="p-2 text-right">Cantidad</th>
-                  <th class="p-2">Obs.</th>
-                  <th class="p-2"></th>
-                </tr>
-              </thead>
-              <tbody id="tablaProduccion"></tbody>
-            </table>
-          </div>
-
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-            <h3 class="text-xl font-semibold mb-4">Comparación real vs producción</h3>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left">
-                  <th class="p-2">Fecha</th>
-                  <th class="p-2">Casino</th>
-                  <th class="p-2">Familia</th>
-                  <th class="p-2 text-right">Real</th>
-                  <th class="p-2 text-right">Producción</th>
-                  <th class="p-2 text-right">Dif.</th>
-                </tr>
-              </thead>
-              <tbody id="tablaComparacionProduccion"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- CURVA -->
-      <section id="section-curva" class="app-section hidden space-y-6">
-        <h2 class="text-4xl font-bold tracking-tight">Curva mensual</h2>
-
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
-            <input id="curvaPeriodo" type="month" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="curvaEmpresa" list="empresasList" placeholder="Empresa" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="curvaServicio" list="serviciosList" placeholder="Servicio" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="curvaCantidad" type="number" min="0" step="0.01" placeholder="Cantidad curva" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <input id="curvaObservacion" placeholder="Observación" class="border border-slate-300 rounded-xl px-3 py-2" />
-            <button id="btnGuardarCurva" class="bg-slate-900 text-white rounded-xl px-4 py-2">Guardar curva</button>
-          </div>
-        </div>
-
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-          <h3 class="text-xl font-semibold mb-4">Curva cargada</h3>
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b text-left">
-                <th class="p-2">Período</th>
-                <th class="p-2">Empresa</th>
-                <th class="p-2">Servicio</th>
-                <th class="p-2 text-right">Cantidad</th>
-                <th class="p-2">Obs.</th>
-                <th class="p-2"></th>
-              </tr>
-            </thead>
-            <tbody id="tablaCurva"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- ANALISIS -->
-      <section id="section-analisis" class="app-section hidden space-y-6">
-        <h2 class="text-4xl font-bold tracking-tight">Análisis</h2>
-
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-            <h3 class="text-xl font-semibold mb-4">Venta por empresa</h3>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left">
-                  <th class="p-2">Empresa</th>
-                  <th class="p-2 text-right">Sistema</th>
-                  <th class="p-2 text-right">Manual</th>
-                  <th class="p-2 text-right">Real</th>
-                </tr>
-              </thead>
-              <tbody id="tablaAnalisisEmpresa"></tbody>
-            </table>
-          </div>
-
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-            <h3 class="text-xl font-semibold mb-4">Venta por servicio</h3>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left">
-                  <th class="p-2">Servicio</th>
-                  <th class="p-2">Familia</th>
-                  <th class="p-2 text-right">Sistema</th>
-                  <th class="p-2 text-right">Manual</th>
-                  <th class="p-2 text-right">Real</th>
-                </tr>
-              </thead>
-              <tbody id="tablaAnalisisServicio"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-            <h3 class="text-xl font-semibold mb-4">Venta por casino</h3>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left">
-                  <th class="p-2">Casino</th>
-                  <th class="p-2 text-right">Sistema</th>
-                  <th class="p-2 text-right">Manual</th>
-                  <th class="p-2 text-right">Real</th>
-                </tr>
-              </thead>
-              <tbody id="tablaAnalisisCasino"></tbody>
-            </table>
-          </div>
-
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-            <h3 class="text-xl font-semibold mb-4">Detalle empresa + servicio + casinos usados</h3>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left">
-                  <th class="p-2">Empresa</th>
-                  <th class="p-2">Servicio</th>
-                  <th class="p-2">Casinos</th>
-                  <th class="p-2 text-right">Real</th>
-                </tr>
-              </thead>
-              <tbody id="tablaDetalleEmpresaServicio"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- COBRO -->
-      <section id="section-cobro" class="app-section hidden space-y-6">
-        <h2 class="text-4xl font-bold tracking-tight">Base de cobro</h2>
-
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-auto">
-          <h3 class="text-xl font-semibold mb-4">Comparación real vs curva por empresa + servicio</h3>
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b text-left">
-                <th class="p-2">Período</th>
-                <th class="p-2">Empresa</th>
-                <th class="p-2">Servicio</th>
-                <th class="p-2">Familia</th>
-                <th class="p-2 text-right">Sistema</th>
-                <th class="p-2 text-right">Manual</th>
-                <th class="p-2 text-right">Real</th>
-                <th class="p-2 text-right">Curva</th>
-                <th class="p-2 text-right">Cobro</th>
-                <th class="p-2">Regla</th>
-              </tr>
-            </thead>
-            <tbody id="tablaCobro"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- MAESTROS -->
-      <section id="section-maestros" class="app-section hidden space-y-6">
-        <h2 class="text-4xl font-bold tracking-tight">Maestros</h2>
-
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <h3 class="text-xl font-semibold mb-4">Empresas</h3>
-            <div class="flex gap-2 mb-4">
-              <input id="nuevaEmpresa" placeholder="Nueva empresa" class="flex-1 border border-slate-300 rounded-xl px-3 py-2" />
-              <button id="btnAgregarEmpresa" class="bg-slate-900 text-white rounded-xl px-4 py-2">Agregar</button>
-            </div>
-            <ul id="listaEmpresas" class="space-y-2 text-sm"></ul>
-          </div>
-
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <h3 class="text-xl font-semibold mb-4">Servicios</h3>
-            <div class="flex gap-2 mb-4">
-              <input id="nuevoServicio" placeholder="Nuevo servicio" class="flex-1 border border-slate-300 rounded-xl px-3 py-2" />
-              <button id="btnAgregarServicio" class="bg-slate-900 text-white rounded-xl px-4 py-2">Agregar</button>
-            </div>
-            <ul id="listaServicios" class="space-y-2 text-sm"></ul>
-          </div>
-        </div>
-      </section>
-
-      <datalist id="empresasList"></datalist>
-      <datalist id="serviciosList"></datalist>
-      <datalist id="casinosList"></datalist>
-    </main>
-  </div>
+</div>
 
 <script>
-  const STORAGE_KEY = "control_raciones_v3";
-
-  const CASINOS_BASE = [
-    "DP (PLANTA)",
-    "DM (MINA)",
-    "CAP",
-    "AÑAÑUCAS",
-    "CF",
-    "CAES",
-    "PDA 1"
-  ];
-
-  const DEFAULT_DATA = {
-    maestros: {
-      empresas: ["CODELCO AMECO", "RESK TRANSPORTES Y SERVICIOS LTDA."],
-      servicios: [
-        "DESAYUNO",
-        "ALMUERZO",
-        "CENA",
-        "CENA TRASNOCHE",
-        "COLACION REFORZADA",
-        "COLACION CORDILLERA",
-        "COLACION TERRENO",
-        "PERMUTA DESAYUNO",
-        "PERMUTA ALMUERZO",
-        "PERMUTA CENA",
-        "PERMUTA CENA 24H",
-        "PERMUTA CENA TRASNOCHE",
-        "AGUAS 500CC",
-        "BIDONES",
-        "COFFEE STANDARD",
-        "COFFEE PLUS",
-        "COFFEE BASICO"
-      ]
-    },
-    ventasSistema: [],
-    ventasManual: [],
-    ventasOperacion: [],
-    produccionPlan: [],
-    curvasMensuales: []
-  };
-
-  const EQUIPO_MAP = {
-    "A": "DP (PLANTA)",
-    "B": "DM (MINA)",
-    "C": "CAP",
-    "D": "AÑAÑUCAS",
-    "E": "CF",
-    "F": "CAES",
-    "G": "PDA 1"
-  };
-
-  function normalizeText(v) {
-    return String(v || "").trim().replace(/\s+/g, " ").toUpperCase();
-  }
-
-  function normalizeCasino(v) {
-    return normalizeText(v);
-  }
-
-  function normalizeServiceFamily(servicio) {
-    const s = normalizeText(servicio);
-    if (s === "COLACION TERRENO") return "COLACION TERRENO";
-    if (s.includes("PERMUTA")) return "COLACION TERRENO";
-    return s;
-  }
-
-  function parseDateToISO(fecha) {
-    if (fecha === null || fecha === undefined || fecha === "") return "";
-
-    if (typeof fecha === "number") {
-      const d = XLSX.SSF.parse_date_code(fecha);
-      if (d && d.y && d.m && d.d) {
-        const mm = String(d.m).padStart(2, "0");
-        const dd = String(d.d).padStart(2, "0");
-        return `${d.y}-${mm}-${dd}`;
-      }
-    }
-
-    const f = String(fecha).trim();
-    if (!f) return "";
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return f;
-
-    const m1 = f.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-    if (m1) return `${m1[3]}-${m1[2]}-${m1[1]}`;
-
-    const m2 = f.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if (m2) return `${m2[3]}-${m2[2]}-${m2[1]}`;
-
-    const m3 = f.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
-    if (m3) return `${m3[1]}-${m3[2]}-${m3[3]}`;
-
-    return "";
-  }
-
-  function loadData() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA));
-      return structuredClone(DEFAULT_DATA);
-    }
-
-    try {
-      const parsed = JSON.parse(raw);
-      return {
-        maestros: {
-          empresas: parsed?.maestros?.empresas || DEFAULT_DATA.maestros.empresas,
-          servicios: parsed?.maestros?.servicios || DEFAULT_DATA.maestros.servicios
-        },
-        ventasSistema: parsed.ventasSistema || [],
-        ventasManual: parsed.ventasManual || [],
-        ventasOperacion: parsed.ventasOperacion || [],
-        produccionPlan: parsed.produccionPlan || [],
-        curvasMensuales: parsed.curvasMensuales || []
-      };
-    } catch {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA));
-      return structuredClone(DEFAULT_DATA);
-    }
-  }
-
-  let db = loadData();
-
-  function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-  }
-
-  function formatNumber(n) {
-    return new Intl.NumberFormat("es-CL", {
-      maximumFractionDigits: 2
-    }).format(Number(n || 0));
-  }
-
-  function csvValue(v) {
-    const s = String(v ?? "");
-    if (s.includes(";") || s.includes('"') || s.includes("\n")) {
-      return `"${s.replace(/"/g, '""')}"`;
-    }
-    return s;
-  }
-
-  function getMonthKey(fecha) {
-    return fecha ? fecha.slice(0, 7) : "";
-  }
-
-  function sum(arr) {
-    return arr.reduce((a, b) => a + Number(b || 0), 0);
-  }
-
-  function getAllVentasReales() {
-    const sistema = db.ventasSistema.map(x => ({ ...x, origen: "SISTEMA" }));
-    const manual = db.ventasManual.map(x => ({ ...x, origen: "MANUAL" }));
-    return [...sistema, ...manual];
-  }
-
-  function getFilteredVentasReales() {
-    const empresa = document.getElementById("filtroEmpresa").value.trim().toLowerCase();
-    const servicio = document.getElementById("filtroServicio").value.trim().toLowerCase();
-    const casino = document.getElementById("filtroCasino").value.trim().toLowerCase();
-    const desde = document.getElementById("filtroFechaDesde").value;
-    const hasta = document.getElementById("filtroFechaHasta").value;
-
-    return getAllVentasReales().filter(r => {
-      const empresaOk = !empresa || r.empresa.toLowerCase().includes(empresa);
-      const servicioOk = !servicio || r.servicio.toLowerCase().includes(servicio) || r.familia.toLowerCase().includes(servicio);
-      const casinoOk = !casino || r.casino.toLowerCase().includes(casino);
-      const desdeOk = !desde || r.fecha >= desde;
-      const hastaOk = !hasta || r.fecha <= hasta;
-      return empresaOk && servicioOk && casinoOk && desdeOk && hastaOk;
-    });
-  }
-
-  function groupBy(rows, keyFn, buildFn) {
-    const map = new Map();
-
-    rows.forEach(row => {
-      const key = keyFn(row);
-      if (!map.has(key)) {
-        map.set(key, buildFn(row));
-      }
-    });
-
-    return map;
-  }
-
-  function getRealAgrupadoDiario() {
-    const rows = getFilteredVentasReales();
-    const map = new Map();
-
-    rows.forEach(r => {
-      const key = `${r.fecha}|${r.empresa}|${r.servicio}|${r.familia}|${r.casino}`;
-      if (!map.has(key)) {
-        map.set(key, {
-          fecha: r.fecha,
-          empresa: r.empresa,
-          servicio: r.servicio,
-          familia: r.familia,
-          casino: r.casino,
-          sistema: 0,
-          manual: 0,
-          real: 0
-        });
-      }
-
-      const obj = map.get(key);
-      if (r.origen === "SISTEMA") obj.sistema += Number(r.cantidad || 0);
-      if (r.origen === "MANUAL") obj.manual += Number(r.cantidad || 0);
-      obj.real += Number(r.cantidad || 0);
-    });
-
-    return [...map.values()].sort((a, b) =>
-      (b.fecha + b.empresa + b.servicio + b.casino).localeCompare(a.fecha + a.empresa + a.servicio + a.casino)
-    );
-  }
-
-  function getComparacionOperacion() {
-    const realRows = getFilteredVentasReales();
-    const map = new Map();
-
-    realRows.forEach(r => {
-      const key = `${r.fecha}|${r.casino}|${r.familia}`;
-      if (!map.has(key)) {
-        map.set(key, {
-          fecha: r.fecha,
-          casino: r.casino,
-          familia: r.familia,
-          real: 0,
-          operacion: 0,
-          diferencia: 0
-        });
-      }
-      map.get(key).real += Number(r.cantidad || 0);
-    });
-
-    db.ventasOperacion.forEach(r => {
-      const key = `${r.fecha}|${r.casino}|${r.familia}`;
-      if (!map.has(key)) {
-        map.set(key, {
-          fecha: r.fecha,
-          casino: r.casino,
-          familia: r.familia,
-          real: 0,
-          operacion: 0,
-          diferencia: 0
-        });
-      }
-      map.get(key).operacion += Number(r.cantidad || 0);
-    });
-
-    const rows = [...map.values()].map(r => ({
-      ...r,
-      diferencia: Number(r.real || 0) - Number(r.operacion || 0)
-    }));
-
-    return applyFilterToAggregated(rows, ["fecha", "casino", "familia"]);
-  }
-
-  function getComparacionProduccion() {
-    const realRows = getFilteredVentasReales();
-    const map = new Map();
-
-    realRows.forEach(r => {
-      const key = `${r.fecha}|${r.casino}|${r.familia}`;
-      if (!map.has(key)) {
-        map.set(key, {
-          fecha: r.fecha,
-          casino: r.casino,
-          familia: r.familia,
-          real: 0,
-          produccion: 0,
-          diferencia: 0
-        });
-      }
-      map.get(key).real += Number(r.cantidad || 0);
-    });
-
-    db.produccionPlan.forEach(r => {
-      const key = `${r.fecha}|${r.casino}|${r.familia}`;
-      if (!map.has(key)) {
-        map.set(key, {
-          fecha: r.fecha,
-          casino: r.casino,
-          familia: r.familia,
-          real: 0,
-          produccion: 0,
-          diferencia: 0
-        });
-      }
-      map.get(key).produccion += Number(r.cantidad || 0);
-    });
-
-    const rows = [...map.values()].map(r => ({
-      ...r,
-      diferencia: Number(r.real || 0) - Number(r.produccion || 0)
-    }));
-
-    return applyFilterToAggregated(rows, ["fecha", "casino", "familia"]);
-  }
-
-  function getCobroMensual() {
-    const realRows = getFilteredVentasReales();
-    const map = new Map();
-
-    realRows.forEach(r => {
-      const periodo = getMonthKey(r.fecha);
-      const key = `${periodo}|${r.empresa}|${r.servicio}`;
-      if (!map.has(key)) {
-        map.set(key, {
-          periodo,
-          empresa: r.empresa,
-          servicio: r.servicio,
-          familia: r.familia,
-          sistema: 0,
-          manual: 0,
-          real: 0,
-          curva: 0,
-          cobro: 0,
-          regla: ""
-        });
-      }
-
-      const obj = map.get(key);
-      if (r.origen === "SISTEMA") obj.sistema += Number(r.cantidad || 0);
-      if (r.origen === "MANUAL") obj.manual += Number(r.cantidad || 0);
-      obj.real += Number(r.cantidad || 0);
-    });
-
-    db.curvasMensuales.forEach(r => {
-      const key = `${r.periodo}|${r.empresa}|${r.servicio}`;
-      if (!map.has(key)) {
-        map.set(key, {
-          periodo: r.periodo,
-          empresa: r.empresa,
-          servicio: r.servicio,
-          familia: normalizeServiceFamily(r.servicio),
-          sistema: 0,
-          manual: 0,
-          real: 0,
-          curva: 0,
-          cobro: 0,
-          regla: ""
-        });
-      }
-      map.get(key).curva += Number(r.cantidad || 0);
-    });
-
-    const rows = [...map.values()].map(r => {
-      const cobro = Math.max(Number(r.real || 0), Number(r.curva || 0));
-      return {
-        ...r,
-        cobro,
-        regla: cobro === Number(r.real || 0) && cobro === Number(r.curva || 0)
-          ? "REAL = CURVA"
-          : cobro === Number(r.real || 0)
-          ? "COBRA REAL"
-          : "COBRA CURVA"
-      };
-    });
-
-    return applyFilterToCobro(rows);
-  }
-
-  function applyFilterToAggregated(rows, fields) {
-    const empresa = document.getElementById("filtroEmpresa").value.trim().toLowerCase();
-    const servicio = document.getElementById("filtroServicio").value.trim().toLowerCase();
-    const casino = document.getElementById("filtroCasino").value.trim().toLowerCase();
-    const desde = document.getElementById("filtroFechaDesde").value;
-    const hasta = document.getElementById("filtroFechaHasta").value;
-
-    return rows
-      .filter(r => {
-        const empresaOk = !empresa || !("empresa" in r) || String(r.empresa).toLowerCase().includes(empresa);
-        const servicioOk = !servicio ||
-          (("servicio" in r) && String(r.servicio).toLowerCase().includes(servicio)) ||
-          (("familia" in r) && String(r.familia).toLowerCase().includes(servicio));
-        const casinoOk = !casino || !("casino" in r) || String(r.casino).toLowerCase().includes(casino);
-        const desdeOk = !desde || !("fecha" in r) || String(r.fecha) >= desde;
-        const hastaOk = !hasta || !("fecha" in r) || String(r.fecha) <= hasta;
-        return empresaOk && servicioOk && casinoOk && desdeOk && hastaOk;
-      })
-      .sort((a, b) => JSON.stringify(b).localeCompare(JSON.stringify(a)));
-  }
-
-  function applyFilterToCobro(rows) {
-    const empresa = document.getElementById("filtroEmpresa").value.trim().toLowerCase();
-    const servicio = document.getElementById("filtroServicio").value.trim().toLowerCase();
-
-    return rows
-      .filter(r => {
-        const empresaOk = !empresa || r.empresa.toLowerCase().includes(empresa);
-        const servicioOk = !servicio || r.servicio.toLowerCase().includes(servicio) || r.familia.toLowerCase().includes(servicio);
-        return empresaOk && servicioOk;
-      })
-      .sort((a, b) => (b.periodo + b.empresa + b.servicio).localeCompare(a.periodo + a.empresa + a.servicio));
-  }
-
-  function renderDatalists() {
-    document.getElementById("empresasList").innerHTML = db.maestros.empresas
-      .slice().sort((a, b) => a.localeCompare(b))
-      .map(x => `<option value="${x}"></option>`).join("");
-
-    document.getElementById("serviciosList").innerHTML = db.maestros.servicios
-      .slice().sort((a, b) => a.localeCompare(b))
-      .map(x => `<option value="${x}"></option>`).join("");
-
-    document.getElementById("casinosList").innerHTML = CASINOS_BASE
-      .map(x => `<option value="${x}"></option>`).join("");
-  }
-
-  function renderDashboard() {
-    const realRows = getFilteredVentasReales();
-    const cobroRows = getCobroMensual();
-    const operacionRows = getComparacionOperacion();
-    const produccionRows = getComparacionProduccion();
-
-    const ventaSistema = sum(realRows.filter(x => x.origen === "SISTEMA").map(x => x.cantidad));
-    const ventaManual = sum(realRows.filter(x => x.origen === "MANUAL").map(x => x.cantidad));
-    const ventaReal = sum(realRows.map(x => x.cantidad));
-    const curva = sum(cobroRows.map(x => x.curva));
-    const cobro = sum(cobroRows.map(x => x.cobro));
-    const difOperacion = sum(operacionRows.map(x => x.diferencia));
-    const difProduccion = sum(produccionRows.map(x => x.diferencia));
-
-    document.getElementById("kpiVentaSistema").innerText = formatNumber(ventaSistema);
-    document.getElementById("kpiVentaManual").innerText = formatNumber(ventaManual);
-    document.getElementById("kpiVentaReal").innerText = formatNumber(ventaReal);
-    document.getElementById("kpiCurva").innerText = formatNumber(curva);
-    document.getElementById("kpiCobro").innerText = formatNumber(cobro);
-    document.getElementById("kpiDifOperacion").innerText = formatNumber(difOperacion);
-    document.getElementById("kpiDifProduccion").innerText = formatNumber(difProduccion);
-    document.getElementById("kpiRegistrosReales").innerText = formatNumber(realRows.length);
-
-    const casinoMap = {};
-    realRows.forEach(r => {
-      casinoMap[r.casino] = (casinoMap[r.casino] || 0) + Number(r.cantidad || 0);
-    });
-
-    const casinoRows = Object.entries(casinoMap).sort((a, b) => b[1] - a[1]);
-    document.getElementById("dashboardCasinos").innerHTML = casinoRows.map(([casino, total]) => {
-      const p = ventaReal > 0 ? Math.min((total / ventaReal) * 100, 100) : 0;
-      return `
-        <div>
-          <div class="flex justify-between text-sm mb-1">
-            <span class="font-medium">${casino}</span>
-            <span>${formatNumber(total)}</span>
-          </div>
-          <div class="w-full bg-slate-100 rounded-full h-3">
-            <div class="bg-slate-900 h-3 rounded-full" style="width:${p}%"></div>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    const diaMap = {};
-    realRows.forEach(r => {
-      diaMap[r.fecha] = (diaMap[r.fecha] || 0) + Number(r.cantidad || 0);
-    });
-
-    const diaRows = Object.entries(diaMap)
-      .sort((a, b) => b[0].localeCompare(a[0]))
-      .slice(0, 15);
-
-    document.getElementById("dashboardDias").innerHTML = diaRows.map(([fecha, total]) => {
-      const max = Math.max(...Object.values(diaMap), 1);
-      const p = Math.min((total / max) * 100, 100);
-      return `
-        <div>
-          <div class="flex justify-between text-sm mb-1">
-            <span class="font-medium">${fecha}</span>
-            <span>${formatNumber(total)}</span>
-          </div>
-          <div class="w-full bg-slate-100 rounded-full h-3">
-            <div class="bg-slate-900 h-3 rounded-full" style="width:${p}%"></div>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    const empresaMap = {};
-    const servicioMap = {};
-
-    realRows.forEach(r => {
-      empresaMap[r.empresa] = (empresaMap[r.empresa] || 0) + Number(r.cantidad || 0);
-      servicioMap[r.servicio] = (servicioMap[r.servicio] || 0) + Number(r.cantidad || 0);
-    });
-
-    document.getElementById("tablaTopEmpresas").innerHTML = Object.entries(empresaMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([empresa, total]) => `
-        <tr class="border-b">
-          <td class="p-2">${empresa}</td>
-          <td class="p-2 text-right">${formatNumber(total)}</td>
-        </tr>
-      `).join("");
-
-    document.getElementById("tablaTopServicios").innerHTML = Object.entries(servicioMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([servicio, total]) => `
-        <tr class="border-b">
-          <td class="p-2">${servicio}</td>
-          <td class="p-2 text-right">${formatNumber(total)}</td>
-        </tr>
-      `).join("");
-  }
-
-  function renderVentasSistema() {
-    document.getElementById("tablaVentasSistema").innerHTML = db.ventasSistema
-      .slice()
-      .sort((a, b) => (b.fecha + b.empresa + b.servicio).localeCompare(a.fecha + a.empresa + a.servicio))
-      .map((r, i) => `
-        <tr class="border-b">
-          <td class="p-2">${r.fecha}</td>
-          <td class="p-2">${r.empresa}</td>
-          <td class="p-2">${r.servicio}</td>
-          <td class="p-2">${r.familia}</td>
-          <td class="p-2">${r.casino}</td>
-          <td class="p-2 text-right">${formatNumber(r.cantidad)}</td>
-          <td class="p-2 text-right"><button onclick="eliminarVentaSistema(${i})" class="text-red-600">Eliminar</button></td>
-        </tr>
-      `).join("");
-  }
-
-  function renderVentasManual() {
-    document.getElementById("tablaVentasManual").innerHTML = db.ventasManual
-      .slice()
-      .sort((a, b) => (b.fecha + b.empresa + b.servicio).localeCompare(a.fecha + a.empresa + a.servicio))
-      .map((r, i) => `
-        <tr class="border-b">
-          <td class="p-2">${r.fecha}</td>
-          <td class="p-2">${r.empresa}</td>
-          <td class="p-2">${r.servicio}</td>
-          <td class="p-2">${r.familia}</td>
-          <td class="p-2">${r.casino}</td>
-          <td class="p-2 text-right">${formatNumber(r.cantidad)}</td>
-          <td class="p-2">${r.observacion || ""}</td>
-          <td class="p-2 text-right"><button onclick="eliminarVentaManual(${i})" class="text-red-600">Eliminar</button></td>
-        </tr>
-      `).join("");
-  }
-
-  function renderOperacion() {
-    document.getElementById("tablaOperacion").innerHTML = db.ventasOperacion
-      .slice()
-      .sort((a, b) => (b.fecha + b.casino + b.servicio).localeCompare(a.fecha + a.casino + a.servicio))
-      .map((r, i) => `
-        <tr class="border-b">
-          <td class="p-2">${r.fecha}</td>
-          <td class="p-2">${r.casino}</td>
-          <td class="p-2">${r.servicio}</td>
-          <td class="p-2">${r.familia}</td>
-          <td class="p-2 text-right">${formatNumber(r.cantidad)}</td>
-          <td class="p-2">${r.observacion || ""}</td>
-          <td class="p-2 text-right"><button onclick="eliminarOperacion(${i})" class="text-red-600">Eliminar</button></td>
-        </tr>
-      `).join("");
-
-    document.getElementById("tablaComparacionOperacion").innerHTML = getComparacionOperacion()
-      .map(r => `
-        <tr class="border-b">
-          <td class="p-2">${r.fecha}</td>
-          <td class="p-2">${r.casino}</td>
-          <td class="p-2">${r.familia}</td>
-          <td class="p-2 text-right">${formatNumber(r.real)}</td>
-          <td class="p-2 text-right">${formatNumber(r.operacion)}</td>
-          <td class="p-2 text-right ${r.diferencia === 0 ? "" : r.diferencia > 0 ? "text-emerald-700 font-semibold" : "text-rose-700 font-semibold"}">${formatNumber(r.diferencia)}</td>
-        </tr>
-      `).join("");
-  }
-
-  function renderProduccion() {
-    document.getElementById("tablaProduccion").innerHTML = db.produccionPlan
-      .slice()
-      .sort((a, b) => (b.fecha + b.casino + b.servicio).localeCompare(a.fecha + a.casino + a.servicio))
-      .map((r, i) => `
-        <tr class="border-b">
-          <td class="p-2">${r.fecha}</td>
-          <td class="p-2">${r.casino}</td>
-          <td class="p-2">${r.servicio}</td>
-          <td class="p-2">${r.familia}</td>
-          <td class="p-2 text-right">${formatNumber(r.cantidad)}</td>
-          <td class="p-2">${r.observacion || ""}</td>
-          <td class="p-2 text-right"><button onclick="eliminarProduccion(${i})" class="text-red-600">Eliminar</button></td>
-        </tr>
-      `).join("");
-
-    document.getElementById("tablaComparacionProduccion").innerHTML = getComparacionProduccion()
-      .map(r => `
-        <tr class="border-b">
-          <td class="p-2">${r.fecha}</td>
-          <td class="p-2">${r.casino}</td>
-          <td class="p-2">${r.familia}</td>
-          <td class="p-2 text-right">${formatNumber(r.real)}</td>
-          <td class="p-2 text-right">${formatNumber(r.produccion)}</td>
-          <td class="p-2 text-right ${r.diferencia === 0 ? "" : r.diferencia > 0 ? "text-emerald-700 font-semibold" : "text-rose-700 font-semibold"}">${formatNumber(r.diferencia)}</td>
-        </tr>
-      `).join("");
-  }
-
-  function renderCurva() {
-    document.getElementById("tablaCurva").innerHTML = db.curvasMensuales
-      .slice()
-      .sort((a, b) => (b.periodo + b.empresa + b.servicio).localeCompare(a.periodo + a.empresa + a.servicio))
-      .map((r, i) => `
-        <tr class="border-b">
-          <td class="p-2">${r.periodo}</td>
-          <td class="p-2">${r.empresa}</td>
-          <td class="p-2">${r.servicio}</td>
-          <td class="p-2 text-right">${formatNumber(r.cantidad)}</td>
-          <td class="p-2">${r.observacion || ""}</td>
-          <td class="p-2 text-right"><button onclick="eliminarCurva(${i})" class="text-red-600">Eliminar</button></td>
-        </tr>
-      `).join("");
-  }
-
-  function renderAnalisis() {
-    const realRows = getFilteredVentasReales();
-
-    const empresaMap = {};
-    realRows.forEach(r => {
-      if (!empresaMap[r.empresa]) empresaMap[r.empresa] = { sistema: 0, manual: 0, real: 0 };
-      if (r.origen === "SISTEMA") empresaMap[r.empresa].sistema += Number(r.cantidad || 0);
-      if (r.origen === "MANUAL") empresaMap[r.empresa].manual += Number(r.cantidad || 0);
-      empresaMap[r.empresa].real += Number(r.cantidad || 0);
-    });
-
-    document.getElementById("tablaAnalisisEmpresa").innerHTML = Object.entries(empresaMap)
-      .sort((a, b) => b[1].real - a[1].real)
-      .map(([empresa, x]) => `
-        <tr class="border-b">
-          <td class="p-2">${empresa}</td>
-          <td class="p-2 text-right">${formatNumber(x.sistema)}</td>
-          <td class="p-2 text-right">${formatNumber(x.manual)}</td>
-          <td class="p-2 text-right font-semibold">${formatNumber(x.real)}</td>
-        </tr>
-      `).join("");
-
-    const servicioMap = {};
-    realRows.forEach(r => {
-      const key = `${r.servicio}|${r.familia}`;
-      if (!servicioMap[key]) servicioMap[key] = { servicio: r.servicio, familia: r.familia, sistema: 0, manual: 0, real: 0 };
-      if (r.origen === "SISTEMA") servicioMap[key].sistema += Number(r.cantidad || 0);
-      if (r.origen === "MANUAL") servicioMap[key].manual += Number(r.cantidad || 0);
-      servicioMap[key].real += Number(r.cantidad || 0);
-    });
-
-    document.getElementById("tablaAnalisisServicio").innerHTML = Object.values(servicioMap)
-      .sort((a, b) => b.real - a.real)
-      .map(x => `
-        <tr class="border-b">
-          <td class="p-2">${x.servicio}</td>
-          <td class="p-2">${x.familia}</td>
-          <td class="p-2 text-right">${formatNumber(x.sistema)}</td>
-          <td class="p-2 text-right">${formatNumber(x.manual)}</td>
-          <td class="p-2 text-right font-semibold">${formatNumber(x.real)}</td>
-        </tr>
-      `).join("");
-
-    const casinoMap = {};
-    realRows.forEach(r => {
-      if (!casinoMap[r.casino]) casinoMap[r.casino] = { sistema: 0, manual: 0, real: 0 };
-      if (r.origen === "SISTEMA") casinoMap[r.casino].sistema += Number(r.cantidad || 0);
-      if (r.origen === "MANUAL") casinoMap[r.casino].manual += Number(r.cantidad || 0);
-      casinoMap[r.casino].real += Number(r.cantidad || 0);
-    });
-
-    document.getElementById("tablaAnalisisCasino").innerHTML = Object.entries(casinoMap)
-      .sort((a, b) => b[1].real - a[1].real)
-      .map(([casino, x]) => `
-        <tr class="border-b">
-          <td class="p-2">${casino}</td>
-          <td class="p-2 text-right">${formatNumber(x.sistema)}</td>
-          <td class="p-2 text-right">${formatNumber(x.manual)}</td>
-          <td class="p-2 text-right font-semibold">${formatNumber(x.real)}</td>
-        </tr>
-      `).join("");
-
-    const detalleMap = {};
-    realRows.forEach(r => {
-      const key = `${r.empresa}|${r.servicio}`;
-      if (!detalleMap[key]) {
-        detalleMap[key] = {
-          empresa: r.empresa,
-          servicio: r.servicio,
-          casinos: new Set(),
-          real: 0
-        };
-      }
-      detalleMap[key].casinos.add(r.casino);
-      detalleMap[key].real += Number(r.cantidad || 0);
-    });
-
-    document.getElementById("tablaDetalleEmpresaServicio").innerHTML = Object.values(detalleMap)
-      .sort((a, b) => b.real - a.real)
-      .map(x => `
-        <tr class="border-b">
-          <td class="p-2">${x.empresa}</td>
-          <td class="p-2">${x.servicio}</td>
-          <td class="p-2">${[...x.casinos].sort().join(", ")}</td>
-          <td class="p-2 text-right font-semibold">${formatNumber(x.real)}</td>
-        </tr>
-      `).join("");
-  }
-
-  function renderCobro() {
-    document.getElementById("tablaCobro").innerHTML = getCobroMensual()
-      .map(r => `
-        <tr class="border-b">
-          <td class="p-2">${r.periodo}</td>
-          <td class="p-2">${r.empresa}</td>
-          <td class="p-2">${r.servicio}</td>
-          <td class="p-2">${r.familia}</td>
-          <td class="p-2 text-right">${formatNumber(r.sistema)}</td>
-          <td class="p-2 text-right">${formatNumber(r.manual)}</td>
-          <td class="p-2 text-right font-semibold">${formatNumber(r.real)}</td>
-          <td class="p-2 text-right">${formatNumber(r.curva)}</td>
-          <td class="p-2 text-right font-bold">${formatNumber(r.cobro)}</td>
-          <td class="p-2">${r.regla}</td>
-        </tr>
-      `).join("");
-  }
-
-  function renderMaestros() {
-    document.getElementById("listaEmpresas").innerHTML = db.maestros.empresas
-      .slice().sort((a, b) => a.localeCompare(b))
-      .map((e, i) => `
-        <li class="flex justify-between items-center border border-slate-200 rounded-xl px-3 py-2">
-          <span>${e}</span>
-          <button onclick="eliminarEmpresa(${i})" class="text-red-600">Eliminar</button>
-        </li>
-      `).join("");
-
-    document.getElementById("listaServicios").innerHTML = db.maestros.servicios
-      .slice().sort((a, b) => a.localeCompare(b))
-      .map((s, i) => `
-        <li class="flex justify-between items-center border border-slate-200 rounded-xl px-3 py-2">
-          <span>${s}</span>
-          <button onclick="eliminarServicio(${i})" class="text-red-600">Eliminar</button>
-        </li>
-      `).join("");
-  }
-
-  function renderAll() {
-    renderDatalists();
-    renderDashboard();
-    renderVentasSistema();
-    renderVentasManual();
-    renderOperacion();
-    renderProduccion();
-    renderCurva();
-    renderAnalisis();
-    renderCobro();
-    renderMaestros();
-  }
-
-  function ensureEmpresaServicio(empresa, servicio) {
-    if (empresa && !db.maestros.empresas.includes(empresa)) db.maestros.empresas.push(empresa);
-    if (servicio && !db.maestros.servicios.includes(servicio)) db.maestros.servicios.push(servicio);
-  }
-
-  function guardarVentaManual() {
-    const fecha = document.getElementById("manualFecha").value;
-    const empresa = normalizeText(document.getElementById("manualEmpresa").value);
-    const servicio = normalizeText(document.getElementById("manualServicio").value);
-    const casino = normalizeCasino(document.getElementById("manualCasino").value);
-    const cantidad = Number(document.getElementById("manualCantidad").value);
-    const observacion = document.getElementById("manualObservacion").value.trim();
-
-    if (!fecha || !empresa || !servicio || !casino || Number.isNaN(cantidad) || cantidad < 0) {
-      alert("Completa todos los campos de venta manual.");
-      return;
-    }
-
-    const familia = normalizeServiceFamily(servicio);
-
-    db.ventasManual.push({
-      fecha,
-      empresa,
-      servicio,
-      familia,
-      casino,
-      cantidad,
-      observacion
-    });
-
-    ensureEmpresaServicio(empresa, servicio);
-    saveData();
-    renderAll();
-
-    document.getElementById("manualFecha").value = "";
-    document.getElementById("manualEmpresa").value = "";
-    document.getElementById("manualServicio").value = "";
-    document.getElementById("manualCasino").value = "";
-    document.getElementById("manualCantidad").value = "";
-    document.getElementById("manualObservacion").value = "";
-  }
-
-  function guardarOperacion() {
-    const fecha = document.getElementById("operacionFecha").value;
-    const casino = normalizeCasino(document.getElementById("operacionCasino").value);
-    const servicio = normalizeText(document.getElementById("operacionServicio").value);
-    const cantidad = Number(document.getElementById("operacionCantidad").value);
-    const observacion = document.getElementById("operacionObservacion").value.trim();
-
-    if (!fecha || !casino || !servicio || Number.isNaN(cantidad) || cantidad < 0) {
-      alert("Completa todos los campos de operación.");
-      return;
-    }
-
-    const familia = normalizeServiceFamily(servicio);
-
-    db.ventasOperacion.push({
-      fecha,
-      casino,
-      servicio,
-      familia,
-      cantidad,
-      observacion
-    });
-
-    ensureEmpresaServicio("", servicio);
-    saveData();
-    renderAll();
-
-    document.getElementById("operacionFecha").value = "";
-    document.getElementById("operacionCasino").value = "";
-    document.getElementById("operacionServicio").value = "";
-    document.getElementById("operacionCantidad").value = "";
-    document.getElementById("operacionObservacion").value = "";
-  }
-
-  function guardarProduccion() {
-    const fecha = document.getElementById("produccionFecha").value;
-    const casino = normalizeCasino(document.getElementById("produccionCasino").value);
-    const servicio = normalizeText(document.getElementById("produccionServicio").value);
-    const cantidad = Number(document.getElementById("produccionCantidad").value);
-    const observacion = document.getElementById("produccionObservacion").value.trim();
-
-    if (!fecha || !casino || !servicio || Number.isNaN(cantidad) || cantidad < 0) {
-      alert("Completa todos los campos de producción.");
-      return;
-    }
-
-    const familia = normalizeServiceFamily(servicio);
-
-    db.produccionPlan.push({
-      fecha,
-      casino,
-      servicio,
-      familia,
-      cantidad,
-      observacion
-    });
-
-    ensureEmpresaServicio("", servicio);
-    saveData();
-    renderAll();
-
-    document.getElementById("produccionFecha").value = "";
-    document.getElementById("produccionCasino").value = "";
-    document.getElementById("produccionServicio").value = "";
-    document.getElementById("produccionCantidad").value = "";
-    document.getElementById("produccionObservacion").value = "";
-  }
-
-  function guardarCurva() {
-    const periodo = document.getElementById("curvaPeriodo").value;
-    const empresa = normalizeText(document.getElementById("curvaEmpresa").value);
-    const servicio = normalizeText(document.getElementById("curvaServicio").value);
-    const cantidad = Number(document.getElementById("curvaCantidad").value);
-    const observacion = document.getElementById("curvaObservacion").value.trim();
-
-    if (!periodo || !empresa || !servicio || Number.isNaN(cantidad) || cantidad < 0) {
-      alert("Completa todos los campos de curva.");
-      return;
-    }
-
-    db.curvasMensuales.push({
-      periodo,
-      empresa,
-      servicio,
-      cantidad,
-      observacion
-    });
-
-    ensureEmpresaServicio(empresa, servicio);
-    saveData();
-    renderAll();
-
-    document.getElementById("curvaPeriodo").value = "";
-    document.getElementById("curvaEmpresa").value = "";
-    document.getElementById("curvaServicio").value = "";
-    document.getElementById("curvaCantidad").value = "";
-    document.getElementById("curvaObservacion").value = "";
-  }
-
-  function eliminarVentaSistema(i) {
-    const sorted = db.ventasSistema.slice().sort((a, b) => (b.fecha + b.empresa + b.servicio).localeCompare(a.fecha + a.empresa + a.servicio));
-    const row = sorted[i];
-    const idx = db.ventasSistema.findIndex(x =>
-      x.fecha === row.fecha &&
-      x.empresa === row.empresa &&
-      x.servicio === row.servicio &&
-      x.casino === row.casino &&
-      Number(x.cantidad) === Number(row.cantidad)
-    );
-    if (idx >= 0) db.ventasSistema.splice(idx, 1);
-    saveData();
-    renderAll();
-  }
-
-  function eliminarVentaManual(i) {
-    const sorted = db.ventasManual.slice().sort((a, b) => (b.fecha + b.empresa + b.servicio).localeCompare(a.fecha + a.empresa + a.servicio));
-    const row = sorted[i];
-    const idx = db.ventasManual.findIndex(x =>
-      x.fecha === row.fecha &&
-      x.empresa === row.empresa &&
-      x.servicio === row.servicio &&
-      x.casino === row.casino &&
-      Number(x.cantidad) === Number(row.cantidad)
-    );
-    if (idx >= 0) db.ventasManual.splice(idx, 1);
-    saveData();
-    renderAll();
-  }
-
-  function eliminarOperacion(i) {
-    const sorted = db.ventasOperacion.slice().sort((a, b) => (b.fecha + b.casino + b.servicio).localeCompare(a.fecha + a.casino + a.servicio));
-    const row = sorted[i];
-    const idx = db.ventasOperacion.findIndex(x =>
-      x.fecha === row.fecha &&
-      x.casino === row.casino &&
-      x.servicio === row.servicio &&
-      Number(x.cantidad) === Number(row.cantidad)
-    );
-    if (idx >= 0) db.ventasOperacion.splice(idx, 1);
-    saveData();
-    renderAll();
-  }
-
-  function eliminarProduccion(i) {
-    const sorted = db.produccionPlan.slice().sort((a, b) => (b.fecha + b.casino + b.servicio).localeCompare(a.fecha + a.casino + a.servicio));
-    const row = sorted[i];
-    const idx = db.produccionPlan.findIndex(x =>
-      x.fecha === row.fecha &&
-      x.casino === row.casino &&
-      x.servicio === row.servicio &&
-      Number(x.cantidad) === Number(row.cantidad)
-    );
-    if (idx >= 0) db.produccionPlan.splice(idx, 1);
-    saveData();
-    renderAll();
-  }
-
-  function eliminarCurva(i) {
-    const sorted = db.curvasMensuales.slice().sort((a, b) => (b.periodo + b.empresa + b.servicio).localeCompare(a.periodo + a.empresa + a.servicio));
-    const row = sorted[i];
-    const idx = db.curvasMensuales.findIndex(x =>
-      x.periodo === row.periodo &&
-      x.empresa === row.empresa &&
-      x.servicio === row.servicio &&
-      Number(x.cantidad) === Number(row.cantidad)
-    );
-    if (idx >= 0) db.curvasMensuales.splice(idx, 1);
-    saveData();
-    renderAll();
-  }
-
-  function agregarEmpresa() {
-    const value = normalizeText(document.getElementById("nuevaEmpresa").value);
-    if (!value) return;
-    if (!db.maestros.empresas.includes(value)) db.maestros.empresas.push(value);
-    document.getElementById("nuevaEmpresa").value = "";
-    saveData();
-    renderAll();
-  }
-
-  function agregarServicio() {
-    const value = normalizeText(document.getElementById("nuevoServicio").value);
-    if (!value) return;
-    if (!db.maestros.servicios.includes(value)) db.maestros.servicios.push(value);
-    document.getElementById("nuevoServicio").value = "";
-    saveData();
-    renderAll();
-  }
-
-  function eliminarEmpresa(i) {
-    const empresa = db.maestros.empresas.slice().sort((a, b) => a.localeCompare(b))[i];
-    const usada =
-      db.ventasSistema.some(x => x.empresa === empresa) ||
-      db.ventasManual.some(x => x.empresa === empresa) ||
-      db.curvasMensuales.some(x => x.empresa === empresa);
-
-    if (usada) {
-      alert("No puedes eliminar una empresa con registros asociados.");
-      return;
-    }
-
-    db.maestros.empresas = db.maestros.empresas.filter(x => x !== empresa);
-    saveData();
-    renderAll();
-  }
-
-  function eliminarServicio(i) {
-    const servicio = db.maestros.servicios.slice().sort((a, b) => a.localeCompare(b))[i];
-    const usado =
-      db.ventasSistema.some(x => x.servicio === servicio) ||
-      db.ventasManual.some(x => x.servicio === servicio) ||
-      db.ventasOperacion.some(x => x.servicio === servicio) ||
-      db.produccionPlan.some(x => x.servicio === servicio) ||
-      db.curvasMensuales.some(x => x.servicio === servicio);
-
-    if (usado) {
-      alert("No puedes eliminar un servicio con registros asociados.");
-      return;
-    }
-
-    db.maestros.servicios = db.maestros.servicios.filter(x => x !== servicio);
-    saveData();
-    renderAll();
-  }
-
-  function processImportedVentasSistema(rows) {
-    const out = document.getElementById("resultadoImportacionSistema");
-
-    if (!rows || !rows.length) {
-      out.innerHTML = `<div class="text-rose-700 font-medium">El archivo no contiene filas válidas.</div>`;
-      return;
-    }
-
-    const normalizedHeaders = Object.keys(rows[0]).map(h => normalizeText(h));
-
-    const getValue = (row, headerName) => {
-      const originalKey = Object.keys(row).find(k => normalizeText(k) === headerName);
-      return originalKey ? row[originalKey] : "";
-    };
-
-    const requiredHeaders = ["NOMBRE_EMPRESA", "SERVICIO", "FECHA", "EQUIPO", "PRECIO"];
-    const missing = requiredHeaders.filter(h => !normalizedHeaders.includes(h));
-
-    if (missing.length) {
-      out.innerHTML = `<div class="text-rose-700 font-medium">Faltan columnas obligatorias: ${missing.join(", ")}</div>`;
-      return;
-    }
-
-    const grouped = {};
-    let rawRows = 0;
-    let totalServicios = 0;
-
-    rows.forEach(row => {
-      const empresa = normalizeText(getValue(row, "NOMBRE_EMPRESA"));
-      const servicio = normalizeText(getValue(row, "SERVICIO"));
-      const fecha = parseDateToISO(getValue(row, "FECHA"));
-      const equipo = normalizeText(getValue(row, "EQUIPO"));
-      const casino = EQUIPO_MAP[equipo] || equipo || "SIN MAPEO";
-      const cantidadRaw = String(getValue(row, "PRECIO") || "").replace(/\./g, "").replace(",", ".");
-      const cantidad = Number(cantidadRaw);
-
-      if (!empresa || !servicio || !fecha || !casino || Number.isNaN(cantidad)) return;
-
-      const familia = normalizeServiceFamily(servicio);
-      const key = `${fecha}|${empresa}|${servicio}|${casino}`;
-
-      if (!grouped[key]) {
-        grouped[key] = {
-          fecha,
-          empresa,
-          servicio,
-          familia,
-          casino,
-          cantidad: 0
-        };
-      }
-
-      grouped[key].cantidad += cantidad;
-      rawRows += 1;
-      totalServicios += cantidad;
-    });
-
-    const imported = Object.values(grouped);
-    imported.forEach(r => {
-      db.ventasSistema.push(r);
-      ensureEmpresaServicio(r.empresa, r.servicio);
-    });
-
-    saveData();
-    renderAll();
-
-    out.innerHTML = `
-      <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
-        ✔ Filas fuente leídas: <b>${formatNumber(rawRows)}</b><br>
-        ✔ Registros consolidados importados: <b>${formatNumber(imported.length)}</b><br>
-        ✔ Cantidad total de servicios sumados desde PRECIO: <b>${formatNumber(totalServicios)}</b>
-      </div>
-    `;
-
-    showSection("ventas-sistema");
-  }
-
-  function importVentasSistemaFromFile() {
-    const input = document.getElementById("fileVentasSistema");
-    const file = input.files[0];
-    const out = document.getElementById("resultadoImportacionSistema");
-
-    if (!file) {
-      alert("Selecciona un archivo antes de importar.");
-      return;
-    }
-
-    out.innerHTML = `<div class="text-slate-600">Procesando archivo...</div>`;
-
-    const reader = new FileReader();
-
-    reader.onload = function(e) {
-      try {
-        const data = e.target.result;
-        let workbook;
-
-        if (file.name.toLowerCase().endsWith(".csv")) {
-          workbook = XLSX.read(data, { type: "string" });
-        } else {
-          const bytes = new Uint8Array(data);
-          workbook = XLSX.read(bytes, { type: "array" });
-        }
-
-        const firstSheet = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[firstSheet];
-        const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-        processImportedVentasSistema(rows);
-      } catch (error) {
-        out.innerHTML = `<div class="text-rose-700 font-medium">Error al leer el archivo: ${error.message}</div>`;
-      }
-    };
-
-    if (file.name.toLowerCase().endsWith(".csv")) {
-      reader.readAsText(file, "utf-8");
-    } else {
-      reader.readAsArrayBuffer(file);
-    }
-  }
-
-  function limpiarImportacionSistema() {
-    document.getElementById("fileVentasSistema").value = "";
-    document.getElementById("resultadoImportacionSistema").innerHTML = "";
-  }
-
-  function exportCobro() {
-    const rows = getCobroMensual();
-    const headers = ["periodo","empresa","servicio","familia","sistema","manual","real","curva","cobro","regla"];
-    const csv = [
-      headers.join(";"),
-      ...rows.map(r => headers.map(h => csvValue(r[h] ?? "")).join(";"))
-    ].join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "base_cobro_raciones.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function exportVentaReal() {
-    const rows = getFilteredVentasReales();
-    const headers = ["fecha","empresa","servicio","familia","casino","cantidad","origen","observacion"];
-    const csv = [
-      headers.join(";"),
-      ...rows.map(r => headers.map(h => csvValue(r[h] ?? "")).join(";"))
-    ].join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "venta_real_raciones.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function resetLocal() {
-    if (!confirm("Esto borrará toda la información guardada en este navegador.")) return;
-    localStorage.removeItem(STORAGE_KEY);
-    db = loadData();
-    renderAll();
-    showSection("dashboard");
-  }
-
-  function showSection(section) {
-    document.querySelectorAll(".app-section").forEach(x => x.classList.add("hidden"));
-    document.getElementById(`section-${section}`).classList.remove("hidden");
-
-    document.querySelectorAll(".menu-btn").forEach(x => {
-      x.classList.remove("bg-slate-700");
-      x.classList.add("hover:bg-slate-800");
-    });
-
-    const activeBtn = document.querySelector(`[data-section="${section}"]`);
-    if (activeBtn) {
-      activeBtn.classList.add("bg-slate-700");
-      activeBtn.classList.remove("hover:bg-slate-800");
-    }
-  }
-
-  document.querySelectorAll(".menu-btn").forEach(btn => {
-    btn.addEventListener("click", () => showSection(btn.dataset.section));
-  });
-
-  document.getElementById("btnImportarVentasSistema").addEventListener("click", importVentasSistemaFromFile);
-  document.getElementById("btnLimpiarImportacionSistema").addEventListener("click", limpiarImportacionSistema);
-  document.getElementById("btnGuardarVentaManual").addEventListener("click", guardarVentaManual);
-  document.getElementById("btnGuardarOperacion").addEventListener("click", guardarOperacion);
-  document.getElementById("btnGuardarProduccion").addEventListener("click", guardarProduccion);
-  document.getElementById("btnGuardarCurva").addEventListener("click", guardarCurva);
-  document.getElementById("btnAgregarEmpresa").addEventListener("click", agregarEmpresa);
-  document.getElementById("btnAgregarServicio").addEventListener("click", agregarServicio);
-  document.getElementById("btnExportarCobro").addEventListener("click", exportCobro);
-  document.getElementById("btnExportarReal").addEventListener("click", exportVentaReal);
-  document.getElementById("btnReset").addEventListener("click", resetLocal);
-
-  document.getElementById("filtroEmpresa").addEventListener("input", renderAll);
-  document.getElementById("filtroServicio").addEventListener("input", renderAll);
-  document.getElementById("filtroCasino").addEventListener("input", renderAll);
-  document.getElementById("filtroFechaDesde").addEventListener("change", renderAll);
-  document.getElementById("filtroFechaHasta").addEventListener("change", renderAll);
-
-  document.getElementById("btnLimpiarFiltros").addEventListener("click", () => {
-    document.getElementById("filtroEmpresa").value = "";
-    document.getElementById("filtroServicio").value = "";
-    document.getElementById("filtroCasino").value = "";
-    document.getElementById("filtroFechaDesde").value = "";
-    document.getElementById("filtroFechaHasta").value = "";
-    renderAll();
-  });
-
-  showSection("dashboard");
-  renderAll();
+
+const CASINOS = {
+"A":"DP (PLANTA)",
+"B":"DM (MINA)",
+"C":"CAP",
+"D":"AÑAÑUCAS",
+"E":"CF",
+"F":"CAES",
+"G":"PDA 1"
+}
+
+let db = JSON.parse(localStorage.getItem("raciones_db")) || {
+
+ventaSupervisores:[],
+produccion:[],
+ventaSistema:[],
+ventaManual:[],
+curvaMensual:[]
+
+}
+
+function saveDB(){
+localStorage.setItem("raciones_db",JSON.stringify(db))
+}
+
+function showModule(name){
+
+if(name==="supervisores") moduleSupervisores()
+if(name==="produccion") moduleProduccion()
+if(name==="sistema") moduleSistema()
+if(name==="manual") moduleManual()
+if(name==="empresa") moduleEmpresa()
+if(name==="servicio") moduleServicio()
+if(name==="casino") moduleCasino()
+if(name==="curva") moduleCurva()
+if(name==="cobro") moduleCobro()
+
+}
+
+function moduleSupervisores(){
+
+let html=`
+
+<h2>Venta Supervisores</h2>
+
+<div class="resumen">
+Ingreso simple por fecha / servicio / casino
+</div>
+
+Fecha <input type="date" id="sup_fecha">
+
+Servicio <input id="sup_servicio">
+
+Casino
+<select id="sup_casino">
+<option>DP (PLANTA)</option>
+<option>DM (MINA)</option>
+<option>CAP</option>
+<option>AÑAÑUCAS</option>
+<option>CF</option>
+<option>CAES</option>
+<option>PDA 1</option>
+</select>
+
+Cantidad <input type="number" id="sup_cantidad">
+
+<button onclick="addSupervisor()">Guardar</button>
+
+<h3>Resumen del día</h3>
+
+<div id="sup_resumen"></div>
+
+`
+
+document.getElementById("content").innerHTML=html
+
+renderSupervisorResumen()
+
+}
+
+function addSupervisor(){
+
+let item={
+
+fecha:document.getElementById("sup_fecha").value,
+servicio:document.getElementById("sup_servicio").value,
+casino:document.getElementById("sup_casino").value,
+cantidad:Number(document.getElementById("sup_cantidad").value)
+
+}
+
+db.ventaSupervisores.push(item)
+
+saveDB()
+
+renderSupervisorResumen()
+
+}
+
+function renderSupervisorResumen(){
+
+let map={}
+
+db.ventaSupervisores.forEach(r=>{
+
+let key=r.fecha+"_"+r.casino+"_"+r.servicio
+
+if(!map[key]) map[key]=0
+
+map[key]+=r.cantidad
+
+})
+
+let html="<table><tr><th>Fecha</th><th>Casino</th><th>Servicio</th><th>Cantidad</th></tr>"
+
+Object.keys(map).forEach(k=>{
+
+let parts=k.split("_")
+
+html+=`<tr>
+<td>${parts[0]}</td>
+<td>${parts[1]}</td>
+<td>${parts[2]}</td>
+<td>${map[k]}</td>
+</tr>`
+
+})
+
+html+="</table>"
+
+document.getElementById("sup_resumen").innerHTML=html
+
+}
+
+function moduleProduccion(){
+
+let html=`
+
+<h2>Producción</h2>
+
+Fecha <input type="date" id="prod_fecha">
+
+Servicio <input id="prod_servicio">
+
+Casino
+<select id="prod_casino">
+<option>DP (PLANTA)</option>
+<option>DM (MINA)</option>
+<option>CAP</option>
+<option>AÑAÑUCAS</option>
+<option>CF</option>
+<option>CAES</option>
+<option>PDA 1</option>
+</select>
+
+Cantidad <input type="number" id="prod_cantidad">
+
+<button onclick="addProduccion()">Guardar</button>
+
+<div id="prod_tabla"></div>
+
+`
+
+document.getElementById("content").innerHTML=html
+
+renderProduccion()
+
+}
+
+function addProduccion(){
+
+db.produccion.push({
+
+fecha:document.getElementById("prod_fecha").value,
+servicio:document.getElementById("prod_servicio").value,
+casino:document.getElementById("prod_casino").value,
+cantidad:Number(document.getElementById("prod_cantidad").value)
+
+})
+
+saveDB()
+
+renderProduccion()
+
+}
+
+function renderProduccion(){
+
+let html="<table><tr><th>Fecha</th><th>Casino</th><th>Servicio</th><th>Cantidad</th></tr>"
+
+db.produccion.forEach(r=>{
+
+html+=`<tr>
+<td>${r.fecha}</td>
+<td>${r.casino}</td>
+<td>${r.servicio}</td>
+<td>${r.cantidad}</td>
+</tr>`
+
+})
+
+html+="</table>"
+
+document.getElementById("prod_tabla").innerHTML=html
+
+}
+
+function moduleSistema(){
+
+let html=`
+
+<h2>Importar Venta Sistema</h2>
+
+<input type="file" id="fileSistema">
+
+<button onclick="importSistema()">Importar</button>
+
+<div id="tablaSistema"></div>
+
+`
+
+document.getElementById("content").innerHTML=html
+
+renderSistema()
+
+}
+
+function importSistema(){
+
+let file=document.getElementById("fileSistema").files[0]
+
+let reader=new FileReader()
+
+reader.onload=function(e){
+
+let data=new Uint8Array(e.target.result)
+
+let workbook=XLSX.read(data,{type:"array"})
+
+let sheet=workbook.Sheets[workbook.SheetNames[0]]
+
+let json=XLSX.utils.sheet_to_json(sheet)
+
+json.forEach(r=>{
+
+let casino=CASINOS[r.EQUIPO] || r.EQUIPO
+
+db.ventaSistema.push({
+
+fecha:r.FECHA,
+empresa:r.NOMBRE_EMPRESA,
+servicio:r.SERVICIO,
+casino:casino,
+cantidad:Number(r.PRECIO)
+
+})
+
+})
+
+saveDB()
+
+renderSistema()
+
+}
+
+reader.readAsArrayBuffer(file)
+
+}
+
+function renderSistema(){
+
+let html="<table><tr><th>Fecha</th><th>Empresa</th><th>Servicio</th><th>Casino</th><th>Cantidad</th></tr>"
+
+db.ventaSistema.forEach(r=>{
+
+html+=`<tr>
+<td>${r.fecha}</td>
+<td>${r.empresa}</td>
+<td>${r.servicio}</td>
+<td>${r.casino}</td>
+<td>${r.cantidad}</td>
+</tr>`
+
+})
+
+html+="</table>"
+
+document.getElementById("tablaSistema").innerHTML=html
+
+}
+
+function moduleManual(){
+
+let html=`
+
+<h2>Venta Manual</h2>
+
+Fecha <input type="date" id="man_fecha">
+
+Empresa <input id="man_empresa">
+
+Servicio <input id="man_servicio">
+
+Casino
+<select id="man_casino">
+<option>DP (PLANTA)</option>
+<option>DM (MINA)</option>
+<option>CAP</option>
+<option>AÑAÑUCAS</option>
+<option>CF</option>
+<option>CAES</option>
+<option>PDA 1</option>
+</select>
+
+Cantidad <input type="number" id="man_cantidad">
+
+<button onclick="addManual()">Guardar</button>
+
+<div id="tablaManual"></div>
+
+`
+
+document.getElementById("content").innerHTML=html
+
+renderManual()
+
+}
+
+function addManual(){
+
+db.ventaManual.push({
+
+fecha:document.getElementById("man_fecha").value,
+empresa:document.getElementById("man_empresa").value,
+servicio:document.getElementById("man_servicio").value,
+casino:document.getElementById("man_casino").value,
+cantidad:Number(document.getElementById("man_cantidad").value)
+
+})
+
+saveDB()
+
+renderManual()
+
+}
+
+function renderManual(){
+
+let html="<table><tr><th>Fecha</th><th>Empresa</th><th>Servicio</th><th>Casino</th><th>Cantidad</th></tr>"
+
+db.ventaManual.forEach(r=>{
+
+html+=`<tr>
+<td>${r.fecha}</td>
+<td>${r.empresa}</td>
+<td>${r.servicio}</td>
+<td>${r.casino}</td>
+<td>${r.cantidad}</td>
+</tr>`
+
+})
+
+html+="</table>"
+
+document.getElementById("tablaManual").innerHTML=html
+
+}
+
+function moduleEmpresa(){
+document.getElementById("content").innerHTML="<h2>Consumos por empresas (próximo paso)</h2>"
+}
+
+function moduleServicio(){
+document.getElementById("content").innerHTML="<h2>Consumos por servicios (próximo paso)</h2>"
+}
+
+function moduleCasino(){
+document.getElementById("content").innerHTML="<h2>Consumos por casinos (próximo paso)</h2>"
+}
+
+function moduleCurva(){
+document.getElementById("content").innerHTML="<h2>Curva mensual (próximo paso)</h2>"
+}
+
+function moduleCobro(){
+document.getElementById("content").innerHTML="<h2>Base de cobro (próximo paso)</h2>"
+}
+
+showModule("supervisores")
+
 </script>
+
 </body>
 </html>
