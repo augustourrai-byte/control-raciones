@@ -18,12 +18,11 @@
       --text:#0f172a;
       --muted:#64748b;
       --dark:#0f172a;
-      --dark-2:#1e293b;
+      --dark2:#1e293b;
       --primary:#2563eb;
-      --primary-2:#1d4ed8;
       --success:#059669;
-      --warning:#d97706;
       --danger:#dc2626;
+      --warning:#d97706;
       --radius:1.25rem;
       --shadow:0 10px 30px rgba(15,23,42,.05);
     }
@@ -38,7 +37,7 @@
 
     .panel{
       background: var(--panel);
-      border:1px solid var(--line);
+      border: 1px solid var(--line);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
     }
@@ -58,7 +57,7 @@
       max-height:62vh;
       border:1px solid var(--line);
       border-radius:1rem;
-      background:white;
+      background:#fff;
     }
 
     .matrix{
@@ -87,7 +86,7 @@
     .matrix .sticky-col{
       position:sticky;
       left:0;
-      background:white;
+      background:#fff;
       z-index:10;
     }
 
@@ -112,7 +111,7 @@
       height:24px;
       border-radius:8px;
       border:1px solid #cbd5e1;
-      background:white;
+      background:#fff;
       font-weight:700;
       cursor:pointer;
     }
@@ -136,7 +135,7 @@
       overflow:auto;
       border:1px solid var(--line);
       border-radius:1rem;
-      background:white;
+      background:#fff;
     }
 
     table{
@@ -157,8 +156,6 @@
       letter-spacing:.04em;
       text-transform:uppercase;
     }
-
-    .hidden{ display:none !important; }
 
     .notice{
       margin-top:1rem;
@@ -187,6 +184,8 @@
       text-align:center;
       color:var(--muted);
     }
+
+    .hidden{ display:none !important; }
 
     @media (max-width: 1100px){
       .layout-main{
@@ -268,15 +267,15 @@
 
 <script>
 /* =========================
-   CONFIG GLOBAL
+   CONFIG
 ========================= */
-const DB_NAME = "control_raciones_full_v12";
+const DB_NAME = "control_raciones_curva_diaria_v1";
 const DB_VERSION = 1;
 const DB_STORE = "main_store";
 const DB_KEY = "app_data";
 
-const SETTINGS_KEY = "control_raciones_full_v12_settings";
-const TURNOS_KEY = "control_raciones_turnos_v12";
+const SETTINGS_KEY = "control_raciones_curva_diaria_settings";
+const TURNOS_KEY = "control_raciones_curva_diaria_turnos";
 
 const MENU_ITEMS = [
   { key:"dashboard", label:"Dashboard", roles:["ADMIN"] },
@@ -284,9 +283,9 @@ const MENU_ITEMS = [
   { key:"produccion", label:"Producción", roles:["ADMIN"] },
   { key:"sistema", label:"Venta sistema", roles:["ADMIN"] },
   { key:"manual", label:"Venta manual", roles:["ADMIN"] },
+  { key:"curva", label:"Curva diaria", roles:["ADMIN"] },
   { key:"analisis", label:"Análisis", roles:["ADMIN"] },
   { key:"comparativos", label:"Comparativos", roles:["ADMIN"] },
-  { key:"curva", label:"Curva mensual", roles:["ADMIN"] },
   { key:"cobro", label:"Base de cobro", roles:["ADMIN"] },
   { key:"cierre", label:"Cierre período", roles:["ADMIN"] },
   { key:"turnos", label:"Configuración de turnos", roles:["ADMIN"] }
@@ -323,7 +322,7 @@ const DEFAULT_DB = {
   produccion: [],
   ventaSistema: [],
   ventaManual: [],
-  curvaMensual: [],
+  curvaDiaria: [],
   cierresMensuales: [],
   maestros: {
     empresas: [],
@@ -380,7 +379,9 @@ const treeState = {
   produccion: new Set(),
   sistema: new Set(),
   manual: new Set(),
-  analisis: new Set()
+  curva: new Set(),
+  analisis: new Set(),
+  cobro: new Set()
 };
 
 const matrixFilters = {
@@ -478,8 +479,9 @@ function setCurrentExport(headers, rows, filename, detailHeaders = null, detailR
     filename: detailFilename || `${filename}_detalle`
   };
 }
+
 /* =========================
-   SETTINGS
+   SETTINGS / TURNOS
 ========================= */
 function loadSettings(){
   try{
@@ -509,17 +511,33 @@ function saveTurnos(){
   localStorage.setItem(TURNOS_KEY, JSON.stringify(turnosConfig));
 }
 
+function getTurnoFecha(fechaISO){
+  if(!turnosConfig.fecha_inicio_ciclo) return "";
+
+  const start = new Date(turnosConfig.fecha_inicio_ciclo);
+  const current = new Date(fechaISO);
+
+  const diffDays = Math.floor((current - start) / (1000*60*60*24));
+  if(diffDays < 0) return "";
+
+  const cycleLength = turnosConfig.duracion_turno * turnosConfig.cantidad_turnos;
+  const pos = diffDays % cycleLength;
+
+  const turnoIndex = Math.floor(pos / turnosConfig.duracion_turno);
+  return turnosConfig.nombres_turnos[turnoIndex] || "";
+}
+
 /* =========================
-   INDEXED DB
+   INDEXEDDB
 ========================= */
 function openDB(){
   return new Promise((resolve,reject)=>{
     const req = indexedDB.open(DB_NAME, DB_VERSION);
 
     req.onupgradeneeded = e=>{
-      const db = e.target.result;
-      if(!db.objectStoreNames.contains(DB_STORE)){
-        db.createObjectStore(DB_STORE);
+      const idb = e.target.result;
+      if(!idb.objectStoreNames.contains(DB_STORE)){
+        idb.createObjectStore(DB_STORE);
       }
     };
 
@@ -530,8 +548,8 @@ function openDB(){
 
 async function loadDB(){
   try{
-    const dbi = await openDB();
-    const tx = dbi.transaction(DB_STORE,"readonly");
+    const idb = await openDB();
+    const tx = idb.transaction(DB_STORE, "readonly");
     const store = tx.objectStore(DB_STORE);
     const req = store.get(DB_KEY);
 
@@ -552,132 +570,13 @@ async function loadDB(){
 }
 
 async function saveDB(){
-  const dbi = await openDB();
-  const tx = dbi.transaction(DB_STORE,"readwrite");
+  const idb = await openDB();
+  const tx = idb.transaction(DB_STORE, "readwrite");
   const store = tx.objectStore(DB_STORE);
   store.put(db, DB_KEY);
 }
-
-/* =========================
-   TURNOS
-========================= */
-function getTurnoFecha(fechaISO){
-  if(!turnosConfig.fecha_inicio_ciclo) return "";
-
-  const start = new Date(turnosConfig.fecha_inicio_ciclo);
-  const current = new Date(fechaISO);
-
-  const diffDays = Math.floor((current - start) / (1000*60*60*24));
-  if(diffDays < 0) return "";
-
-  const cycleLength = turnosConfig.duracion_turno * turnosConfig.cantidad_turnos;
-  const pos = diffDays % cycleLength;
-
-  const turnoIndex = Math.floor(pos / turnosConfig.duracion_turno);
-  return turnosConfig.nombres_turnos[turnoIndex] || "";
-}
-
-/* =========================
-   MENU
-========================= */
-function renderMenu(){
-  const nav = document.getElementById("menu");
-  nav.innerHTML = "";
-
-  MENU_ITEMS.forEach(item=>{
-    if(!item.roles.includes(settings.perfil)) return;
-
-    const btn = document.createElement("button");
-    btn.className =
-      "w-full text-left px-4 py-3 rounded-xl font-semibold transition border " +
-      (settings.currentModule === item.key
-        ? "bg-white text-slate-900 border-white"
-        : "bg-slate-900/70 border-slate-800 hover:bg-slate-800");
-
-    btn.textContent = item.label;
-
-    btn.onclick = ()=>{
-      settings.currentModule = item.key;
-      saveSettings();
-      renderMenu();
-      renderApp();
-    };
-
-    nav.appendChild(btn);
-  });
-}
-
-/* =========================
-   TAGS
-========================= */
-function updateTags(){
-  document.getElementById("perfilTag").textContent =
-    settings.perfil === "ADMIN" ? "ADMINISTRADOR" : "SUPERVISOR";
-
-  document.getElementById("periodoTag").textContent = settings.periodo;
-
-  const turno = settings.filtroTurnoGlobal || "TODOS";
-  document.getElementById("turnoTag").textContent = "TURNO: " + turno;
-}
-
-/* =========================
-   EXPORT
-========================= */
-function exportExcel(headers, rows, filename){
-  const data = [headers, ...rows];
-
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Datos");
-
-  XLSX.writeFile(wb, `${filename}.xlsx`);
-}
-
-function exportPDF(headers, rows, filename){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:"landscape" });
-
-  doc.autoTable({
-    head:[headers],
-    body:rows
-  });
-
-  doc.save(`${filename}.pdf`);
-}
-
-document.getElementById("btnExportCurrentExcel").onclick = ()=>{
-  const e = currentExport.current;
-  if(!e.rows.length) return alert("No hay datos para exportar");
-  exportExcel(e.headers, e.rows, e.filename);
-};
-
-document.getElementById("btnExportDetailExcel").onclick = ()=>{
-  const e = currentExport.detail;
-  if(!e.rows.length) return alert("No hay datos para exportar");
-  exportExcel(e.headers, e.rows, e.filename);
-};
-
-document.getElementById("btnExportPDF").onclick = ()=>{
-  const e = currentExport.current;
-  if(!e.rows.length) return alert("No hay datos para exportar");
-  exportPDF(e.headers, e.rows, e.filename);
-};
-
-/* =========================
-   RESET
-========================= */
-document.getElementById("btnReset").onclick = ()=>{
-  if(!confirm("Esto borrará todos los datos locales. ¿Continuar?")) return;
-
-  localStorage.removeItem(SETTINGS_KEY);
-  localStorage.removeItem(TURNOS_KEY);
-
-  indexedDB.deleteDatabase(DB_NAME);
-
-  location.reload();
-};
   /* =========================
-   DATOS BASE / FILTROS
+   DATOS / FILTROS / MENÚ
 ========================= */
 function updateDatalists(){
   document.getElementById("empresasList").innerHTML =
@@ -710,7 +609,7 @@ function getRealesPeriodo(){
 }
 
 function getCurvaPeriodo(){
-  return db.curvaMensual.filter(x => x.periodo === settings.periodo);
+  return getRowsPeriodo(db.curvaDiaria);
 }
 
 function periodoCerrado(){
@@ -735,229 +634,77 @@ function deleteRecord(collection, id){
   db[collection] = db[collection].filter(x => x.id !== id);
 }
 
+function visibleMenuItems(){
+  return MENU_ITEMS.filter(x => x.roles.includes(settings.perfil));
+}
+
+function renderMenu(){
+  const nav = document.getElementById("menu");
+  nav.innerHTML = "";
+
+  visibleMenuItems().forEach(item => {
+    const btn = document.createElement("button");
+    btn.className =
+      "w-full text-left px-4 py-3 rounded-xl font-semibold transition border " +
+      (settings.currentModule === item.key
+        ? "bg-white text-slate-900 border-white"
+        : "bg-slate-900/70 border-slate-800 hover:bg-slate-800");
+
+    btn.textContent = item.label;
+
+    btn.onclick = ()=>{
+      settings.currentModule = item.key;
+      saveSettings();
+      renderMenu();
+      renderApp();
+    };
+
+    nav.appendChild(btn);
+  });
+}
+
+function ensureAllowedModule(){
+  const allowed = visibleMenuItems().map(x => x.key);
+  if(!allowed.includes(settings.currentModule)){
+    settings.currentModule = allowed[0];
+    saveSettings();
+  }
+}
+
+function updateTags(){
+  document.getElementById("perfilTag").textContent =
+    settings.perfil === "ADMIN" ? "ADMINISTRADOR" : "SUPERVISOR";
+
+  document.getElementById("periodoTag").textContent = settings.periodo;
+  document.getElementById("turnoTag").textContent = "TURNO: " + (settings.filtroTurnoGlobal || "TODOS");
+}
+
+function updateHeader(title, subtitle){
+  document.getElementById("pageTitle").textContent = title;
+  document.getElementById("pageSubtitle").textContent = subtitle;
+  updateTags();
+}
+
 /* =========================
-   DASHBOARD
+   EXPORTS
 ========================= */
-function buildDashboardData(){
-  const supervisores = applyTurnoFilter(getRowsPeriodo(db.ventaSupervisores));
-  const produccion = applyTurnoFilter(getRowsPeriodo(db.produccion));
-  const reales = applyTurnoFilter(getRealesPeriodo());
-  const curva = getCurvaPeriodo();
-
-  const totalSup = supervisores.reduce((a,b)=>a+Number(b.cantidad||0),0);
-  const totalProd = produccion.reduce((a,b)=>a+Number(b.cantidad||0),0);
-  const totalReal = reales.reduce((a,b)=>a+Number(b.cantidad||0),0);
-  const totalCurva = curva.reduce((a,b)=>a+Number(b.cantidad||0),0);
-  const totalCobro = Math.max(totalReal, totalCurva);
-
-  const byEmpresa = {};
-  const byServicio = {};
-  const byPunto = {};
-
-  reales.forEach(r=>{
-    const fam = normalizeServiceFamily(r.servicio);
-    byEmpresa[r.empresa] = (byEmpresa[r.empresa] || 0) + Number(r.cantidad||0);
-    byServicio[fam] = (byServicio[fam] || 0) + Number(r.cantidad||0);
-    byPunto[r.punto_servicio] = (byPunto[r.punto_servicio] || 0) + Number(r.cantidad||0);
-  });
-
-  const topEmpresas = Object.entries(byEmpresa).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const topServicios = Object.entries(byServicio).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const topPuntos = Object.entries(byPunto).sort((a,b)=>b[1]-a[1]).slice(0,5);
-
-  return {
-    supervisores,
-    produccion,
-    reales,
-    curva,
-    totalSup,
-    totalProd,
-    totalReal,
-    totalCurva,
-    totalCobro,
-    topEmpresas,
-    topServicios,
-    topPuntos
-  };
+function exportExcel(headers, rows, filename){
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Datos");
+  XLSX.writeFile(wb, `${filename}.xlsx`);
 }
 
-function renderDashboard(){
-  updateHeader("Dashboard", "Resumen operativo y contractual del período.");
+function exportPDF(headers, rows, filename){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:"landscape" });
 
-  const d = buildDashboardData();
-
-  setCurrentExport(
-    ["Indicador","Valor"],
-    [
-      ["Venta supervisores", d.totalSup],
-      ["Producción", d.totalProd],
-      ["Venta real", d.totalReal],
-      ["Curva", d.totalCurva],
-      ["Cobro", d.totalCobro]
-    ],
-    `dashboard_${settings.periodo}`
-  );
-
-  return `
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-      <div class="panel p-5">
-        <div class="text-sm text-slate-500 font-semibold">Venta supervisores</div>
-        <div class="text-4xl font-black mt-2">${formatNumber(d.totalSup)}</div>
-      </div>
-      <div class="panel p-5">
-        <div class="text-sm text-slate-500 font-semibold">Producción</div>
-        <div class="text-4xl font-black mt-2">${formatNumber(d.totalProd)}</div>
-      </div>
-      <div class="panel p-5">
-        <div class="text-sm text-slate-500 font-semibold">Venta real</div>
-        <div class="text-4xl font-black mt-2">${formatNumber(d.totalReal)}</div>
-      </div>
-      <div class="panel p-5">
-        <div class="text-sm text-slate-500 font-semibold">Curva</div>
-        <div class="text-4xl font-black mt-2">${formatNumber(d.totalCurva)}</div>
-      </div>
-      <div class="panel p-5">
-        <div class="text-sm text-slate-500 font-semibold">Cobro</div>
-        <div class="text-4xl font-black mt-2">${formatNumber(d.totalCobro)}</div>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 mt-5">
-      <div class="space-y-5">
-        <div class="panel p-5">
-          <h3 class="text-2xl font-semibold mb-4">Alertas rápidas</h3>
-          <div class="space-y-3 text-sm">
-            <div class="flex justify-between">
-              <span>Brecha supervisor vs real</span>
-              <strong class="${(d.totalSup-d.totalReal)>=0?'text-emerald-600':'text-rose-600'}">${formatNumber(d.totalSup-d.totalReal)}</strong>
-            </div>
-            <div class="flex justify-between">
-              <span>Mes cerrado</span>
-              <strong>${periodoCerrado() ? "Sí" : "No"}</strong>
-            </div>
-            <div class="flex justify-between">
-              <span>Permutas agrupadas</span>
-              <strong>${settings.agruparPermutas ? "Sí" : "No"}</strong>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div class="panel p-5">
-            <h3 class="text-xl font-semibold mb-4">Top empresas</h3>
-            ${d.topEmpresas.length ? d.topEmpresas.map(x=>`<div class="flex justify-between py-2 border-b border-slate-100 last:border-b-0"><span>${x[0]}</span><strong>${formatNumber(x[1])}</strong></div>`).join("") : `<div class="text-slate-500">Sin datos</div>`}
-          </div>
-          <div class="panel p-5">
-            <h3 class="text-xl font-semibold mb-4">Top servicios</h3>
-            ${d.topServicios.length ? d.topServicios.map(x=>`<div class="flex justify-between py-2 border-b border-slate-100 last:border-b-0"><span>${x[0]}</span><strong>${formatNumber(x[1])}</strong></div>`).join("") : `<div class="text-slate-500">Sin datos</div>`}
-          </div>
-          <div class="panel p-5">
-            <h3 class="text-xl font-semibold mb-4">Top puntos</h3>
-            ${d.topPuntos.length ? d.topPuntos.map(x=>`<div class="flex justify-between py-2 border-b border-slate-100 last:border-b-0"><span>${x[0]}</span><strong>${formatNumber(x[1])}</strong></div>`).join("") : `<div class="text-slate-500">Sin datos</div>`}
-          </div>
-        </div>
-      </div>
-
-      <div class="panel p-5">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h3 class="text-2xl font-semibold">Asistente de análisis</h3>
-            <p class="text-slate-500 text-sm mt-1">Lectura rápida del período actual.</p>
-          </div>
-          <span class="badge badge-gray">BETA</span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <button class="rounded-xl border px-4 py-2 font-semibold" data-ai-mode="promedio_dia">Promedio por día</button>
-          <button class="rounded-xl border px-4 py-2 font-semibold" data-ai-mode="por_casino">Consumo por casino</button>
-          <button class="rounded-xl border px-4 py-2 font-semibold" data-ai-mode="comparar_turnos">Comparar turnos</button>
-          <button class="rounded-xl border px-4 py-2 font-semibold" data-ai-mode="anomalias">Detectar anomalías</button>
-        </div>
-
-        <textarea id="dashboardAIInput" class="w-full rounded-xl border p-3 mt-4 min-h-[110px]" placeholder="Consulta libre sobre los datos"></textarea>
-
-        <div class="flex gap-3 mt-3">
-          <button id="btnDashboardAI" class="rounded-xl bg-slate-900 text-white px-4 py-2 font-semibold">Analizar</button>
-          <button id="btnDashboardAIExpand" class="rounded-xl border px-4 py-2 font-semibold">Ver análisis completo</button>
-        </div>
-
-        <div id="dashboardAIOutput" class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 whitespace-pre-wrap leading-7">
-Aquí aparecerá el análisis.
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function analyzeAssistant(mode, prompt = ""){
-  const rows = applyTurnoFilter(getRealesPeriodo());
-  if(!rows.length) return "No hay datos para analizar en el período seleccionado.";
-
-  if(mode === "promedio_dia"){
-    const byDate = {};
-    rows.forEach(r => byDate[r.fecha] = (byDate[r.fecha] || 0) + Number(r.cantidad || 0));
-    const vals = Object.entries(byDate).sort((a,b)=>a[0].localeCompare(b[0]));
-    const avg = vals.reduce((a,b)=>a+b[1],0) / vals.length;
-    const max = vals.slice().sort((a,b)=>b[1]-a[1])[0];
-    const min = vals.slice().sort((a,b)=>a[1]-b[1])[0];
-    return `Promedio diario del período: ${formatNumber(avg)} raciones.\nDía más alto: ${max[0]} con ${formatNumber(max[1])}.\nDía más bajo: ${min[0]} con ${formatNumber(min[1])}.`;
-  }
-
-  if(mode === "por_casino"){
-    const by = {};
-    rows.forEach(r => by[r.punto_servicio] = (by[r.punto_servicio] || 0) + Number(r.cantidad || 0));
-    const top = Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    return "Top puntos de servicio del período:\n" + top.map((x,i)=>`${i+1}. ${x[0]}: ${formatNumber(x[1])}`).join("\n");
-  }
-
-  if(mode === "comparar_turnos"){
-    const names = turnosConfig.nombres_turnos || [];
-    if(names.length < 2) return "Configura al menos dos turnos para comparar.";
-
-    const by = {};
-    rows.forEach(r => {
-      const t = getTurnoFecha(r.fecha) || "SIN TURNO";
-      by[t] = (by[t] || 0) + Number(r.cantidad || 0);
-    });
-
-    return names.map(t => `${t}: ${formatNumber(by[t] || 0)} raciones`).join("\n");
-  }
-
-  if(mode === "anomalias"){
-    const byDate = {};
-    rows.forEach(r => byDate[r.fecha] = (byDate[r.fecha] || 0) + Number(r.cantidad || 0));
-    const vals = Object.entries(byDate);
-    const avg = vals.reduce((a,b)=>a+b[1],0) / Math.max(vals.length,1);
-    const out = vals.filter(x => x[1] > avg * 1.25 || x[1] < avg * 0.75).sort((a,b)=>a[0].localeCompare(b[0]));
-
-    return out.length
-      ? "Días atípicos detectados:\n" + out.map(x => `${x[0]}: ${formatNumber(x[1])}`).join("\n")
-      : "No se detectaron anomalías relevantes con la regla actual.";
-  }
-
-  const p = prompt.toLowerCase();
-  if(p.includes("casino") || p.includes("punto")) return analyzeAssistant("por_casino");
-  if(p.includes("promedio")) return analyzeAssistant("promedio_dia");
-  if(p.includes("turno")) return analyzeAssistant("comparar_turnos");
-  if(p.includes("anomal")) return analyzeAssistant("anomalias");
-
-  return "No pude clasificar la consulta libre. Usa una consulta como: “promedio por día”, “comparar turnos”, “consumo por casino” o “detectar anomalías”.";
-}
-
-function bindDashboardAI(){
-  document.querySelectorAll("[data-ai-mode]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.getElementById("dashboardAIOutput").textContent = analyzeAssistant(btn.dataset.aiMode);
-    });
+  doc.autoTable({
+    head:[headers],
+    body:rows
   });
 
-  document.getElementById("btnDashboardAI")?.addEventListener("click", () => {
-    document.getElementById("dashboardAIOutput").textContent = analyzeAssistant("free", document.getElementById("dashboardAIInput").value);
-  });
-
-  document.getElementById("btnDashboardAIExpand")?.addEventListener("click", () => {
-    alert(analyzeAssistant("free", document.getElementById("dashboardAIInput").value));
-  });
+  doc.save(`${filename}.pdf`);
 }
 
 /* =========================
@@ -971,6 +718,10 @@ function getSelectedDates(){
     out.push(`${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
   }
   return out;
+}
+
+function getUniqueValues(rows, field){
+  return [...new Set(rows.map(x => x[field]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
 }
 
 function buildTree(rows, levels){
@@ -990,10 +741,8 @@ function buildTree(rows, levels){
     levels.forEach(level => {
       const label = row[level] || "SIN DATO";
       const node = find(current, label);
-
       node.totalsByDate[row.fecha] = (node.totalsByDate[row.fecha] || 0) + Number(row.cantidad || 0);
       node.total += Number(row.cantidad || 0);
-
       current = node.children;
     });
   });
@@ -1009,7 +758,6 @@ function buildTree(rows, levels){
 
 function flattenTree(nodes, moduleKey, level = 0, parent = ""){
   const out = [];
-
   nodes.forEach(node => {
     const path = parent ? `${parent}|||${node.label}` : node.label;
     const expanded = treeState[moduleKey]?.has(path) || false;
@@ -1026,7 +774,6 @@ function flattenTree(nodes, moduleKey, level = 0, parent = ""){
       out.push(...flattenTree(node.children, moduleKey, level + 1, path));
     }
   });
-
   return out;
 }
 
@@ -1042,8 +789,8 @@ function expandAllTree(nodes, moduleKey, parent = ""){
 
 function buildDetailRows(rows, levels){
   return rows.slice().sort((a,b)=>{
-    const aa = levels.map(k=>String(a[k]||"")).join("|") + "|" + a.fecha;
-    const bb = levels.map(k=>String(b[k]||"")).join("|") + "|" + b.fecha;
+    const aa = levels.map(k=>String(a[k] || "")).join("|") + "|" + a.fecha;
+    const bb = levels.map(k=>String(b[k] || "")).join("|") + "|" + b.fecha;
     return aa.localeCompare(bb);
   }).map(r => [...levels.map(k => r[k] || ""), r.fecha, r.cantidad]);
 }
@@ -1068,6 +815,15 @@ function syncMatrixScrolls(topId, wrapId){
     top.scrollLeft = wrap.scrollLeft;
     locked = false;
   });
+}
+
+function setCurrentExport(headers, rows, filename, detailHeaders = null, detailRows = null, detailFilename = null){
+  currentExport.current = { headers, rows, filename };
+  currentExport.detail = {
+    headers: detailHeaders || headers,
+    rows: detailRows || rows,
+    filename: detailFilename || `${filename}_detalle`
+  };
 }
 
 function renderMatrixTable(moduleKey, levels, rows, firstColumnLabel, filenameBase){
@@ -1134,119 +890,361 @@ function bindTreeToggles(){
     btn.addEventListener("click", () => {
       const moduleKey = btn.dataset.treeModule;
       const path = decodeURIComponent(btn.dataset.treePath);
-
       if(treeState[moduleKey].has(path)) treeState[moduleKey].delete(path);
       else treeState[moduleKey].add(path);
-
       renderApp();
     });
   });
 }
+
 /* =========================
-   FILTROS ANÁLISIS
+   IMPORTADORES
 ========================= */
-function getUniqueValues(rows, field){
-  return [...new Set(rows.map(x => x[field]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
+function readWorkbookFile(file, callback){
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    try{
+      let workbook;
+      if(file.name.toLowerCase().endsWith(".csv")){
+        workbook = XLSX.read(e.target.result, { type:"string" });
+      }else{
+        workbook = XLSX.read(new Uint8Array(e.target.result), { type:"array" });
+      }
+
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval:"" });
+      callback(null, rows);
+    }catch(err){
+      callback(err);
+    }
+  };
+
+  if(file.name.toLowerCase().endsWith(".csv")){
+    reader.readAsText(file, "utf-8");
+  }else{
+    reader.readAsArrayBuffer(file);
+  }
 }
 
-function filterConsumptionRows(rows, filters){
-  return rows.filter(r => {
-    if(filters.empresa && r.empresa !== filters.empresa) return false;
-    if(filters.servicio && normalizeServiceFamily(r.servicio) !== filters.servicio) return false;
-    if(filters.punto_servicio && r.punto_servicio !== filters.punto_servicio) return false;
-    return true;
+function parseImportedRows(rows, type){
+  const out = [];
+
+  if(type === "sistema"){
+    rows.forEach(row => {
+      const empresa = normalizeText(getHeaderValue(row,"NOMBRE_EMPRESA"));
+      const servicio = normalizeText(getHeaderValue(row,"SERVICIO"));
+      const fecha = parseDateToISO(getHeaderValue(row,"FECHA"));
+      const equipo = normalizeText(getHeaderValue(row,"EQUIPO"));
+      const punto = EQUIPO_MAP[equipo] || equipo || "SIN MAPEO";
+
+      let cantidad = getHeaderValue(row,"PRECIO");
+      if(typeof cantidad === "string"){
+        cantidad = cantidad.replace(/\./g,"").replace(",",".");
+      }
+      cantidad = Number(cantidad);
+
+      if(!empresa || !servicio || !fecha || Number.isNaN(cantidad)) return;
+
+      out.push({
+        id: `${Date.now()}_${Math.random()}`,
+        fecha,
+        empresa,
+        servicio,
+        familia: normalizeServiceFamily(servicio),
+        punto_servicio: punto,
+        cantidad
+      });
+    });
+  }
+
+  if(type === "simple"){
+    rows.forEach(row => {
+      const fecha = parseDateToISO(getHeaderValue(row,"FECHA"));
+      const servicio = normalizeText(getHeaderValue(row,"SERVICIO"));
+      const punto = normalizeText(getHeaderValue(row,"PUNTO_SERVICIO"));
+      let cantidad = getHeaderValue(row,"CANTIDAD");
+      if(typeof cantidad === "string") cantidad = cantidad.replace(",",".");
+      cantidad = Number(cantidad);
+
+      if(!fecha || !servicio || !punto || Number.isNaN(cantidad)) return;
+
+      out.push({
+        id: `${Date.now()}_${Math.random()}`,
+        fecha,
+        servicio,
+        familia: normalizeServiceFamily(servicio),
+        punto_servicio: punto,
+        cantidad
+      });
+    });
+  }
+
+  return out;
+}
+
+function parseCurvaEECCRows(rows){
+  const out = [];
+  const [year, month] = settings.periodo.split("-").map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  rows.forEach(row => {
+    const empresa = normalizeText(getHeaderValue(row, "EMPRESA"));
+    const servicio = normalizeText(getHeaderValue(row, "SERVICIO"));
+    if(!empresa || !servicio) return;
+
+    for(let d=1; d<=daysInMonth; d++){
+      const raw = getHeaderValue(row, String(d));
+      let cantidad = raw;
+      if(typeof cantidad === "string"){
+        cantidad = cantidad.replace(/\./g,"").replace(",",".").trim();
+      }
+      if(cantidad === "" || cantidad === null || cantidad === undefined) continue;
+      cantidad = Number(cantidad);
+      if(Number.isNaN(cantidad)) continue;
+
+      out.push({
+        id: `${Date.now()}_${Math.random()}`,
+        fecha: `${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`,
+        empresa,
+        servicio,
+        familia: normalizeServiceFamily(servicio),
+        cantidad
+      });
+    }
   });
+
+  return out;
+}
+/* =========================
+   DASHBOARD
+========================= */
+function buildDashboardData(){
+  const supervisores = applyTurnoFilter(getRowsPeriodo(db.ventaSupervisores));
+  const produccion = applyTurnoFilter(getRowsPeriodo(db.produccion));
+  const reales = applyTurnoFilter(getRealesPeriodo());
+  const curva = applyTurnoFilter(getCurvaPeriodo());
+
+  const totalSup = supervisores.reduce((a,b)=>a+Number(b.cantidad||0),0);
+  const totalProd = produccion.reduce((a,b)=>a+Number(b.cantidad||0),0);
+  const totalReal = reales.reduce((a,b)=>a+Number(b.cantidad||0),0);
+  const totalCurva = curva.reduce((a,b)=>a+Number(b.cantidad||0),0);
+
+  const cobroDiario = computeCobroDiarioRows();
+  const totalCobro = cobroDiario.reduce((a,b)=>a+Number(b.cobro||0),0);
+
+  const byEmpresa = {};
+  const byServicio = {};
+  const byPunto = {};
+
+  reales.forEach(r => {
+    const fam = normalizeServiceFamily(r.servicio);
+    byEmpresa[r.empresa] = (byEmpresa[r.empresa] || 0) + Number(r.cantidad||0);
+    byServicio[fam] = (byServicio[fam] || 0) + Number(r.cantidad||0);
+    byPunto[r.punto_servicio] = (byPunto[r.punto_servicio] || 0) + Number(r.cantidad||0);
+  });
+
+  const topEmpresas = Object.entries(byEmpresa).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const topServicios = Object.entries(byServicio).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const topPuntos = Object.entries(byPunto).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  return {
+    supervisores,
+    produccion,
+    reales,
+    curva,
+    totalSup,
+    totalProd,
+    totalReal,
+    totalCurva,
+    totalCobro,
+    topEmpresas,
+    topServicios,
+    topPuntos
+  };
 }
 
-function renderFilterBar(moduleKey, rows){
-  const empresas = getUniqueValues(rows, "empresa");
-  const servicios = getUniqueValues(rows.map(r => ({...r, servicio: normalizeServiceFamily(r.servicio)})), "servicio");
-  const puntos = getUniqueValues(rows, "punto_servicio");
-  const current = matrixFilters[moduleKey];
+function analyzeAssistant(mode, prompt = ""){
+  const rows = applyTurnoFilter(getRealesPeriodo());
+  if(!rows.length) return "No hay datos para analizar en el período seleccionado.";
+
+  if(mode === "promedio_dia"){
+    const byDate = {};
+    rows.forEach(r => byDate[r.fecha] = (byDate[r.fecha] || 0) + Number(r.cantidad || 0));
+    const vals = Object.entries(byDate).sort((a,b)=>a[0].localeCompare(b[0]));
+    const avg = vals.reduce((a,b)=>a+b[1],0) / vals.length;
+    const max = vals.slice().sort((a,b)=>b[1]-a[1])[0];
+    const min = vals.slice().sort((a,b)=>a[1]-b[1])[0];
+    return `Promedio diario del período: ${formatNumber(avg)} raciones.\nDía más alto: ${max[0]} con ${formatNumber(max[1])}.\nDía más bajo: ${min[0]} con ${formatNumber(min[1])}.`;
+  }
+
+  if(mode === "por_casino"){
+    const by = {};
+    rows.forEach(r => by[r.punto_servicio] = (by[r.punto_servicio] || 0) + Number(r.cantidad || 0));
+    const top = Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    return "Top puntos de servicio del período:\n" + top.map((x,i)=>`${i+1}. ${x[0]}: ${formatNumber(x[1])}`).join("\n");
+  }
+
+  if(mode === "comparar_turnos"){
+    const names = turnosConfig.nombres_turnos || [];
+    if(names.length < 2) return "Configura al menos dos turnos para comparar.";
+
+    const by = {};
+    rows.forEach(r => {
+      const t = getTurnoFecha(r.fecha) || "SIN TURNO";
+      by[t] = (by[t] || 0) + Number(r.cantidad || 0);
+    });
+
+    return names.map(t => `${t}: ${formatNumber(by[t] || 0)} raciones`).join("\n");
+  }
+
+  if(mode === "anomalias"){
+    const byDate = {};
+    rows.forEach(r => byDate[r.fecha] = (byDate[r.fecha] || 0) + Number(r.cantidad || 0));
+    const vals = Object.entries(byDate);
+    const avg = vals.reduce((a,b)=>a+b[1],0) / Math.max(vals.length,1);
+    const out = vals.filter(x => x[1] > avg * 1.25 || x[1] < avg * 0.75).sort((a,b)=>a[0].localeCompare(b[0]));
+    return out.length
+      ? "Días atípicos detectados:\n" + out.map(x => `${x[0]}: ${formatNumber(x[1])}`).join("\n")
+      : "No se detectaron anomalías relevantes con la regla actual.";
+  }
+
+  const p = prompt.toLowerCase();
+  if(p.includes("casino") || p.includes("punto")) return analyzeAssistant("por_casino");
+  if(p.includes("promedio")) return analyzeAssistant("promedio_dia");
+  if(p.includes("turno")) return analyzeAssistant("comparar_turnos");
+  if(p.includes("anomal")) return analyzeAssistant("anomalias");
+
+  return "No pude clasificar la consulta libre. Usa una consulta como: “promedio por día”, “comparar turnos”, “consumo por casino” o “detectar anomalías”.";
+}
+
+function renderDashboard(){
+  updateHeader("Dashboard", "Resumen operativo y contractual del período.");
+
+  const d = buildDashboardData();
+
+  setCurrentExport(
+    ["Indicador","Valor"],
+    [
+      ["Venta supervisores", d.totalSup],
+      ["Producción", d.totalProd],
+      ["Venta real", d.totalReal],
+      ["Curva diaria", d.totalCurva],
+      ["Cobro diario acumulado", d.totalCobro]
+    ],
+    `dashboard_${settings.periodo}`
+  );
 
   return `
-    <div class="panel p-5">
-      <h3 class="text-2xl font-semibold mb-2">Filtros de vista</h3>
-      <p class="text-slate-500 mb-5">Estos filtros afectan solo el análisis actual.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div class="panel p-5">
+        <div class="text-sm text-slate-500 font-semibold">Venta supervisores</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(d.totalSup)}</div>
+      </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-        <div>
-          <label class="block text-sm text-slate-500 font-semibold mb-2">Empresa</label>
-          <select id="${moduleKey}_empresa" class="w-full rounded-xl border px-3 py-2">
-            <option value="">Todas</option>
-            ${empresas.map(x => `<option value="${x}" ${current.empresa===x?"selected":""}>${x}</option>`).join("")}
-          </select>
+      <div class="panel p-5">
+        <div class="text-sm text-slate-500 font-semibold">Producción</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(d.totalProd)}</div>
+      </div>
+
+      <div class="panel p-5">
+        <div class="text-sm text-slate-500 font-semibold">Venta real</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(d.totalReal)}</div>
+      </div>
+
+      <div class="panel p-5">
+        <div class="text-sm text-slate-500 font-semibold">Curva diaria</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(d.totalCurva)}</div>
+      </div>
+
+      <div class="panel p-5">
+        <div class="text-sm text-slate-500 font-semibold">Cobro acumulado</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(d.totalCobro)}</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 mt-5">
+      <div class="space-y-5">
+        <div class="panel p-5">
+          <h3 class="text-2xl font-semibold mb-4">Alertas rápidas</h3>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <span>Brecha supervisor vs real</span>
+              <strong class="${(d.totalSup-d.totalReal)>=0?'text-emerald-600':'text-rose-600'}">${formatNumber(d.totalSup-d.totalReal)}</strong>
+            </div>
+            <div class="flex justify-between">
+              <span>Mes cerrado</span>
+              <strong>${periodoCerrado() ? "Sí" : "No"}</strong>
+            </div>
+            <div class="flex justify-between">
+              <span>Permutas agrupadas</span>
+              <strong>${settings.agruparPermutas ? "Sí" : "No"}</strong>
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label class="block text-sm text-slate-500 font-semibold mb-2">Servicio</label>
-          <select id="${moduleKey}_servicio" class="w-full rounded-xl border px-3 py-2">
-            <option value="">Todos</option>
-            ${servicios.map(x => `<option value="${x}" ${current.servicio===x?"selected":""}>${x}</option>`).join("")}
-          </select>
-        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="panel p-5">
+            <h3 class="text-xl font-semibold mb-4">Top empresas</h3>
+            ${d.topEmpresas.length ? d.topEmpresas.map(x=>`<div class="flex justify-between py-2 border-b border-slate-100 last:border-b-0"><span>${x[0]}</span><strong>${formatNumber(x[1])}</strong></div>`).join("") : `<div class="text-slate-500">Sin datos</div>`}
+          </div>
 
-        <div>
-          <label class="block text-sm text-slate-500 font-semibold mb-2">Punto de servicio</label>
-          <select id="${moduleKey}_punto" class="w-full rounded-xl border px-3 py-2">
-            <option value="">Todos</option>
-            ${puntos.map(x => `<option value="${x}" ${current.punto_servicio===x?"selected":""}>${x}</option>`).join("")}
-          </select>
-        </div>
+          <div class="panel p-5">
+            <h3 class="text-xl font-semibold mb-4">Top servicios</h3>
+            ${d.topServicios.length ? d.topServicios.map(x=>`<div class="flex justify-between py-2 border-b border-slate-100 last:border-b-0"><span>${x[0]}</span><strong>${formatNumber(x[1])}</strong></div>`).join("") : `<div class="text-slate-500">Sin datos</div>`}
+          </div>
 
-        <div class="flex items-end">
-          <button id="${moduleKey}_aplicar" class="w-full rounded-xl bg-slate-900 text-white px-4 py-2 font-semibold">Aplicar filtros</button>
-        </div>
-
-        <div class="flex items-end">
-          <button id="${moduleKey}_limpiar" class="w-full rounded-xl border px-4 py-2 font-semibold">Limpiar filtros</button>
+          <div class="panel p-5">
+            <h3 class="text-xl font-semibold mb-4">Top puntos</h3>
+            ${d.topPuntos.length ? d.topPuntos.map(x=>`<div class="flex justify-between py-2 border-b border-slate-100 last:border-b-0"><span>${x[0]}</span><strong>${formatNumber(x[1])}</strong></div>`).join("") : `<div class="text-slate-500">Sin datos</div>`}
+          </div>
         </div>
       </div>
 
-      <div class="flex gap-3 mt-4">
-        <button id="${moduleKey}_expand" class="rounded-xl border px-4 py-2 font-semibold">Expandir todo</button>
-        <button id="${moduleKey}_collapse" class="rounded-xl border px-4 py-2 font-semibold">Contraer todo</button>
+      <div class="panel p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-2xl font-semibold">Asistente de análisis</h3>
+            <p class="text-slate-500 text-sm mt-1">Lectura rápida del período actual.</p>
+          </div>
+          <span class="badge badge-gray">BETA</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button class="rounded-xl border px-4 py-2 font-semibold" data-ai-mode="promedio_dia">Promedio por día</button>
+          <button class="rounded-xl border px-4 py-2 font-semibold" data-ai-mode="por_casino">Consumo por casino</button>
+          <button class="rounded-xl border px-4 py-2 font-semibold" data-ai-mode="comparar_turnos">Comparar turnos</button>
+          <button class="rounded-xl border px-4 py-2 font-semibold" data-ai-mode="anomalias">Detectar anomalías</button>
+        </div>
+
+        <textarea id="dashboardAIInput" class="w-full rounded-xl border p-3 mt-4 min-h-[110px]" placeholder="Consulta libre sobre los datos"></textarea>
+
+        <div class="flex gap-3 mt-3">
+          <button id="btnDashboardAI" class="rounded-xl bg-slate-900 text-white px-4 py-2 font-semibold">Analizar</button>
+          <button id="btnDashboardAIExpand" class="rounded-xl border px-4 py-2 font-semibold">Ver análisis completo</button>
+        </div>
+
+        <div id="dashboardAIOutput" class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 whitespace-pre-wrap leading-7">
+Aquí aparecerá el análisis.
+        </div>
       </div>
     </div>
   `;
 }
 
-function bindAnalysisFilterBar(rows, levels){
-  const moduleKey = "analisis";
-
-  const e = document.getElementById(`${moduleKey}_empresa`);
-  const s = document.getElementById(`${moduleKey}_servicio`);
-  const p = document.getElementById(`${moduleKey}_punto`);
-  const a = document.getElementById(`${moduleKey}_aplicar`);
-  const l = document.getElementById(`${moduleKey}_limpiar`);
-  const ex = document.getElementById(`${moduleKey}_expand`);
-  const co = document.getElementById(`${moduleKey}_collapse`);
-
-  a?.addEventListener("click", () => {
-    matrixFilters.analisis = {
-      empresa: e.value,
-      servicio: s.value,
-      punto_servicio: p.value
-    };
-    renderApp();
+function bindDashboardAI(){
+  document.querySelectorAll("[data-ai-mode]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.getElementById("dashboardAIOutput").textContent = analyzeAssistant(btn.dataset.aiMode);
+    });
   });
 
-  l?.addEventListener("click", () => {
-    matrixFilters.analisis = { empresa:"", servicio:"", punto_servicio:"" };
-    renderApp();
+  document.getElementById("btnDashboardAI")?.addEventListener("click", () => {
+    document.getElementById("dashboardAIOutput").textContent = analyzeAssistant("free", document.getElementById("dashboardAIInput").value);
   });
 
-  ex?.addEventListener("click", () => {
-    const filtered = filterConsumptionRows(rows, matrixFilters.analisis);
-    const tree = buildTree(filtered, levels);
-    treeState.analisis.clear();
-    expandAllTree(tree, "analisis");
-    renderApp();
-  });
-
-  co?.addEventListener("click", () => {
-    treeState.analisis.clear();
-    renderApp();
+  document.getElementById("btnDashboardAIExpand")?.addEventListener("click", () => {
+    alert(analyzeAssistant("free", document.getElementById("dashboardAIInput").value));
   });
 }
 
@@ -1392,6 +1390,7 @@ function bindCaptureModule({collectionName, prefix, showEmpresa = false, massive
     }
 
     upsertRecord(collectionName, payload);
+
     if(showEmpresa) ensureMasters(payload.empresa, payload.servicio);
     else ensureMasters("", payload.servicio);
 
@@ -1418,6 +1417,7 @@ function bindCaptureModule({collectionName, prefix, showEmpresa = false, massive
       if(!row) return;
 
       formEditing[prefix] = row.id;
+
       if(showEmpresa) document.getElementById(`${prefix}_empresa`).value = row.empresa || "";
       document.getElementById(`${prefix}_fecha`).value = row.fecha;
       document.getElementById(`${prefix}_servicio`).value = row.servicio;
@@ -1515,114 +1515,6 @@ function renderVentaManual(){
   });
 }
 
-/* =========================
-   IMPORTACIÓN SISTEMA
-========================= */
-function readWorkbookFile(file, callback){
-  const reader = new FileReader();
-
-  reader.onload = function(e){
-    try{
-      let workbook;
-      if(file.name.toLowerCase().endsWith(".csv")){
-        workbook = XLSX.read(e.target.result, { type:"string" });
-      }else{
-        workbook = XLSX.read(new Uint8Array(e.target.result), { type:"array" });
-      }
-
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet, { defval:"" });
-      callback(null, rows);
-    }catch(err){
-      callback(err);
-    }
-  };
-
-  if(file.name.toLowerCase().endsWith(".csv")){
-    reader.readAsText(file, "utf-8");
-  }else{
-    reader.readAsArrayBuffer(file);
-  }
-}
-
-function parseImportedRows(rows, type){
-  const out = [];
-
-  if(type === "sistema"){
-    rows.forEach(row => {
-      const empresa = normalizeText(getHeaderValue(row,"NOMBRE_EMPRESA"));
-      const servicio = normalizeText(getHeaderValue(row,"SERVICIO"));
-      const fecha = parseDateToISO(getHeaderValue(row,"FECHA"));
-      const equipo = normalizeText(getHeaderValue(row,"EQUIPO"));
-      const punto = EQUIPO_MAP[equipo] || equipo || "SIN MAPEO";
-
-      let cantidad = getHeaderValue(row,"PRECIO");
-      if(typeof cantidad === "string"){
-        cantidad = cantidad.replace(/\./g,"").replace(",",".");
-      }
-      cantidad = Number(cantidad);
-
-      if(!empresa || !servicio || !fecha || Number.isNaN(cantidad)) return;
-
-      out.push({
-        id: `${Date.now()}_${Math.random()}`,
-        fecha,
-        empresa,
-        servicio,
-        familia: normalizeServiceFamily(servicio),
-        punto_servicio: punto,
-        cantidad
-      });
-    });
-  }
-
-  if(type === "simple"){
-    rows.forEach(row => {
-      const fecha = parseDateToISO(getHeaderValue(row,"FECHA"));
-      const servicio = normalizeText(getHeaderValue(row,"SERVICIO"));
-      const punto = normalizeText(getHeaderValue(row,"PUNTO_SERVICIO"));
-      let cantidad = getHeaderValue(row,"CANTIDAD");
-      if(typeof cantidad === "string") cantidad = cantidad.replace(",",".");
-      cantidad = Number(cantidad);
-
-      if(!fecha || !servicio || !punto || Number.isNaN(cantidad)) return;
-
-      out.push({
-        id: `${Date.now()}_${Math.random()}`,
-        fecha,
-        servicio,
-        familia: normalizeServiceFamily(servicio),
-        punto_servicio: punto,
-        cantidad
-      });
-    });
-  }
-
-  if(type === "curva"){
-    rows.forEach(row => {
-      const periodo = String(getHeaderValue(row,"PERIODO") || "").trim();
-      const empresa = normalizeText(getHeaderValue(row,"EMPRESA"));
-      const servicio = normalizeText(getHeaderValue(row,"SERVICIO"));
-      let cantidad = getHeaderValue(row,"CANTIDAD");
-      if(typeof cantidad === "string") cantidad = cantidad.replace(",",".");
-      cantidad = Number(cantidad);
-
-      if(!periodo || !empresa || !servicio || Number.isNaN(cantidad)) return;
-
-      out.push({
-        id: `${Date.now()}_${Math.random()}`,
-        periodo,
-        empresa,
-        servicio,
-        familia: normalizeServiceFamily(servicio),
-        cantidad
-      });
-    });
-  }
-
-  return out;
-}
-
 function renderVentaSistema(){
   updateHeader("Venta sistema","Importación desde BBDD.");
 
@@ -1706,10 +1598,277 @@ function bindVentaSistemaEvents(){
     renderApp();
   });
 }
+/* =========================
+   CURVA DIARIA
+========================= */
+function renderCurva(){
+  updateHeader("Curva diaria","Carga manual o importación desde formato EECC por día.");
+
+  const rows = applyTurnoFilter(getCurvaPeriodo());
+
+  setCurrentExport(
+    ["Fecha","Empresa","Servicio","Cantidad"],
+    rows.map(r => [r.fecha,r.empresa,r.servicio,r.cantidad]),
+    `curva_diaria_${settings.periodo}`
+  );
+
+  return `
+    <div class="panel p-5">
+      <h3 class="text-2xl font-semibold mb-5">Registrar curva diaria</h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm text-slate-500 font-semibold mb-2">Fecha</label>
+          <input id="curva_fecha" type="date" class="w-full rounded-xl border px-3 py-2">
+        </div>
+
+        <div>
+          <label class="block text-sm text-slate-500 font-semibold mb-2">Empresa</label>
+          <input id="curva_empresa" list="empresasList" class="w-full rounded-xl border px-3 py-2">
+        </div>
+
+        <div>
+          <label class="block text-sm text-slate-500 font-semibold mb-2">Servicio</label>
+          <input id="curva_servicio" list="serviciosList" class="w-full rounded-xl border px-3 py-2">
+        </div>
+
+        <div>
+          <label class="block text-sm text-slate-500 font-semibold mb-2">Cantidad</label>
+          <input id="curva_cantidad" type="number" step="0.01" class="w-full rounded-xl border px-3 py-2">
+        </div>
+      </div>
+
+      <div class="flex gap-3 mt-5 flex-wrap">
+        <button id="btnGuardarCurva" class="rounded-xl bg-slate-900 text-white px-4 py-2 font-semibold">${formEditing.curva ? "Actualizar" : "Guardar"}</button>
+        <button id="btnLimpiarCurva" class="rounded-xl border px-4 py-2 font-semibold">Limpiar</button>
+      </div>
+
+      <div class="mt-6 border-t pt-5">
+        <h4 class="text-lg font-semibold mb-3">Importación formato EECC</h4>
+        <div class="notice">
+          El archivo debe tener columnas: EMPRESA, SERVICIO y luego columnas numéricas 1..31.  
+          El sistema tomará el período activo y convertirá cada día en una fila diaria.
+        </div>
+
+        <div class="flex gap-3 mt-4 flex-wrap">
+          <input id="curva_file" type="file" accept=".xlsx,.xls,.csv" class="w-full max-w-md rounded-xl border px-3 py-2">
+          <button id="btnImportCurvaEECC" class="rounded-xl border px-4 py-2 font-semibold">Importar archivo EECC</button>
+          <button id="btnVaciarCurvaMes" class="rounded-xl border px-4 py-2 font-semibold">Vaciar curva del período</button>
+        </div>
+      </div>
+
+      <div id="curva_notice"></div>
+    </div>
+
+    <div class="panel p-5 mt-5">
+      <h3 class="text-2xl font-semibold mb-4">Curva diaria del período</h3>
+
+      ${renderMatrixTable("curva",["empresa","servicio"],rows,"Empresa / Servicio",`curva_diaria_${settings.periodo}`)}
+
+      <div class="table-wrap mt-5">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Empresa</th>
+              <th>Servicio</th>
+              <th class="text-right">Cantidad</th>
+              <th class="text-right"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              rows.length
+              ? rows.slice().sort((a,b)=>(b.fecha+b.empresa+b.servicio).localeCompare(a.fecha+a.empresa+a.servicio)).map(r => `
+                <tr>
+                  <td>${r.fecha}</td>
+                  <td>${r.empresa}</td>
+                  <td>${r.servicio}</td>
+                  <td class="text-right">${formatNumber(r.cantidad)}</td>
+                  <td class="text-right">
+                    <button class="rounded-xl border px-3 py-2 mr-2 font-semibold" data-edit-curva="${r.id}">Editar</button>
+                    <button class="rounded-xl bg-rose-700 text-white px-3 py-2 font-semibold" data-del-curva="${r.id}">Eliminar</button>
+                  </td>
+                </tr>
+              `).join("")
+              : `<tr><td colspan="5" class="empty">Sin datos.</td></tr>`
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function bindCurva(){
+  const notice = document.getElementById("curva_notice");
+
+  document.getElementById("btnGuardarCurva")?.addEventListener("click", async () => {
+    if(!validarPeriodoAbierto()) return;
+
+    const fecha = document.getElementById("curva_fecha").value;
+    const empresa = normalizeText(document.getElementById("curva_empresa").value);
+    const servicio = normalizeText(document.getElementById("curva_servicio").value);
+    const cantidad = Number(document.getElementById("curva_cantidad").value || 0);
+
+    if(!fecha || !empresa || !servicio || Number.isNaN(cantidad)){
+      notice.innerHTML = `<div class="notice danger">Completa fecha, empresa, servicio y cantidad.</div>`;
+      return;
+    }
+
+    const payload = {
+      id: formEditing.curva || `${Date.now()}_${Math.random()}`,
+      fecha,
+      empresa,
+      servicio,
+      familia: normalizeServiceFamily(servicio),
+      cantidad
+    };
+
+    upsertRecord("curvaDiaria", payload);
+    ensureMasters(empresa, servicio);
+
+    await saveDB();
+    formEditing.curva = null;
+    renderApp();
+  });
+
+  document.getElementById("btnLimpiarCurva")?.addEventListener("click", () => {
+    ["fecha","empresa","servicio","cantidad"].forEach(k => {
+      const el = document.getElementById(`curva_${k}`);
+      if(el) el.value = "";
+    });
+    formEditing.curva = null;
+    notice.innerHTML = "";
+  });
+
+  document.getElementById("btnImportCurvaEECC")?.addEventListener("click", async () => {
+    if(!validarPeriodoAbierto()) return;
+
+    const file = document.getElementById("curva_file").files[0];
+    if(!file){
+      notice.innerHTML = `<div class="notice danger">Selecciona un archivo.</div>`;
+      return;
+    }
+
+    notice.innerHTML = `<div class="notice">Procesando archivo EECC...</div>`;
+
+    readWorkbookFile(file, async (err, rows) => {
+      if(err){
+        notice.innerHTML = `<div class="notice danger">${err.message}</div>`;
+        return;
+      }
+
+      const imported = parseCurvaEECCRows(rows);
+      imported.forEach(r => ensureMasters(r.empresa, r.servicio));
+      db.curvaDiaria.push(...imported);
+
+      await saveDB();
+
+      notice.innerHTML = `<div class="notice success">Curva EECC importada: ${formatNumber(imported.length)} registros diarios.</div>`;
+      renderApp();
+    });
+  });
+
+  document.getElementById("btnVaciarCurvaMes")?.addEventListener("click", async () => {
+    if(!validarPeriodoAbierto()) return;
+    if(!confirm(`Se eliminará toda la curva diaria del período ${settings.periodo}.`)) return;
+
+    db.curvaDiaria = db.curvaDiaria.filter(x => monthOf(x.fecha) !== settings.periodo);
+    await saveDB();
+    renderApp();
+  });
+
+  document.querySelectorAll("[data-edit-curva]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const row = db.curvaDiaria.find(x => x.id === btn.dataset.editCurva);
+      if(!row) return;
+
+      formEditing.curva = row.id;
+      document.getElementById("curva_fecha").value = row.fecha;
+      document.getElementById("curva_empresa").value = row.empresa;
+      document.getElementById("curva_servicio").value = row.servicio;
+      document.getElementById("curva_cantidad").value = row.cantidad;
+
+      window.scrollTo({ top:0, behavior:"smooth" });
+    });
+  });
+
+  document.querySelectorAll("[data-del-curva]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if(!validarPeriodoAbierto()) return;
+      deleteRecord("curvaDiaria", btn.dataset.delCurva);
+      await saveDB();
+      renderApp();
+    });
+  });
+}
 
 /* =========================
    ANÁLISIS ÚNICO
 ========================= */
+function filterConsumptionRows(rows, filters){
+  return rows.filter(r => {
+    if(filters.empresa && r.empresa !== filters.empresa) return false;
+    if(filters.servicio && normalizeServiceFamily(r.servicio) !== filters.servicio) return false;
+    if(filters.punto_servicio && r.punto_servicio !== filters.punto_servicio) return false;
+    return true;
+  });
+}
+
+function renderFilterBar(moduleKey, rows){
+  const empresas = getUniqueValues(rows, "empresa");
+  const servicios = getUniqueValues(rows.map(r => ({...r, servicio: normalizeServiceFamily(r.servicio)})), "servicio");
+  const puntos = getUniqueValues(rows, "punto_servicio");
+  const current = matrixFilters[moduleKey];
+
+  return `
+    <div class="panel p-5">
+      <h3 class="text-2xl font-semibold mb-2">Filtros de vista</h3>
+      <p class="text-slate-500 mb-5">Estos filtros afectan solo el análisis actual.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+        <div>
+          <label class="block text-sm text-slate-500 font-semibold mb-2">Empresa</label>
+          <select id="${moduleKey}_empresa" class="w-full rounded-xl border px-3 py-2">
+            <option value="">Todas</option>
+            ${empresas.map(x => `<option value="${x}" ${current.empresa===x?"selected":""}>${x}</option>`).join("")}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm text-slate-500 font-semibold mb-2">Servicio</label>
+          <select id="${moduleKey}_servicio" class="w-full rounded-xl border px-3 py-2">
+            <option value="">Todos</option>
+            ${servicios.map(x => `<option value="${x}" ${current.servicio===x?"selected":""}>${x}</option>`).join("")}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm text-slate-500 font-semibold mb-2">Punto de servicio</label>
+          <select id="${moduleKey}_punto" class="w-full rounded-xl border px-3 py-2">
+            <option value="">Todos</option>
+            ${puntos.map(x => `<option value="${x}" ${current.punto_servicio===x?"selected":""}>${x}</option>`).join("")}
+          </select>
+        </div>
+
+        <div class="flex items-end">
+          <button id="${moduleKey}_aplicar" class="w-full rounded-xl bg-slate-900 text-white px-4 py-2 font-semibold">Aplicar filtros</button>
+        </div>
+
+        <div class="flex items-end">
+          <button id="${moduleKey}_limpiar" class="w-full rounded-xl border px-4 py-2 font-semibold">Limpiar filtros</button>
+        </div>
+      </div>
+
+      <div class="flex gap-3 mt-4">
+        <button id="${moduleKey}_expand" class="rounded-xl border px-4 py-2 font-semibold">Expandir todo</button>
+        <button id="${moduleKey}_collapse" class="rounded-xl border px-4 py-2 font-semibold">Contraer todo</button>
+      </div>
+    </div>
+  `;
+}
+
 function getAnalysisConfig(){
   const allRows = applyTurnoFilter(getRealesPeriodo()).map(x => ({
     ...x,
@@ -1720,6 +1879,7 @@ function getAnalysisConfig(){
     return {
       title: "Empresa / Servicio / Punto",
       levels: ["empresa","servicio","punto_servicio"],
+      allRows,
       rows: filterConsumptionRows(allRows, matrixFilters.analisis)
     };
   }
@@ -1728,6 +1888,7 @@ function getAnalysisConfig(){
     return {
       title: "Servicio / Punto / Empresa",
       levels: ["servicio","punto_servicio","empresa"],
+      allRows,
       rows: filterConsumptionRows(allRows, matrixFilters.analisis)
     };
   }
@@ -1735,17 +1896,13 @@ function getAnalysisConfig(){
   return {
     title: "Punto / Servicio / Empresa",
     levels: ["punto_servicio","servicio","empresa"],
+    allRows,
     rows: filterConsumptionRows(allRows, matrixFilters.analisis)
   };
 }
 
 function renderAnalisis(){
-  updateHeader("Análisis","Matriz única configurable por eje principal.");
-
-  const allRows = applyTurnoFilter(getRealesPeriodo()).map(x => ({
-    ...x,
-    servicio: normalizeServiceFamily(x.servicio)
-  }));
+  updateHeader("Análisis", "Matriz única configurable por eje principal.");
 
   const cfg = getAnalysisConfig();
 
@@ -1769,13 +1926,51 @@ function renderAnalisis(){
       </div>
     </div>
 
-    ${renderFilterBar("analisis", allRows)}
+    ${renderFilterBar("analisis", cfg.allRows)}
 
     <div class="panel p-5">
       <h3 class="text-2xl font-semibold mb-4">Matriz de análisis</h3>
       ${renderMatrixTable("analisis", cfg.levels, cfg.rows, cfg.title, `analisis_${settings.analysisAxis}_${settings.periodo}`)}
     </div>
   `;
+}
+
+function bindAnalysisFilterBar(rows, levels){
+  const moduleKey = "analisis";
+  const e = document.getElementById(`${moduleKey}_empresa`);
+  const s = document.getElementById(`${moduleKey}_servicio`);
+  const p = document.getElementById(`${moduleKey}_punto`);
+  const a = document.getElementById(`${moduleKey}_aplicar`);
+  const l = document.getElementById(`${moduleKey}_limpiar`);
+  const ex = document.getElementById(`${moduleKey}_expand`);
+  const co = document.getElementById(`${moduleKey}_collapse`);
+
+  a?.addEventListener("click", () => {
+    matrixFilters.analisis = {
+      empresa: e.value,
+      servicio: s.value,
+      punto_servicio: p.value
+    };
+    renderApp();
+  });
+
+  l?.addEventListener("click", () => {
+    matrixFilters.analisis = { empresa:"", servicio:"", punto_servicio:"" };
+    renderApp();
+  });
+
+  ex?.addEventListener("click", () => {
+    const filtered = filterConsumptionRows(rows, matrixFilters.analisis);
+    const tree = buildTree(filtered, levels);
+    treeState.analisis.clear();
+    expandAllTree(tree, "analisis");
+    renderApp();
+  });
+
+  co?.addEventListener("click", () => {
+    treeState.analisis.clear();
+    renderApp();
+  });
 }
 
 function bindAnalisis(){
@@ -1788,17 +1983,11 @@ function bindAnalisis(){
     });
   });
 
-  const allRows = applyTurnoFilter(getRealesPeriodo()).map(x => ({
-    ...x,
-    servicio: normalizeServiceFamily(x.servicio)
-  }));
-
   const cfg = getAnalysisConfig();
-  bindAnalysisFilterBar(allRows, cfg.levels);
+  bindAnalysisFilterBar(cfg.allRows, cfg.levels);
 }
-
 /* =========================
-   COMPARATIVOS
+   COMPARATIVOS / COBRO DIARIO
 ========================= */
 function computeSupervisorVsRealRows(){
   const sup = applyTurnoFilter(getRowsPeriodo(db.ventaSupervisores));
@@ -1841,17 +2030,18 @@ function computeSupervisorVsRealRows(){
     .sort((a,b)=>(a.fecha+a.punto_servicio+a.servicio).localeCompare(b.fecha+b.punto_servicio+b.servicio));
 }
 
-function computeCobroRows(){
-  const reales = getRealesPeriodo();
-  const curva = getCurvaPeriodo();
+function computeCobroDiarioRows(){
+  const reales = applyTurnoFilter(getRealesPeriodo());
+  const curva = applyTurnoFilter(getCurvaPeriodo());
 
   const map = new Map();
 
   reales.forEach(r => {
     const servicio = normalizeServiceFamily(r.servicio);
-    const key = `${r.empresa}|${servicio}`;
+    const key = `${r.fecha}|${r.empresa}|${servicio}`;
     if(!map.has(key)){
       map.set(key,{
+        fecha: r.fecha,
         empresa: r.empresa,
         servicio,
         sistema: 0,
@@ -1870,9 +2060,10 @@ function computeCobroRows(){
 
   curva.forEach(r => {
     const servicio = normalizeServiceFamily(r.servicio);
-    const key = `${r.empresa}|${servicio}`;
+    const key = `${r.fecha}|${r.empresa}|${servicio}`;
     if(!map.has(key)){
       map.set(key,{
+        fecha: r.fecha,
         empresa: r.empresa,
         servicio,
         sistema: 0,
@@ -1887,21 +2078,21 @@ function computeCobroRows(){
 
   return [...map.values()]
     .map(r => ({ ...r, cobro: Math.max(r.real, r.curva) }))
-    .sort((a,b)=>(a.empresa+a.servicio).localeCompare(b.empresa+b.servicio));
+    .sort((a,b)=>(a.fecha+a.empresa+a.servicio).localeCompare(b.fecha+b.empresa+b.servicio));
 }
 
 function renderComparativos(){
-  updateHeader("Comparativos","Supervisor vs real y real vs curva ajustado.");
+  updateHeader("Comparativos", "Supervisor vs real diario y real vs curva diaria.");
 
-  const rows = computeSupervisorVsRealRows();
-  const cobro = computeCobroRows();
+  const supVsReal = computeSupervisorVsRealRows();
+  const cobroRows = computeCobroDiarioRows();
 
   setCurrentExport(
     ["Fecha","Punto","Servicio","Supervisor","Real","Diferencia"],
-    rows.map(r => [r.fecha,r.punto_servicio,r.servicio,r.supervisor,r.real,r.diferencia]),
+    supVsReal.map(r => [r.fecha,r.punto_servicio,r.servicio,r.supervisor,r.real,r.diferencia]),
     `comparativo_supervisor_real_${settings.periodo}`,
-    ["Empresa","Servicio","Sistema","Manual","Real","Curva","Cobro"],
-    cobro.map(r => [r.empresa,r.servicio,r.sistema,r.manual,r.real,r.curva,r.cobro]),
+    ["Fecha","Empresa","Servicio","Sistema","Manual","Real","Curva","Cobro"],
+    cobroRows.map(r => [r.fecha,r.empresa,r.servicio,r.sistema,r.manual,r.real,r.curva,r.cobro]),
     `comparativo_real_curva_${settings.periodo}`
   );
 
@@ -1909,19 +2100,19 @@ function renderComparativos(){
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
       <div class="panel p-5">
         <div class="text-sm text-slate-500 font-semibold">Supervisor</div>
-        <div class="text-4xl font-black mt-2">${formatNumber(rows.reduce((a,b)=>a+b.supervisor,0))}</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(supVsReal.reduce((a,b)=>a+b.supervisor,0))}</div>
       </div>
       <div class="panel p-5">
         <div class="text-sm text-slate-500 font-semibold">Real</div>
-        <div class="text-4xl font-black mt-2">${formatNumber(rows.reduce((a,b)=>a+b.real,0))}</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(supVsReal.reduce((a,b)=>a+b.real,0))}</div>
       </div>
       <div class="panel p-5">
         <div class="text-sm text-slate-500 font-semibold">Curva</div>
-        <div class="text-4xl font-black mt-2">${formatNumber(cobro.reduce((a,b)=>a+b.curva,0))}</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(cobroRows.reduce((a,b)=>a+b.curva,0))}</div>
       </div>
       <div class="panel p-5">
-        <div class="text-sm text-slate-500 font-semibold">Cobro</div>
-        <div class="text-4xl font-black mt-2">${formatNumber(cobro.reduce((a,b)=>a+b.cobro,0))}</div>
+        <div class="text-sm text-slate-500 font-semibold">Cobro diario acumulado</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(cobroRows.reduce((a,b)=>a+b.cobro,0))}</div>
       </div>
     </div>
 
@@ -1941,8 +2132,8 @@ function renderComparativos(){
           </thead>
           <tbody>
             ${
-              rows.length
-              ? rows.map(r => `
+              supVsReal.length
+              ? supVsReal.map(r => `
                 <tr>
                   <td>${r.fecha}</td>
                   <td>${r.punto_servicio}</td>
@@ -1960,11 +2151,12 @@ function renderComparativos(){
     </div>
 
     <div class="panel p-5 mt-5">
-      <h3 class="text-2xl font-semibold mb-4">Real vs Curva</h3>
+      <h3 class="text-2xl font-semibold mb-4">Real vs Curva diaria</h3>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
+              <th>Fecha</th>
               <th>Empresa</th>
               <th>Servicio</th>
               <th class="text-right">Sistema</th>
@@ -1976,9 +2168,10 @@ function renderComparativos(){
           </thead>
           <tbody>
             ${
-              cobro.length
-              ? cobro.map(r => `
+              cobroRows.length
+              ? cobroRows.map(r => `
                 <tr>
+                  <td>${r.fecha}</td>
                   <td>${r.empresa}</td>
                   <td>${r.servicio}</td>
                   <td class="text-right">${formatNumber(r.sistema)}</td>
@@ -1988,191 +2181,74 @@ function renderComparativos(){
                   <td class="text-right font-bold">${formatNumber(r.cobro)}</td>
                 </tr>
               `).join("")
-              : `<tr><td colspan="7" class="empty">Sin información.</td></tr>`
+              : `<tr><td colspan="8" class="empty">Sin información.</td></tr>`
             }
           </tbody>
         </table>
       </div>
     </div>
   `;
-}
-
-/* =========================
-   CURVA / COBRO / CIERRE / TURNOS
-========================= */
-function renderCurva(){
-  updateHeader("Curva mensual","Carga contractual del período.");
-  const rows = getCurvaPeriodo();
-
-  setCurrentExport(
-    ["Periodo","Empresa","Servicio","Cantidad"],
-    rows.map(r => [r.periodo,r.empresa,r.servicio,r.cantidad]),
-    `curva_${settings.periodo}`
-  );
-
-  return `
-    <div class="panel p-5">
-      <h3 class="text-2xl font-semibold mb-5">Registrar curva</h3>
-
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm text-slate-500 font-semibold mb-2">Empresa</label>
-          <input id="curva_empresa" list="empresasList" class="w-full rounded-xl border px-3 py-2">
-        </div>
-
-        <div>
-          <label class="block text-sm text-slate-500 font-semibold mb-2">Servicio</label>
-          <input id="curva_servicio" list="serviciosList" class="w-full rounded-xl border px-3 py-2">
-        </div>
-
-        <div>
-          <label class="block text-sm text-slate-500 font-semibold mb-2">Cantidad</label>
-          <input id="curva_cantidad" type="number" class="w-full rounded-xl border px-3 py-2">
-        </div>
-
-        <div class="flex items-end">
-          <button id="btnGuardarCurva" class="w-full rounded-xl bg-slate-900 text-white px-4 py-2 font-semibold">${formEditing.curva ? "Actualizar" : "Guardar"}</button>
-        </div>
-      </div>
-
-      <div class="flex gap-3 mt-4 flex-wrap">
-        <input id="curva_file" type="file" accept=".xlsx,.xls,.csv" class="w-full max-w-md rounded-xl border px-3 py-2">
-        <button id="btnImportCurva" class="rounded-xl border px-4 py-2 font-semibold">Carga masiva inicial</button>
-      </div>
-
-      <div id="curva_notice"></div>
-    </div>
-
-    <div class="panel p-5 mt-5">
-      <h3 class="text-2xl font-semibold mb-4">Curva registrada</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Empresa</th>
-              <th>Servicio</th>
-              <th class="text-right">Cantidad</th>
-              <th class="text-right"></th>
-            </tr>
-          </thead>
-          <tbody>
-            ${
-              rows.length
-              ? rows.map(r => `
-                <tr>
-                  <td>${r.empresa}</td>
-                  <td>${r.servicio}</td>
-                  <td class="text-right">${formatNumber(r.cantidad)}</td>
-                  <td class="text-right">
-                    <button class="rounded-xl border px-3 py-2 mr-2 font-semibold" data-edit-curva="${r.id}">Editar</button>
-                    <button class="rounded-xl bg-rose-700 text-white px-3 py-2 font-semibold" data-del-curva="${r.id}">Eliminar</button>
-                  </td>
-                </tr>
-              `).join("")
-              : `<tr><td colspan="4" class="empty">Sin datos.</td></tr>`
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-function bindCurva(){
-  const notice = document.getElementById("curva_notice");
-
-  document.getElementById("btnGuardarCurva")?.addEventListener("click", async () => {
-    if(!validarPeriodoAbierto()) return;
-
-    const empresa = normalizeText(document.getElementById("curva_empresa").value);
-    const servicio = normalizeText(document.getElementById("curva_servicio").value);
-    const cantidad = Number(document.getElementById("curva_cantidad").value || 0);
-
-    if(!empresa || !servicio || Number.isNaN(cantidad)){
-      notice.innerHTML = `<div class="notice danger">Completa empresa, servicio y cantidad.</div>`;
-      return;
-    }
-
-    const payload = {
-      id: formEditing.curva || `${Date.now()}_${Math.random()}`,
-      periodo: settings.periodo,
-      empresa,
-      servicio,
-      familia: normalizeServiceFamily(servicio),
-      cantidad
-    };
-
-    upsertRecord("curvaMensual", payload);
-    ensureMasters(empresa, servicio);
-
-    await saveDB();
-    formEditing.curva = null;
-    renderApp();
-  });
-
-  document.getElementById("btnImportCurva")?.addEventListener("click", async () => {
-    if(!validarPeriodoAbierto()) return;
-
-    const file = document.getElementById("curva_file").files[0];
-    if(!file){
-      notice.innerHTML = `<div class="notice danger">Selecciona un archivo.</div>`;
-      return;
-    }
-
-    readWorkbookFile(file, async (err, rows) => {
-      if(err){
-        notice.innerHTML = `<div class="notice danger">${err.message}</div>`;
-        return;
-      }
-
-      const imported = parseImportedRows(rows, "curva");
-      imported.forEach(r => ensureMasters(r.empresa, r.servicio));
-      db.curvaMensual.push(...imported);
-
-      await saveDB();
-      notice.innerHTML = `<div class="notice success">Curva importada: ${formatNumber(imported.length)} registros.</div>`;
-      renderApp();
-    });
-  });
-
-  document.querySelectorAll("[data-edit-curva]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const row = db.curvaMensual.find(x => x.id === btn.dataset.editCurva);
-      if(!row) return;
-
-      formEditing.curva = row.id;
-      document.getElementById("curva_empresa").value = row.empresa;
-      document.getElementById("curva_servicio").value = row.servicio;
-      document.getElementById("curva_cantidad").value = row.cantidad;
-
-      window.scrollTo({ top:0, behavior:"smooth" });
-    });
-  });
-
-  document.querySelectorAll("[data-del-curva]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      if(!validarPeriodoAbierto()) return;
-      deleteRecord("curvaMensual", btn.dataset.delCurva);
-      await saveDB();
-      renderApp();
-    });
-  });
 }
 
 function renderCobro(){
-  updateHeader("Base de cobro","Resultado contractual del período.");
+  updateHeader("Base de cobro", "Resultado contractual calculado por máximo diario.");
 
-  const rows = computeCobroRows();
+  const rows = computeCobroDiarioRows();
+
+  const resumen = {};
+  rows.forEach(r => {
+    const key = `${r.empresa}|${r.servicio}`;
+    if(!resumen[key]){
+      resumen[key] = {
+        empresa: r.empresa,
+        servicio: r.servicio,
+        sistema: 0,
+        manual: 0,
+        real: 0,
+        curva: 0,
+        cobro: 0
+      };
+    }
+    resumen[key].sistema += Number(r.sistema || 0);
+    resumen[key].manual += Number(r.manual || 0);
+    resumen[key].real += Number(r.real || 0);
+    resumen[key].curva += Number(r.curva || 0);
+    resumen[key].cobro += Number(r.cobro || 0);
+  });
+
+  const out = Object.values(resumen).sort((a,b)=>(a.empresa+a.servicio).localeCompare(b.empresa+b.servicio));
 
   setCurrentExport(
     ["Empresa","Servicio","Sistema","Manual","Real","Curva","Cobro"],
-    rows.map(r => [r.empresa,r.servicio,r.sistema,r.manual,r.real,r.curva,r.cobro]),
-    `base_cobro_${settings.periodo}`
+    out.map(r => [r.empresa,r.servicio,r.sistema,r.manual,r.real,r.curva,r.cobro]),
+    `base_cobro_${settings.periodo}`,
+    ["Fecha","Empresa","Servicio","Sistema","Manual","Real","Curva","Cobro"],
+    rows.map(r => [r.fecha,r.empresa,r.servicio,r.sistema,r.manual,r.real,r.curva,r.cobro]),
+    `base_cobro_diaria_${settings.periodo}`
   );
 
   return `
-    <div class="panel p-5">
-      <h3 class="text-2xl font-semibold mb-4">Base de cobro</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div class="panel p-5">
+        <div class="text-sm text-slate-500 font-semibold">Real acumulado</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(out.reduce((a,b)=>a+b.real,0))}</div>
+      </div>
+      <div class="panel p-5">
+        <div class="text-sm text-slate-500 font-semibold">Curva acumulada</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(out.reduce((a,b)=>a+b.curva,0))}</div>
+      </div>
+      <div class="panel p-5">
+        <div class="text-sm text-slate-500 font-semibold">Cobro acumulado</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(out.reduce((a,b)=>a+b.cobro,0))}</div>
+      </div>
+      <div class="panel p-5">
+        <div class="text-sm text-slate-500 font-semibold">Registros</div>
+        <div class="text-4xl font-black mt-2">${formatNumber(out.length)}</div>
+      </div>
+    </div>
+
+    <div class="panel p-5 mt-5">
+      <h3 class="text-2xl font-semibold mb-4">Base de cobro consolidada</h3>
       <div class="table-wrap">
         <table>
           <thead>
@@ -2188,8 +2264,8 @@ function renderCobro(){
           </thead>
           <tbody>
             ${
-              rows.length
-              ? rows.map(r => `
+              out.length
+              ? out.map(r => `
                 <tr>
                   <td>${r.empresa}</td>
                   <td>${r.servicio}</td>
@@ -2209,8 +2285,11 @@ function renderCobro(){
   `;
 }
 
+/* =========================
+   CIERRE / TURNOS
+========================= */
 function renderCierre(){
-  updateHeader("Cierre período","Bloquea modificaciones del período.");
+  updateHeader("Cierre período", "Bloquea modificaciones del período.");
 
   const cerrado = periodoCerrado();
 
@@ -2267,7 +2346,7 @@ function bindCierre(){
 }
 
 function renderTurnos(){
-  updateHeader("Configuración de turnos","Sistema configurable por ciclos.");
+  updateHeader("Configuración de turnos", "Sistema configurable por ciclos.");
 
   setCurrentExport(
     ["Parámetro","Valor"],
@@ -2360,116 +2439,12 @@ function bindTurnos(){
 }
 
 /* =========================
-   EXPORTACIONES
-========================= */
-function exportExcel(headers, rows, filename){
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Datos");
-  XLSX.writeFile(wb, `${filename}.xlsx`);
-}
-
-function exportPDF(headers, rows, filename){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:"landscape" });
-
-  doc.autoTable({
-    head:[headers],
-    body:rows
-  });
-
-  doc.save(`${filename}.pdf`);
-}
-
-/* =========================
-   APP RENDER
-========================= */
-function updateHeader(title, subtitle){
-  document.getElementById("pageTitle").textContent = title;
-  document.getElementById("pageSubtitle").textContent = subtitle;
-  document.getElementById("perfilTag").textContent = settings.perfil === "ADMIN" ? "ADMINISTRADOR" : "SUPERVISOR";
-  document.getElementById("periodoTag").textContent = settings.periodo;
-  document.getElementById("turnoTag").textContent = "TURNO: " + (settings.filtroTurnoGlobal || "TODOS");
-}
-
-function renderApp(){
-  renderMenu();
-  updateTags();
-  updateDatalists();
-  updateTurnoSelector();
-
-  const app = document.getElementById("appContent");
-
-  switch(settings.currentModule){
-    case "dashboard":
-      app.innerHTML = renderDashboard();
-      bindDashboardAI();
-      break;
-
-    case "supervisores":
-      app.innerHTML = renderVentaSupervisores();
-      bindCaptureModule({ collectionName:"ventaSupervisores", prefix:"sup", showEmpresa:false, massiveType:"simple" });
-      break;
-
-    case "produccion":
-      app.innerHTML = renderProduccion();
-      bindCaptureModule({ collectionName:"produccion", prefix:"prod", showEmpresa:false, massiveType:"simple" });
-      break;
-
-    case "sistema":
-      app.innerHTML = renderVentaSistema();
-      bindVentaSistemaEvents();
-      break;
-
-    case "manual":
-      app.innerHTML = renderVentaManual();
-      bindCaptureModule({ collectionName:"ventaManual", prefix:"man", showEmpresa:true, massiveType:"" });
-      break;
-
-    case "analisis":
-      app.innerHTML = renderAnalisis();
-      bindAnalisis();
-      break;
-
-    case "comparativos":
-      app.innerHTML = renderComparativos();
-      break;
-
-    case "curva":
-      app.innerHTML = renderCurva();
-      bindCurva();
-      break;
-
-    case "cobro":
-      app.innerHTML = renderCobro();
-      break;
-
-    case "cierre":
-      app.innerHTML = renderCierre();
-      bindCierre();
-      break;
-
-    case "turnos":
-      app.innerHTML = renderTurnos();
-      bindTurnos();
-      break;
-  }
-
-  bindTreeToggles();
-
-  setTimeout(() => {
-    ["supervisores","produccion","sistema","manual","analisis"].forEach(key => {
-      syncMatrixScrolls(`top_${key}`, `wrap_${key}`);
-    });
-  }, 0);
-}
-
-/* =========================
    EVENTOS GLOBALES
 ========================= */
 document.getElementById("perfilSelector").addEventListener("change", e => {
   settings.perfil = e.target.value;
   saveSettings();
+  ensureAllowedModule();
   renderApp();
 });
 
@@ -2514,11 +2489,85 @@ document.getElementById("btnReset").addEventListener("click", async () => {
 
   localStorage.removeItem(SETTINGS_KEY);
   localStorage.removeItem(TURNOS_KEY);
-
   indexedDB.deleteDatabase(DB_NAME);
-
   location.reload();
 });
+
+/* =========================
+   RENDER APP
+========================= */
+function renderApp(){
+  ensureAllowedModule();
+  renderMenu();
+  updateTags();
+  updateDatalists();
+  updateTurnoSelector();
+
+  const app = document.getElementById("appContent");
+
+  switch(settings.currentModule){
+    case "dashboard":
+      app.innerHTML = renderDashboard();
+      bindDashboardAI();
+      break;
+
+    case "supervisores":
+      app.innerHTML = renderVentaSupervisores();
+      bindCaptureModule({ collectionName:"ventaSupervisores", prefix:"sup", showEmpresa:false, massiveType:"simple" });
+      break;
+
+    case "produccion":
+      app.innerHTML = renderProduccion();
+      bindCaptureModule({ collectionName:"produccion", prefix:"prod", showEmpresa:false, massiveType:"simple" });
+      break;
+
+    case "sistema":
+      app.innerHTML = renderVentaSistema();
+      bindVentaSistemaEvents();
+      break;
+
+    case "manual":
+      app.innerHTML = renderVentaManual();
+      bindCaptureModule({ collectionName:"ventaManual", prefix:"man", showEmpresa:true, massiveType:"" });
+      break;
+
+    case "curva":
+      app.innerHTML = renderCurva();
+      bindCurva();
+      break;
+
+    case "analisis":
+      app.innerHTML = renderAnalisis();
+      bindAnalisis();
+      break;
+
+    case "comparativos":
+      app.innerHTML = renderComparativos();
+      break;
+
+    case "cobro":
+      app.innerHTML = renderCobro();
+      break;
+
+    case "cierre":
+      app.innerHTML = renderCierre();
+      bindCierre();
+      break;
+
+    case "turnos":
+      app.innerHTML = renderTurnos();
+      bindTurnos();
+      break;
+  }
+
+  bindTreeToggles();
+
+  setTimeout(() => {
+    ["supervisores","produccion","sistema","manual","curva","analisis"].forEach(key => {
+      syncMatrixScrolls(`top_${key}`, `wrap_${key}`);
+    });
+  }, 0);
+}
 
 /* =========================
    INIT
