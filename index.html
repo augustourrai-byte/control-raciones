@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Control Operacional de Raciones</title>
 
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -17,15 +18,15 @@
       --line:#e5e7eb;
       --text:#0f172a;
       --muted:#64748b;
-      --dark:#111827;
-      --dark-2:#1f2937;
+      --dark:#0f172a;
+      --dark-2:#1e293b;
       --primary:#2563eb;
       --primary-2:#1d4ed8;
       --success:#059669;
       --warning:#d97706;
       --danger:#dc2626;
-      --shadow:0 10px 28px rgba(15,23,42,.08);
       --radius:18px;
+      --shadow:0 10px 30px rgba(15,23,42,.08);
     }
 
     *{box-sizing:border-box}
@@ -37,38 +38,77 @@
       color:var(--text);
     }
 
-    .app{
+    .hidden{display:none!important}
+
+    .app-shell{
       display:grid;
       grid-template-columns:300px 1fr;
       min-height:100vh;
     }
 
     .sidebar{
-      background:linear-gradient(180deg,#111827 0%,#1f2937 100%);
+      background:linear-gradient(180deg,#0f172a 0%, #1e293b 100%);
       color:#fff;
       padding:22px 18px;
       position:sticky;
       top:0;
       height:100vh;
       overflow:auto;
+      border-right:1px solid rgba(255,255,255,.06);
     }
 
     .brand{
-      padding:2px 6px 16px;
+      padding:4px 8px 18px;
       border-bottom:1px solid rgba(255,255,255,.08);
       margin-bottom:18px;
     }
 
     .brand h1{
-      margin:0 0 4px;
+      margin:0;
       font-size:22px;
       font-weight:800;
+      letter-spacing:.1px;
     }
 
     .brand p{
-      margin:0;
+      margin:6px 0 0;
       color:rgba(255,255,255,.7);
       font-size:13px;
+      line-height:1.45;
+    }
+
+    .sidebar-card{
+      margin-top:16px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
+      padding:14px;
+    }
+
+    .sidebar-card h3{
+      margin:0 0 10px;
+      font-size:14px;
+      color:#fff;
+    }
+
+    .sidebar-card label{
+      display:block;
+      font-size:12px;
+      color:rgba(255,255,255,.78);
+      margin:0 0 6px;
+      font-weight:600;
+    }
+
+    .sidebar-card input,
+    .sidebar-card select{
+      width:100%;
+      border:none;
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:14px;
+      color:#0f172a;
+      background:#fff;
+      outline:none;
     }
 
     .menu{
@@ -98,40 +138,8 @@
 
     .menu-btn.active{
       background:#fff;
-      color:#111827;
+      color:#0f172a;
       font-weight:700;
-    }
-
-    .sidebar-card{
-      margin-top:18px;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:16px;
-      padding:14px;
-    }
-
-    .sidebar-card h3{
-      margin:0 0 10px;
-      font-size:14px;
-      color:#fff;
-    }
-
-    .sidebar-card label{
-      display:block;
-      font-size:12px;
-      color:rgba(255,255,255,.78);
-      margin:0 0 6px;
-    }
-
-    .sidebar-card select,
-    .sidebar-card input{
-      width:100%;
-      border:none;
-      border-radius:12px;
-      padding:10px 12px;
-      font-size:14px;
-      color:#111827;
-      background:#fff;
     }
 
     .main{
@@ -152,6 +160,7 @@
       margin:0;
       font-size:34px;
       line-height:1.05;
+      letter-spacing:-.5px;
     }
 
     .title-wrap p{
@@ -170,6 +179,7 @@
     .tag{
       display:inline-flex;
       align-items:center;
+      gap:6px;
       padding:6px 10px;
       border-radius:999px;
       font-size:12px;
@@ -208,15 +218,17 @@
       outline:none;
     }
 
-    .input,.select,.textarea{
+    .input,
+    .select,
+    .textarea{
+      width:100%;
       border:1px solid var(--line);
       background:#fff;
       color:var(--text);
-      width:100%;
     }
 
     .textarea{
-      min-height:90px;
+      min-height:100px;
       resize:vertical;
     }
 
@@ -226,6 +238,7 @@
       background:var(--dark);
       color:#fff;
       font-weight:700;
+      transition:.18s ease;
     }
 
     .btn:hover{background:var(--dark-2)}
@@ -237,8 +250,9 @@
       border:1px solid var(--line);
     }
     .btn.secondary:hover{background:var(--panel-soft)}
+    .btn.success{background:var(--success)}
+    .btn.warning{background:var(--warning)}
     .btn.danger{background:var(--danger)}
-    .btn.danger:hover{filter:brightness(.95)}
 
     .panel{
       background:var(--panel);
@@ -252,12 +266,14 @@
     .panel h3{
       margin:0 0 10px;
       font-size:20px;
+      letter-spacing:-.2px;
     }
 
     .panel-sub{
       margin:-2px 0 14px;
       color:var(--muted);
       font-size:14px;
+      line-height:1.45;
     }
 
     .grid{
@@ -265,18 +281,18 @@
       gap:14px;
     }
 
+    .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
     .grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
     .grid-5{grid-template-columns:repeat(5,minmax(0,1fr))}
     .grid-6{grid-template-columns:repeat(6,minmax(0,1fr))}
-    .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-    .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 
     .kpi{
-      background:linear-gradient(180deg,#fff 0%,#f8fafc 100%);
+      background:linear-gradient(180deg,#fff 0%, #f8fafc 100%);
       border:1px solid var(--line);
       border-radius:16px;
       padding:16px;
-      min-height:98px;
+      min-height:96px;
       display:flex;
       flex-direction:column;
       justify-content:space-between;
@@ -289,7 +305,7 @@
     }
 
     .kpi .value{
-      font-size:32px;
+      font-size:30px;
       font-weight:800;
       line-height:1;
       letter-spacing:-.4px;
@@ -319,6 +335,11 @@
       font-weight:700;
     }
 
+    .field.span-2{grid-column:span 2}
+    .field.span-3{grid-column:span 3}
+    .field.span-4{grid-column:span 4}
+    .field.span-5{grid-column:span 5}
+
     .flex{
       display:flex;
       gap:10px;
@@ -334,6 +355,25 @@
       background:#f8fafc;
       color:#334155;
       font-size:14px;
+      line-height:1.5;
+    }
+
+    .notice.success{
+      background:#ecfdf5;
+      border-color:#a7f3d0;
+      color:#065f46;
+    }
+
+    .notice.warning{
+      background:#fffbeb;
+      border-color:#fde68a;
+      color:#92400e;
+    }
+
+    .notice.danger{
+      background:#fef2f2;
+      border-color:#fecaca;
+      color:#991b1b;
     }
 
     .empty{
@@ -358,12 +398,13 @@
       min-width:900px;
     }
 
-    th,td{
+    th, td{
       border-bottom:1px solid var(--line);
       padding:11px 12px;
       text-align:left;
       font-size:14px;
       white-space:nowrap;
+      vertical-align:top;
     }
 
     th{
@@ -374,7 +415,7 @@
       letter-spacing:.4px;
       position:sticky;
       top:0;
-      z-index:1;
+      z-index:2;
     }
 
     tr:last-child td{border-bottom:none}
@@ -409,10 +450,13 @@
 
     .matrix-table th{
       background:#f8fafc;
-      text-transform:none;
+      color:#334155;
       font-size:12px;
       font-weight:800;
-      color:#334155;
+      text-transform:none;
+      position:sticky;
+      top:0;
+      z-index:3;
     }
 
     .matrix-table th:first-child,
@@ -421,13 +465,13 @@
       left:0;
       z-index:2;
       background:#fff;
-      min-width:320px;
-      max-width:320px;
+      min-width:360px;
+      max-width:360px;
     }
 
     .matrix-table th:first-child{
-      z-index:3;
       background:#f8fafc;
+      z-index:4;
     }
 
     .matrix-row:hover td{
@@ -459,14 +503,8 @@
       flex:0 0 auto;
     }
 
-    .tree-toggle:hover{
-      background:#f8fafc;
-    }
-
-    .tree-spacer{
-      width:24px;
-      flex:0 0 auto;
-    }
+    .tree-toggle:hover{background:#f8fafc}
+    .tree-spacer{width:24px;flex:0 0 auto}
 
     .tree-label{
       overflow:hidden;
@@ -478,36 +516,86 @@
     .row-level-1 .tree-label{font-weight:700}
     .row-level-2 .tree-label{font-weight:600;color:#334155}
 
-    .sticky-actions{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
+    .assistant-box{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      background:#fff;
     }
 
-    @media (max-width: 1250px){
+    .assistant-output{
+      margin-top:14px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#f8fafc;
+      padding:16px;
+      line-height:1.6;
+      white-space:pre-wrap;
+    }
+
+    .mini-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .mini-item{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      padding:10px 0;
+      border-bottom:1px solid var(--line);
+      font-size:14px;
+    }
+
+    .mini-item:last-child{border-bottom:none}
+
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:88px;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+    }
+
+    .status-open{
+      background:#ecfdf5;
+      color:#047857;
+    }
+
+    .status-closed{
+      background:#fef2f2;
+      color:#b91c1c;
+    }
+
+    @media (max-width: 1280px){
       .grid-6{grid-template-columns:repeat(3,minmax(0,1fr))}
       .grid-5{grid-template-columns:repeat(3,minmax(0,1fr))}
       .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
     }
 
     @media (max-width: 980px){
-      .app{grid-template-columns:1fr}
+      .app-shell{grid-template-columns:1fr}
       .sidebar{
         position:relative;
         height:auto;
       }
       .grid-4,.grid-3,.grid-2{grid-template-columns:1fr}
       .form-grid{grid-template-columns:1fr}
+      .field.span-2,.field.span-3,.field.span-4,.field.span-5{grid-column:span 1}
       .title-wrap h2{font-size:28px}
     }
   </style>
 </head>
 <body>
-  <div class="app">
+  <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
         <h1>Control Raciones</h1>
-        <p>Histórico mensual · matrices por fecha · base de cobro</p>
+        <p>Faena minera · matrices por fecha · cierre mensual · análisis asistido</p>
       </div>
 
       <div class="sidebar-card">
@@ -525,11 +613,21 @@
         <input type="month" id="periodoSelector" />
       </div>
 
+      <div class="sidebar-card">
+        <h3>Filtros globales de análisis</h3>
+        <label>Turno</label>
+        <select id="turnoFiltroGlobal">
+          <option value="">Todos</option>
+        </select>
+      </div>
+
       <nav class="menu" id="menu"></nav>
 
       <div class="sidebar-card">
-        <h3>Base local</h3>
+        <h3>Acciones</h3>
         <div class="flex">
+          <button class="btn secondary" id="btnExportExcel" style="width:100%">Exportar Excel</button>
+          <button class="btn secondary" id="btnExportPDF" style="width:100%">Exportar PDF</button>
           <button class="btn danger" id="btnReset" style="width:100%">Reset local</button>
         </div>
       </div>
@@ -538,17 +636,14 @@
     <main class="main">
       <div class="topbar">
         <div class="title-wrap">
-          <h2 id="pageTitle">Venta supervisores</h2>
-          <p id="pageSubtitle">Captura y control operacional por período.</p>
+          <h2 id="pageTitle">Dashboard</h2>
+          <p id="pageSubtitle">Resumen operativo del período.</p>
         </div>
 
         <div class="toolbar">
           <span class="tag gray" id="perfilTag">ADMINISTRADOR</span>
           <span class="tag" id="periodoTag"></span>
-          <div class="sticky-actions">
-            <button class="btn secondary" id="btnExportExcel">Exportar Excel</button>
-            <button class="btn secondary" id="btnExportPDF">Exportar PDF</button>
-          </div>
+          <span class="tag gray" id="turnoTag">TURNO: TODOS</span>
         </div>
       </div>
 
@@ -560,32 +655,41 @@
   <datalist id="serviciosList"></datalist>
 
   <script>
-    const DB_NAME = "control_raciones_db_v2";
+    const DB_NAME = "control_raciones_db_v3";
     const DB_VERSION = 1;
     const DB_STORE = "appdata";
     const DB_KEY = "main";
-    const SETTINGS_KEY = "control_raciones_settings_v2";
+    const SETTINGS_KEY = "control_raciones_settings_v3";
+    const TURNOS_KEY = "control_raciones_turnos_v1";
 
     const MENU_ITEMS = [
+      { key:"dashboard", label:"Dashboard", roles:["ADMIN"] },
       { key:"supervisores", label:"Venta supervisores", roles:["ADMIN","SUPERVISOR"] },
       { key:"produccion", label:"Producción", roles:["ADMIN"] },
       { key:"sistema", label:"Venta sistema", roles:["ADMIN"] },
-      { key:"manual", label:"Venta manuales", roles:["ADMIN"] },
+      { key:"manual", label:"Venta manual", roles:["ADMIN"] },
       { key:"empresa", label:"Consumos por empresas", roles:["ADMIN"] },
       { key:"servicio", label:"Consumos por servicios", roles:["ADMIN"] },
-      { key:"casino", label:"Consumos por casinos", roles:["ADMIN"] },
+      { key:"punto", label:"Consumos por puntos de servicio", roles:["ADMIN"] },
+      { key:"comparativos", label:"Comparativos", roles:["ADMIN"] },
       { key:"curva", label:"Curva mensual", roles:["ADMIN"] },
-      { key:"cobro", label:"Base de cobro", roles:["ADMIN"] }
+      { key:"cobro", label:"Base de cobro", roles:["ADMIN"] },
+      { key:"cierre", label:"Cierre mensual", roles:["ADMIN"] },
+      { key:"turnos", label:"Configuración de turnos", roles:["ADMIN"] },
+      { key:"asistente", label:"Asistente de análisis", roles:["ADMIN"] }
     ];
 
-    const CASINOS = [
+    const PUNTOS_SERVICIO = [
       "DP (PLANTA)",
       "DM (MINA)",
       "CAP",
       "AÑAÑUCAS",
       "CF",
       "CAES",
-      "PDA 1"
+      "DELIVERY CAES",
+      "DELIVERY CF",
+      "COMEDOR SATELITAL 1",
+      "COMEDOR SATELITAL 2"
     ];
 
     const EQUIPO_MAP = {
@@ -595,7 +699,10 @@
       "D":"AÑAÑUCAS",
       "E":"CF",
       "F":"CAES",
-      "G":"PDA 1"
+      "H":"DELIVERY CAES",
+      "I":"DELIVERY CF",
+      "J":"COMEDOR SATELITAL 1",
+      "K":"COMEDOR SATELITAL 2"
     };
 
     const DEFAULT_DB = {
@@ -604,6 +711,7 @@
       ventaSistema: [],
       ventaManual: [],
       curvaMensual: [],
+      cierresMensuales: [],
       maestros: {
         empresas: [],
         servicios: [
@@ -624,24 +732,43 @@
           "COFFEE STANDARD",
           "COFFEE PLUS",
           "COFFEE BASICO"
-        ]
+        ],
+        puntosServicio: [...PUNTOS_SERVICIO]
       }
     };
 
     const DEFAULT_SETTINGS = {
       perfil: "ADMIN",
       periodo: getCurrentMonth(),
-      currentModule: "supervisores"
+      currentModule: "dashboard",
+      filtroTurnoGlobal: ""
+    };
+
+    const DEFAULT_TURNOS = {
+      fecha_inicio_ciclo: "",
+      duracion_turno: 7,
+      cantidad_turnos: 2,
+      nombres_turnos: ["A","B"]
     };
 
     let db = structuredCloneSafe(DEFAULT_DB);
     let settings = loadSettings();
-    let currentExport = { headers: [], rows: [], filename: "exportacion" };
+    let turnosConfig = loadTurnos();
+    let currentExport = { headers:[], rows:[], filename:"exportacion" };
 
     const treeState = {
       empresa: new Set(),
       servicio: new Set(),
-      casino: new Set()
+      punto: new Set(),
+      supervisores: new Set(),
+      produccion: new Set(),
+      comparativo_supervisor: new Set()
+    };
+
+    const matrixFilters = {
+      empresa: { empresa:"", servicio:"", punto_servicio:"" },
+      servicio: { empresa:"", servicio:"", punto_servicio:"" },
+      punto: { empresa:"", servicio:"", punto_servicio:"" }
     };
 
     function structuredCloneSafe(obj){
@@ -671,6 +798,24 @@
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     }
 
+    function loadTurnos(){
+      const raw = localStorage.getItem(TURNOS_KEY);
+      if(!raw){
+        localStorage.setItem(TURNOS_KEY, JSON.stringify(DEFAULT_TURNOS));
+        return structuredCloneSafe(DEFAULT_TURNOS);
+      }
+      try{
+        return { ...DEFAULT_TURNOS, ...JSON.parse(raw) };
+      }catch{
+        localStorage.setItem(TURNOS_KEY, JSON.stringify(DEFAULT_TURNOS));
+        return structuredCloneSafe(DEFAULT_TURNOS);
+      }
+    }
+
+    function saveTurnos(){
+      localStorage.setItem(TURNOS_KEY, JSON.stringify(turnosConfig));
+    }
+
     function openIndexedDb(){
       return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -695,6 +840,7 @@
     async function loadDb(){
       try{
         const database = await openIndexedDb();
+
         return await new Promise((resolve, reject) => {
           const tx = database.transaction(DB_STORE, "readonly");
           const store = tx.objectStore(DB_STORE);
@@ -713,9 +859,11 @@
               ventaSistema: parsed.ventaSistema || [],
               ventaManual: parsed.ventaManual || [],
               curvaMensual: parsed.curvaMensual || [],
+              cierresMensuales: parsed.cierresMensuales || [],
               maestros: {
                 empresas: parsed?.maestros?.empresas || [],
-                servicios: parsed?.maestros?.servicios || DEFAULT_DB.maestros.servicios
+                servicios: parsed?.maestros?.servicios || DEFAULT_DB.maestros.servicios,
+                puntosServicio: parsed?.maestros?.puntosServicio || [...PUNTOS_SERVICIO]
               }
             });
           };
@@ -733,6 +881,7 @@
     async function saveDb(){
       try{
         const database = await openIndexedDb();
+
         await new Promise((resolve, reject) => {
           const tx = database.transaction(DB_STORE, "readwrite");
           const store = tx.objectStore(DB_STORE);
@@ -760,6 +909,7 @@
 
     function parseDateToISO(value){
       if(value === null || value === undefined || value === "") return "";
+
       if(typeof value === "number"){
         const d = XLSX.SSF.parse_date_code(value);
         if(d && d.y && d.m && d.d){
@@ -791,24 +941,9 @@
     }
 
     function formatNumber(n){
-      return new Intl.NumberFormat("es-CL", { maximumFractionDigits: 2 }).format(Number(n || 0));
-    }
-
-    function csvValue(v){
-      const s = String(v ?? "");
-      if(s.includes(";") || s.includes('"') || s.includes("\n")){
-        return `"${s.replace(/"/g,'""')}"`;
-      }
-      return s;
-    }
-
-    function ensureMasters(empresa, servicio){
-      const e = normalizeText(empresa);
-      const s = normalizeText(servicio);
-      if(e && !db.maestros.empresas.includes(e)) db.maestros.empresas.push(e);
-      if(s && !db.maestros.servicios.includes(s)) db.maestros.servicios.push(s);
-      db.maestros.empresas.sort((a,b)=>a.localeCompare(b));
-      db.maestros.servicios.sort((a,b)=>a.localeCompare(b));
+      return new Intl.NumberFormat("es-CL", {
+        maximumFractionDigits: 2
+      }).format(Number(n || 0));
     }
 
     function getVisibleMenuItems(){
@@ -823,11 +958,12 @@
       }
     }
 
-    function setHeader(title, subtitle){
+    function updateHeader(title, subtitle){
       document.getElementById("pageTitle").textContent = title;
       document.getElementById("pageSubtitle").textContent = subtitle;
       document.getElementById("perfilTag").textContent = settings.perfil === "ADMIN" ? "ADMINISTRADOR" : "SUPERVISOR";
       document.getElementById("periodoTag").textContent = `PERÍODO ${settings.periodo}`;
+      document.getElementById("turnoTag").textContent = `TURNO: ${settings.filtroTurnoGlobal || "TODOS"}`;
     }
 
     function renderMenu(){
@@ -849,21 +985,81 @@
     }
 
     function updateDatalists(){
-      document.getElementById("empresasList").innerHTML = db.maestros.empresas
-        .map(x => `<option value="${x}"></option>`).join("");
-      document.getElementById("serviciosList").innerHTML = db.maestros.servicios
-        .map(x => `<option value="${x}"></option>`).join("");
+      document.getElementById("empresasList").innerHTML = (db.maestros.empresas || [])
+        .slice()
+        .sort((a,b)=>a.localeCompare(b))
+        .map(x => `<option value="${x}"></option>`)
+        .join("");
+
+      document.getElementById("serviciosList").innerHTML = (db.maestros.servicios || [])
+        .slice()
+        .sort((a,b)=>a.localeCompare(b))
+        .map(x => `<option value="${x}"></option>`)
+        .join("");
+    }
+
+    function ensureMasters(empresa, servicio){
+      const e = normalizeText(empresa);
+      const s = normalizeText(servicio);
+
+      if(e && !db.maestros.empresas.includes(e)) db.maestros.empresas.push(e);
+      if(s && !db.maestros.servicios.includes(s)) db.maestros.servicios.push(s);
+
+      db.maestros.empresas.sort((a,b)=>a.localeCompare(b));
+      db.maestros.servicios.sort((a,b)=>a.localeCompare(b));
+    }
+
+    function getTurno(fecha){
+      if(!turnosConfig.fecha_inicio_ciclo) return "";
+      const inicio = new Date(turnosConfig.fecha_inicio_ciclo + "T00:00:00");
+      const f = new Date(fecha + "T00:00:00");
+
+      if(Number.isNaN(inicio.getTime()) || Number.isNaN(f.getTime())) return "";
+
+      const diff = Math.floor((f - inicio) / (1000 * 60 * 60 * 24));
+      const ciclo = Number(turnosConfig.duracion_turno || 0) * Number(turnosConfig.cantidad_turnos || 0);
+      if(!ciclo || !turnosConfig.nombres_turnos?.length) return "";
+
+      const pos = ((diff % ciclo) + ciclo) % ciclo;
+      const index = Math.floor(pos / Number(turnosConfig.duracion_turno || 1));
+
+      return turnosConfig.nombres_turnos[index] || "";
+    }
+
+    function getTurnosDisponibles(){
+      return (turnosConfig.nombres_turnos || []).filter(Boolean);
+    }
+
+    function applyGlobalTurnoFilter(rows){
+      if(!settings.filtroTurnoGlobal) return rows;
+      return rows.filter(r => getTurno(r.fecha) === settings.filtroTurnoGlobal);
+    }
+
+    function isPeriodoCerrado(periodo = settings.periodo){
+      return db.cierresMensuales.some(x => x.periodo === periodo && x.estado === "CERRADO");
+    }
+
+    function guardPeriodoAbierto(){
+      if(isPeriodoCerrado()){
+        alert(`El período ${settings.periodo} está cerrado y no admite modificaciones.`);
+        return false;
+      }
+      return true;
     }
 
     function renderSummaryCards(items){
-      const cls = items.length === 4 ? "grid-4" : items.length === 3 ? "grid-3" : "grid-4";
-      return `<div class="grid ${cls}">` + items.map(item => `
-        <div class="kpi">
-          <div class="label">${item.label}</div>
-          <div class="value">${item.value}</div>
-          <div class="sub">${item.sub || ""}</div>
+      const className = items.length === 4 ? "grid-4" : items.length === 3 ? "grid-3" : "grid-4";
+      return `
+        <div class="grid ${className}">
+          ${items.map(item => `
+            <div class="kpi">
+              <div class="label">${item.label}</div>
+              <div class="value">${item.value}</div>
+              <div class="sub">${item.sub || ""}</div>
+            </div>
+          `).join("")}
         </div>
-      `).join("") + `</div>`;
+      `;
     }
 
     function getVentasSupervisoresMes(){
@@ -892,8 +1088,21 @@
       return [...sistema, ...manual];
     }
 
+    function getUniqueValues(rows, field){
+      return [...new Set(rows.map(x => x[field]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
+    }
+
     function getSelectedDates(rows){
       return [...new Set(rows.map(x => x.fecha).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    }
+
+    function filterConsumptionRows(rows, filters){
+      return rows.filter(r => {
+        if(filters.empresa && r.empresa !== filters.empresa) return false;
+        if(filters.servicio && r.servicio !== filters.servicio) return false;
+        if(filters.punto_servicio && r.punto_servicio !== filters.punto_servicio) return false;
+        return true;
+      });
     }
 
     function buildTree(rows, levels){
@@ -902,7 +1111,12 @@
       function findChild(children, label){
         let node = children.find(x => x.label === label);
         if(!node){
-          node = { label, children: [], totalsByDate: {}, total: 0 };
+          node = {
+            label,
+            children: [],
+            totalsByDate: {},
+            total: 0
+          };
           children.push(node);
         }
         return node;
@@ -931,12 +1145,13 @@
       return root;
     }
 
-    function flattenTree(nodes, moduleKey, dates, level = 0, parentPath = ""){
+    function flattenTree(nodes, moduleKey, level = 0, parentPath = ""){
       const result = [];
+
       nodes.forEach(node => {
         const path = parentPath ? `${parentPath}|||${node.label}` : node.label;
         const hasChildren = node.children.length > 0;
-        const expanded = treeState[moduleKey].has(path);
+        const expanded = treeState[moduleKey]?.has(path) || false;
 
         result.push({
           path,
@@ -949,16 +1164,17 @@
         });
 
         if(hasChildren && expanded){
-          result.push(...flattenTree(node.children, moduleKey, dates, level + 1, path));
+          result.push(...flattenTree(node.children, moduleKey, level + 1, path));
         }
       });
+
       return result;
     }
 
     function renderMatrixTable(moduleKey, levels, rows, firstColumnLabel, filenameBase){
       const dates = getSelectedDates(rows);
       const tree = buildTree(rows, levels);
-      const flat = flattenTree(tree, moduleKey, dates);
+      const flat = flattenTree(tree, moduleKey);
 
       currentExport = {
         headers: [firstColumnLabel, ...dates, "Total"],
@@ -967,7 +1183,7 @@
           ...dates.map(d => r.totalsByDate[d] || 0),
           r.total
         ]),
-        filename: `${filenameBase}_${settings.periodo}`
+        filename: `${filenameBase}_${settings.periodo}${settings.filtroTurnoGlobal ? `_turno_${settings.filtroTurnoGlobal}` : ""}`
       };
 
       if(!dates.length){
@@ -987,24 +1203,24 @@
             <tbody>
               ${
                 flat.length
-                ? flat.map(r => `
-                    <tr class="matrix-row row-level-${r.level}">
-                      <td>
-                        <div class="tree-cell">
-                          <span class="tree-indent" style="--level:${r.level}"></span>
-                          ${
-                            r.hasChildren
-                            ? `<button class="tree-toggle" data-tree-module="${moduleKey}" data-tree-path="${encodeURIComponent(r.path)}">${r.expanded ? "−" : "+"}</button>`
-                            : `<span class="tree-spacer"></span>`
-                          }
-                          <span class="tree-label">${r.label}</span>
-                        </div>
-                      </td>
-                      ${dates.map(d => `<td class="right">${formatNumber(r.totalsByDate[d] || 0)}</td>`).join("")}
-                      <td class="right"><strong>${formatNumber(r.total)}</strong></td>
-                    </tr>
-                  `).join("")
-                : `<tr><td colspan="${dates.length + 2}"><div class="empty">No hay filas para mostrar.</div></td></tr>`
+                  ? flat.map(r => `
+                      <tr class="matrix-row row-level-${r.level}">
+                        <td>
+                          <div class="tree-cell">
+                            <span class="tree-indent" style="--level:${r.level}"></span>
+                            ${
+                              r.hasChildren
+                                ? `<button class="tree-toggle" data-tree-module="${moduleKey}" data-tree-path="${encodeURIComponent(r.path)}">${r.expanded ? "−" : "+"}</button>`
+                                : `<span class="tree-spacer"></span>`
+                            }
+                            <span class="tree-label">${r.label}</span>
+                          </div>
+                        </td>
+                        ${dates.map(d => `<td class="right">${formatNumber(r.totalsByDate[d] || 0)}</td>`).join("")}
+                        <td class="right"><strong>${formatNumber(r.total)}</strong></td>
+                      </tr>
+                    `).join("")
+                  : `<tr><td colspan="${dates.length + 2}"><div class="empty">No hay filas para mostrar.</div></td></tr>`
               }
             </tbody>
           </table>
@@ -1017,1231 +1233,863 @@
         btn.addEventListener("click", () => {
           const moduleKey = btn.dataset.treeModule;
           const path = decodeURIComponent(btn.dataset.treePath);
+
+          if(!treeState[moduleKey]) treeState[moduleKey] = new Set();
+
           if(treeState[moduleKey].has(path)){
             treeState[moduleKey].delete(path);
           }else{
             treeState[moduleKey].add(path);
           }
+
           renderApp();
         });
       });
     }
 
-    function renderSupervisorModule(){
-      setHeader(
-        "Venta supervisores",
-        "Captura simple por fecha, servicio, casino y cantidad. El supervisor solo ve este módulo."
-      );
-
-      const rows = getVentasSupervisoresMes();
-      const total = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
-      const dias = new Set(rows.map(x=>x.fecha)).size;
-      const casinos = new Set(rows.map(x=>x.casino)).size;
-      const servicios = new Set(rows.map(x=>x.servicio)).size;
-
-      currentExport = {
-        headers:["Fecha","Casino","Servicio","Cantidad"],
-        rows: rows
-          .slice()
-          .sort((a,b)=>(a.fecha+a.casino+a.servicio).localeCompare(b.fecha+b.casino+b.servicio))
-          .map(r => [r.fecha, r.casino, r.servicio, r.cantidad]),
-        filename:`venta_supervisores_${settings.periodo}`
-      };
-
-      document.getElementById("appContent").innerHTML = `
-        <div class="panel">
-          <h3>Ingreso de venta supervisores</h3>
-          <div class="panel-sub">Registro operativo sin empresa. No entra directo a la base de cobro.</div>
-
-          ${renderSummaryCards([
-            { label:"Total período", value:formatNumber(total), sub:"Cantidad cargada por supervisión" },
-            { label:"Días con carga", value:formatNumber(dias), sub:"Fechas con movimiento" },
-            { label:"Casinos usados", value:formatNumber(casinos), sub:"Casinos distintos" },
-            { label:"Servicios usados", value:formatNumber(servicios), sub:"Servicios distintos" }
-          ])}
-
-          <div style="height:14px"></div>
-
-          <div class="form-grid">
-            <div class="field">
-              <label>Fecha</label>
-              <input class="input" type="date" id="supFecha">
-            </div>
-            <div class="field">
-              <label>Servicio</label>
-              <input class="input" list="serviciosList" id="supServicio" placeholder="Ej. ALMUERZO">
-            </div>
-            <div class="field">
-              <label>Casino</label>
-              <select class="select" id="supCasino">
-                ${CASINOS.map(x => `<option value="${x}">${x}</option>`).join("")}
-              </select>
-            </div>
-            <div class="field">
-              <label>Cantidad</label>
-              <input class="input" type="number" min="0" step="0.01" id="supCantidad" placeholder="0">
-            </div>
-            <div class="field">
-              <label>&nbsp;</label>
-              <button class="btn primary" id="btnGuardarSupervisor">Guardar venta</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h3>Resumen diario</h3>
-          <div class="panel-sub">Matriz por casino con fechas en columnas.</div>
-          ${renderMatrixTable("casino", ["casino","servicio"], rows.map(r => ({
-            fecha:r.fecha,
-            casino:r.casino,
-            servicio:r.servicio,
-            empresa:"",
-            cantidad:r.cantidad
-          })), "Casino / Servicio", "supervisores_resumen")}
-        </div>
-
-        <div class="panel">
-          <h3>Histórico detallado</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Casino</th>
-                  <th>Servicio</th>
-                  <th class="right">Cantidad</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${
-                  rows.length
-                  ? rows.slice().sort((a,b)=>(b.fecha+b.casino+b.servicio).localeCompare(a.fecha+a.casino+a.servicio)).map(r => `
-                      <tr>
-                        <td>${r.fecha}</td>
-                        <td>${r.casino}</td>
-                        <td>${r.servicio}</td>
-                        <td class="right">${formatNumber(r.cantidad)}</td>
-                        <td><button class="btn secondary" data-del-supervisor="${r.id}">Eliminar</button></td>
-                      </tr>
-                    `).join("")
-                  : `<tr><td colspan="5"><div class="empty">No hay registros en el período seleccionado.</div></td></tr>`
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-
-      bindTreeToggles();
-
-      document.getElementById("btnGuardarSupervisor").addEventListener("click", async () => {
-        const fecha = document.getElementById("supFecha").value;
-        const servicio = normalizeText(document.getElementById("supServicio").value);
-        const casino = document.getElementById("supCasino").value;
-        const cantidad = Number(document.getElementById("supCantidad").value);
-
-        if(!fecha || !servicio || !casino || Number.isNaN(cantidad) || cantidad < 0){
-          alert("Completa fecha, servicio, casino y cantidad.");
-          return;
+    function expandAllTree(nodes, moduleKey, parentPath = ""){
+      nodes.forEach(node => {
+        const path = parentPath ? `${parentPath}|||${node.label}` : node.label;
+        if(node.children && node.children.length){
+          treeState[moduleKey].add(path);
+          expandAllTree(node.children, moduleKey, path);
         }
-
-        db.ventaSupervisores.push({
-          id: `${Date.now()}_${Math.random()}`,
-          fecha,
-          servicio,
-          familia: normalizeServiceFamily(servicio),
-          casino,
-          cantidad
-        });
-
-        ensureMasters("", servicio);
-        await saveDb();
-        renderApp();
-      });
-
-      document.querySelectorAll("[data-del-supervisor]").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          const id = btn.dataset.delSupervisor;
-          db.ventaSupervisores = db.ventaSupervisores.filter(x => String(x.id) !== String(id));
-          await saveDb();
-          renderApp();
-        });
       });
     }
 
-    function renderProduccionModule(){
-      setHeader(
-        "Producción",
-        "Carga operativa por fecha, servicio, casino y cantidad."
-      );
+    function renderFilterBar(moduleKey, rows){
+      const empresas = getUniqueValues(rows, "empresa");
+      const servicios = getUniqueValues(rows, "servicio");
+      const puntos = getUniqueValues(rows, "punto_servicio");
+      const current = matrixFilters[moduleKey] || { empresa:"", servicio:"", punto_servicio:"" };
 
-      const rows = getProduccionMes();
-      const total = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
-      const dias = new Set(rows.map(x=>x.fecha)).size;
-      const casinos = new Set(rows.map(x=>x.casino)).size;
-      const servicios = new Set(rows.map(x=>x.servicio)).size;
-
-      currentExport = {
-        headers:["Fecha","Casino","Servicio","Cantidad"],
-        rows: rows
-          .slice()
-          .sort((a,b)=>(a.fecha+a.casino+a.servicio).localeCompare(b.fecha+b.casino+b.servicio))
-          .map(r => [r.fecha, r.casino, r.servicio, r.cantidad]),
-        filename:`produccion_${settings.periodo}`
-      };
-
-      document.getElementById("appContent").innerHTML = `
+      return `
         <div class="panel">
-          <h3>Carga de producción</h3>
-          <div class="panel-sub">Vista sin empresa. Control operacional diario.</div>
-
-          ${renderSummaryCards([
-            { label:"Producción período", value:formatNumber(total), sub:"Cantidad cargada" },
-            { label:"Días con carga", value:formatNumber(dias), sub:"Fechas con movimiento" },
-            { label:"Casinos usados", value:formatNumber(casinos), sub:"Casinos distintos" },
-            { label:"Servicios usados", value:formatNumber(servicios), sub:"Servicios distintos" }
-          ])}
-
-          <div style="height:14px"></div>
+          <h3>Filtros de vista</h3>
+          <div class="panel-sub">Estos filtros afectan solo el módulo actual.</div>
 
           <div class="form-grid">
-            <div class="field">
-              <label>Fecha</label>
-              <input class="input" type="date" id="prodFecha">
-            </div>
-            <div class="field">
-              <label>Servicio</label>
-              <input class="input" list="serviciosList" id="prodServicio" placeholder="Ej. ALMUERZO">
-            </div>
-            <div class="field">
-              <label>Casino</label>
-              <select class="select" id="prodCasino">
-                ${CASINOS.map(x => `<option value="${x}">${x}</option>`).join("")}
-              </select>
-            </div>
-            <div class="field">
-              <label>Cantidad</label>
-              <input class="input" type="number" min="0" step="0.01" id="prodCantidad" placeholder="0">
-            </div>
-            <div class="field">
-              <label>&nbsp;</label>
-              <button class="btn primary" id="btnGuardarProduccion">Guardar producción</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h3>Resumen diario</h3>
-          <div class="panel-sub">Matriz por casino con fechas en columnas.</div>
-          ${renderMatrixTable("casino", ["casino","servicio"], rows.map(r => ({
-            fecha:r.fecha,
-            casino:r.casino,
-            servicio:r.servicio,
-            empresa:"",
-            cantidad:r.cantidad
-          })), "Casino / Servicio", "produccion_resumen")}
-        </div>
-
-        <div class="panel">
-          <h3>Histórico detallado</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Casino</th>
-                  <th>Servicio</th>
-                  <th class="right">Cantidad</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${
-                  rows.length
-                  ? rows.slice().sort((a,b)=>(b.fecha+b.casino+b.servicio).localeCompare(a.fecha+a.casino+a.servicio)).map(r => `
-                      <tr>
-                        <td>${r.fecha}</td>
-                        <td>${r.casino}</td>
-                        <td>${r.servicio}</td>
-                        <td class="right">${formatNumber(r.cantidad)}</td>
-                        <td><button class="btn secondary" data-del-produccion="${r.id}">Eliminar</button></td>
-                      </tr>
-                    `).join("")
-                  : `<tr><td colspan="5"><div class="empty">No hay registros en el período seleccionado.</div></td></tr>`
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-
-      bindTreeToggles();
-
-      document.getElementById("btnGuardarProduccion").addEventListener("click", async () => {
-        const fecha = document.getElementById("prodFecha").value;
-        const servicio = normalizeText(document.getElementById("prodServicio").value);
-        const casino = document.getElementById("prodCasino").value;
-        const cantidad = Number(document.getElementById("prodCantidad").value);
-
-        if(!fecha || !servicio || !casino || Number.isNaN(cantidad) || cantidad < 0){
-          alert("Completa fecha, servicio, casino y cantidad.");
-          return;
-        }
-
-        db.produccion.push({
-          id: `${Date.now()}_${Math.random()}`,
-          fecha,
-          servicio,
-          familia: normalizeServiceFamily(servicio),
-          casino,
-          cantidad
-        });
-
-        ensureMasters("", servicio);
-        await saveDb();
-        renderApp();
-      });
-
-      document.querySelectorAll("[data-del-produccion]").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          const id = btn.dataset.delProduccion;
-          db.produccion = db.produccion.filter(x => String(x.id) !== String(id));
-          await saveDb();
-          renderApp();
-        });
-      });
-    }
-
-    function renderSistemaModule(){
-      setHeader(
-        "Venta sistema",
-        "Importación desde BBDD. PRECIO se interpreta como cantidad de servicios."
-      );
-
-      const rows = getVentasSistemaMes();
-      const total = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
-      const empresas = new Set(rows.map(x=>x.empresa)).size;
-      const casinos = new Set(rows.map(x=>x.casino)).size;
-      const servicios = new Set(rows.map(x=>x.servicio)).size;
-
-      currentExport = {
-        headers:["Fecha","Empresa","Servicio","Familia","Casino","Cantidad"],
-        rows: rows
-          .slice()
-          .sort((a,b)=>(a.fecha+a.empresa+a.servicio+a.casino).localeCompare(b.fecha+b.empresa+b.servicio+b.casino))
-          .map(r => [r.fecha, r.empresa, r.servicio, r.familia, r.casino, r.cantidad]),
-        filename:`venta_sistema_${settings.periodo}`
-      };
-
-      document.getElementById("appContent").innerHTML = `
-        <div class="panel">
-          <h3>Importar archivo</h3>
-          <div class="panel-sub">Columnas obligatorias: NOMBRE_EMPRESA, SERVICIO, FECHA, EQUIPO, PRECIO.</div>
-
-          ${renderSummaryCards([
-            { label:"Sistema período", value:formatNumber(total), sub:"Cantidad total importada" },
-            { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con consumo" },
-            { label:"Casinos", value:formatNumber(casinos), sub:"Casinos con consumo" },
-            { label:"Servicios", value:formatNumber(servicios), sub:"Servicios distintos" }
-          ])}
-
-          <div style="height:14px"></div>
-
-          <div class="form-grid">
-            <div class="field" style="grid-column: span 2;">
-              <label>Archivo Excel / CSV</label>
-              <input class="input" type="file" id="fileSistema" accept=".xlsx,.xls,.csv">
-            </div>
-            <div class="field">
-              <label>&nbsp;</label>
-              <button class="btn primary" id="btnImportarSistema">Importar archivo</button>
-            </div>
-            <div class="field">
-              <label>&nbsp;</label>
-              <button class="btn secondary" id="btnLimpiarSistema">Limpiar selección</button>
-            </div>
-            <div class="field">
-              <label>&nbsp;</label>
-              <button class="btn secondary" id="btnVaciarSistemaMes">Vaciar período actual</button>
-            </div>
-          </div>
-
-          <div id="resultadoImportacionSistema"></div>
-        </div>
-
-        <div class="panel">
-          <h3>Resumen del período</h3>
-          <div class="panel-sub">Matriz día → empresa → servicio → casino según fechas en columnas.</div>
-          ${renderMatrixTable("empresa", ["empresa","servicio","casino"], rows, "Empresa / Servicio / Casino", "sistema_resumen")}
-        </div>
-
-        <div class="panel">
-          <h3>Histórico detallado</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Empresa</th>
-                  <th>Servicio</th>
-                  <th>Familia</th>
-                  <th>Casino</th>
-                  <th class="right">Cantidad</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${
-                  rows.length
-                  ? rows.slice().sort((a,b)=>(b.fecha+b.empresa+b.servicio+b.casino).localeCompare(a.fecha+a.empresa+a.servicio+a.casino)).map(r => `
-                      <tr>
-                        <td>${r.fecha}</td>
-                        <td>${r.empresa}</td>
-                        <td>${r.servicio}</td>
-                        <td>${r.familia}</td>
-                        <td>${r.casino}</td>
-                        <td class="right">${formatNumber(r.cantidad)}</td>
-                        <td><button class="btn secondary" data-del-sistema="${r.id}">Eliminar</button></td>
-                      </tr>
-                    `).join("")
-                  : `<tr><td colspan="7"><div class="empty">No hay venta sistema en el período seleccionado.</div></td></tr>`
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-
-      bindTreeToggles();
-
-      document.getElementById("btnImportarSistema").addEventListener("click", importSistemaFromFile);
-
-      document.getElementById("btnLimpiarSistema").addEventListener("click", () => {
-        document.getElementById("fileSistema").value = "";
-        document.getElementById("resultadoImportacionSistema").innerHTML = "";
-      });
-
-      document.getElementById("btnVaciarSistemaMes").addEventListener("click", async () => {
-        if(!confirm(`Se eliminará toda la venta sistema del período ${settings.periodo}.`)) return;
-        db.ventaSistema = db.ventaSistema.filter(x => monthOf(x.fecha) !== settings.periodo);
-        await saveDb();
-        renderApp();
-      });
-
-      document.querySelectorAll("[data-del-sistema]").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          const id = btn.dataset.delSistema;
-          db.ventaSistema = db.ventaSistema.filter(x => String(x.id) !== String(id));
-          await saveDb();
-          renderApp();
-        });
-      });
-    }
-
-    async function importSistemaFromFile(){
-      const input = document.getElementById("fileSistema");
-      const file = input.files[0];
-      const out = document.getElementById("resultadoImportacionSistema");
-
-      if(!file){
-        alert("Selecciona un archivo antes de importar.");
-        return;
-      }
-
-      out.innerHTML = `<div class="notice">Procesando archivo...</div>`;
-
-      const reader = new FileReader();
-
-      reader.onload = async function(e){
-        try{
-          const data = e.target.result;
-          let workbook;
-
-          if(file.name.toLowerCase().endsWith(".csv")){
-            workbook = XLSX.read(data, { type:"string" });
-          }else{
-            workbook = XLSX.read(new Uint8Array(data), { type:"array" });
-          }
-
-          const firstSheet = workbook.SheetNames[0];
-          const sheet = workbook.Sheets[firstSheet];
-          const rows = XLSX.utils.sheet_to_json(sheet, { defval:"" });
-
-          if(!rows.length){
-            out.innerHTML = `<div class="notice">El archivo no contiene filas válidas.</div>`;
-            return;
-          }
-
-          const normalizedHeaders = Object.keys(rows[0]).map(h => normalizeText(h));
-          const requiredHeaders = ["NOMBRE_EMPRESA","SERVICIO","FECHA","EQUIPO","PRECIO"];
-          const missing = requiredHeaders.filter(h => !normalizedHeaders.includes(h));
-
-          if(missing.length){
-            out.innerHTML = `<div class="notice">Faltan columnas obligatorias: <strong>${missing.join(", ")}</strong></div>`;
-            return;
-          }
-
-          const getValue = (row, headerName) => {
-            const originalKey = Object.keys(row).find(k => normalizeText(k) === headerName);
-            return originalKey ? row[originalKey] : "";
-          };
-
-          const grouped = {};
-          let rawRows = 0;
-          let total = 0;
-
-          rows.forEach(row => {
-            const empresa = normalizeText(getValue(row, "NOMBRE_EMPRESA"));
-            const servicio = normalizeText(getValue(row, "SERVICIO"));
-            const fecha = parseDateToISO(getValue(row, "FECHA"));
-            const equipo = normalizeText(getValue(row, "EQUIPO"));
-            const casino = EQUIPO_MAP[equipo] || equipo || "SIN MAPEO";
-
-            let cantidadRaw = getValue(row, "PRECIO");
-            if(typeof cantidadRaw === "string"){
-              cantidadRaw = cantidadRaw.replace(/\./g,"").replace(",",".");
-            }
-            const cantidad = Number(cantidadRaw);
-
-            if(!empresa || !servicio || !fecha || !casino || Number.isNaN(cantidad)) return;
-
-            const key = `${fecha}|${empresa}|${servicio}|${casino}`;
-            if(!grouped[key]){
-              grouped[key] = {
-                id: `${Date.now()}_${Math.random()}`,
-                fecha,
-                empresa,
-                servicio,
-                familia: normalizeServiceFamily(servicio),
-                casino,
-                cantidad: 0
-              };
-            }
-
-            grouped[key].cantidad += cantidad;
-            rawRows += 1;
-            total += cantidad;
-          });
-
-          const imported = Object.values(grouped);
-          imported.forEach(r => {
-            db.ventaSistema.push(r);
-            ensureMasters(r.empresa, r.servicio);
-          });
-
-          await saveDb();
-
-          out.innerHTML = `
-            <div class="notice">
-              ✔ Filas fuente leídas: <strong>${formatNumber(rawRows)}</strong><br>
-              ✔ Registros consolidados importados: <strong>${formatNumber(imported.length)}</strong><br>
-              ✔ Cantidad total sumada: <strong>${formatNumber(total)}</strong>
-            </div>
-          `;
-
-          renderApp();
-        }catch(error){
-          out.innerHTML = `<div class="notice">Error al leer el archivo: <strong>${error.message}</strong></div>`;
-        }
-      };
-
-      if(file.name.toLowerCase().endsWith(".csv")){
-        reader.readAsText(file, "utf-8");
-      }else{
-        reader.readAsArrayBuffer(file);
-      }
-    }
-
-    function renderManualModule(){
-      setHeader(
-        "Venta manuales",
-        "Carga complementaria por fecha, empresa, servicio, casino y cantidad."
-      );
-
-      const rows = getVentasManualMes();
-      const total = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
-      const empresas = new Set(rows.map(x=>x.empresa)).size;
-      const casinos = new Set(rows.map(x=>x.casino)).size;
-      const servicios = new Set(rows.map(x=>x.servicio)).size;
-
-      currentExport = {
-        headers:["Fecha","Empresa","Servicio","Familia","Casino","Cantidad"],
-        rows: rows
-          .slice()
-          .sort((a,b)=>(a.fecha+a.empresa+a.servicio+a.casino).localeCompare(b.fecha+b.empresa+b.servicio+b.casino))
-          .map(r => [r.fecha, r.empresa, r.servicio, r.familia, r.casino, r.cantidad]),
-        filename:`venta_manual_${settings.periodo}`
-      };
-
-      document.getElementById("appContent").innerHTML = `
-        <div class="panel">
-          <h3>Ingreso de venta manual</h3>
-          <div class="panel-sub">Esta carga sí se suma a venta sistema para formar la venta real.</div>
-
-          ${renderSummaryCards([
-            { label:"Manual período", value:formatNumber(total), sub:"Cantidad manual cargada" },
-            { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con carga" },
-            { label:"Casinos", value:formatNumber(casinos), sub:"Casinos con carga" },
-            { label:"Servicios", value:formatNumber(servicios), sub:"Servicios con carga" }
-          ])}
-
-          <div style="height:14px"></div>
-
-          <div class="form-grid">
-            <div class="field">
-              <label>Fecha</label>
-              <input class="input" type="date" id="manFecha">
-            </div>
             <div class="field">
               <label>Empresa</label>
-              <input class="input" list="empresasList" id="manEmpresa" placeholder="Empresa">
-            </div>
-            <div class="field">
-              <label>Servicio</label>
-              <input class="input" list="serviciosList" id="manServicio" placeholder="Servicio">
-            </div>
-            <div class="field">
-              <label>Casino</label>
-              <select class="select" id="manCasino">
-                ${CASINOS.map(x => `<option value="${x}">${x}</option>`).join("")}
+              <select class="select" id="${moduleKey}_filter_empresa">
+                <option value="">Todas</option>
+                ${empresas.map(x => `<option value="${x}" ${current.empresa===x?"selected":""}>${x}</option>`).join("")}
               </select>
             </div>
-            <div class="field">
-              <label>Cantidad</label>
-              <input class="input" type="number" min="0" step="0.01" id="manCantidad" placeholder="0">
-            </div>
-          </div>
 
-          <div style="height:12px"></div>
-
-          <div class="flex">
-            <button class="btn primary" id="btnGuardarManual">Guardar venta manual</button>
-            <button class="btn secondary" id="btnVaciarManualMes">Vaciar período actual</button>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h3>Resumen del período</h3>
-          <div class="panel-sub">Matriz día → empresa → servicio → casino según fechas en columnas.</div>
-          ${renderMatrixTable("empresa", ["empresa","servicio","casino"], rows, "Empresa / Servicio / Casino", "manual_resumen")}
-        </div>
-
-        <div class="panel">
-          <h3>Histórico detallado</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Empresa</th>
-                  <th>Servicio</th>
-                  <th>Familia</th>
-                  <th>Casino</th>
-                  <th class="right">Cantidad</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${
-                  rows.length
-                  ? rows.slice().sort((a,b)=>(b.fecha+b.empresa+b.servicio+b.casino).localeCompare(a.fecha+a.empresa+a.servicio+a.casino)).map(r => `
-                      <tr>
-                        <td>${r.fecha}</td>
-                        <td>${r.empresa}</td>
-                        <td>${r.servicio}</td>
-                        <td>${r.familia}</td>
-                        <td>${r.casino}</td>
-                        <td class="right">${formatNumber(r.cantidad)}</td>
-                        <td><button class="btn secondary" data-del-manual="${r.id}">Eliminar</button></td>
-                      </tr>
-                    `).join("")
-                  : `<tr><td colspan="7"><div class="empty">No hay venta manual en el período seleccionado.</div></td></tr>`
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-
-      bindTreeToggles();
-
-      document.getElementById("btnGuardarManual").addEventListener("click", async () => {
-        const fecha = document.getElementById("manFecha").value;
-        const empresa = normalizeText(document.getElementById("manEmpresa").value);
-        const servicio = normalizeText(document.getElementById("manServicio").value);
-        const casino = document.getElementById("manCasino").value;
-        const cantidad = Number(document.getElementById("manCantidad").value);
-
-        if(!fecha || !empresa || !servicio || !casino || Number.isNaN(cantidad) || cantidad < 0){
-          alert("Completa fecha, empresa, servicio, casino y cantidad.");
-          return;
-        }
-
-        db.ventaManual.push({
-          id: `${Date.now()}_${Math.random()}`,
-          fecha,
-          empresa,
-          servicio,
-          familia: normalizeServiceFamily(servicio),
-          casino,
-          cantidad
-        });
-
-        ensureMasters(empresa, servicio);
-        await saveDb();
-        renderApp();
-      });
-
-      document.getElementById("btnVaciarManualMes").addEventListener("click", async () => {
-        if(!confirm(`Se eliminará toda la venta manual del período ${settings.periodo}.`)) return;
-        db.ventaManual = db.ventaManual.filter(x => monthOf(x.fecha) !== settings.periodo);
-        await saveDb();
-        renderApp();
-      });
-
-      document.querySelectorAll("[data-del-manual]").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          const id = btn.dataset.delManual;
-          db.ventaManual = db.ventaManual.filter(x => String(x.id) !== String(id));
-          await saveDb();
-          renderApp();
-        });
-      });
-    }
-
-    function renderConsumoEmpresaModule(){
-      setHeader(
-        "Consumos por empresas",
-        "Matriz horizontal por fechas. Apertura: empresa → servicio → casino."
-      );
-
-      const rows = getVentaRealMes();
-      const empresaCount = new Set(rows.map(x => x.empresa)).size;
-      const totalReal = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
-      const totalSistema = rows.filter(x=>x.origen==="SISTEMA").reduce((a,b)=>a+Number(b.cantidad||0),0);
-      const totalManual = rows.filter(x=>x.origen==="MANUAL").reduce((a,b)=>a+Number(b.cantidad||0),0);
-
-      document.getElementById("appContent").innerHTML = `
-        <div class="panel">
-          <h3>Resumen ejecutivo</h3>
-          ${renderSummaryCards([
-            { label:"Venta real", value:formatNumber(totalReal), sub:"Sistema + manual" },
-            { label:"Venta sistema", value:formatNumber(totalSistema), sub:"Origen sistema" },
-            { label:"Venta manual", value:formatNumber(totalManual), sub:"Origen manual" },
-            { label:"Empresas", value:formatNumber(empresaCount), sub:"Empresas con consumo real" }
-          ])}
-        </div>
-
-        <div class="panel">
-          <h3>Matriz por empresas</h3>
-          <div class="panel-sub">Filas principales por empresa. Fechas en columnas. Detalle expandible.</div>
-          ${renderMatrixTable("empresa", ["empresa","servicio","casino"], rows, "Empresa / Servicio / Casino", "consumo_empresas")}
-        </div>
-      `;
-
-      bindTreeToggles();
-    }
-
-    function renderConsumoServicioModule(){
-      setHeader(
-        "Consumos por servicios",
-        "Matriz horizontal por fechas. Apertura: servicio → casino → empresa."
-      );
-
-      const rows = getVentaRealMes();
-      const servicios = new Set(rows.map(x => x.servicio)).size;
-      const totalReal = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
-      const casinos = new Set(rows.map(x => x.casino)).size;
-      const empresas = new Set(rows.map(x => x.empresa)).size;
-
-      document.getElementById("appContent").innerHTML = `
-        <div class="panel">
-          <h3>Resumen ejecutivo</h3>
-          ${renderSummaryCards([
-            { label:"Servicios", value:formatNumber(servicios), sub:"Servicios con consumo real" },
-            { label:"Venta real", value:formatNumber(totalReal), sub:"Sistema + manual" },
-            { label:"Casinos", value:formatNumber(casinos), sub:"Casinos con movimiento" },
-            { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con movimiento" }
-          ])}
-        </div>
-
-        <div class="panel">
-          <h3>Matriz por servicios</h3>
-          <div class="panel-sub">Filas principales por servicio. Fechas en columnas. Detalle expandible.</div>
-          ${renderMatrixTable("servicio", ["servicio","casino","empresa"], rows, "Servicio / Casino / Empresa", "consumo_servicios")}
-        </div>
-      `;
-
-      bindTreeToggles();
-    }
-
-    function renderConsumoCasinoModule(){
-      setHeader(
-        "Consumos por casinos",
-        "Matriz horizontal por fechas. Apertura: casino → servicio → empresa."
-      );
-
-      const rows = getVentaRealMes();
-      const casinos = new Set(rows.map(x => x.casino)).size;
-      const totalReal = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
-      const servicios = new Set(rows.map(x => x.servicio)).size;
-      const empresas = new Set(rows.map(x => x.empresa)).size;
-
-      document.getElementById("appContent").innerHTML = `
-        <div class="panel">
-          <h3>Resumen ejecutivo</h3>
-          ${renderSummaryCards([
-            { label:"Casinos", value:formatNumber(casinos), sub:"Casinos con consumo real" },
-            { label:"Venta real", value:formatNumber(totalReal), sub:"Sistema + manual" },
-            { label:"Servicios", value:formatNumber(servicios), sub:"Servicios con movimiento" },
-            { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con movimiento" }
-          ])}
-        </div>
-
-        <div class="panel">
-          <h3>Matriz por casinos</h3>
-          <div class="panel-sub">Filas principales por casino. Fechas en columnas. Detalle expandible.</div>
-          ${renderMatrixTable("casino", ["casino","servicio","empresa"], rows, "Casino / Servicio / Empresa", "consumo_casinos")}
-        </div>
-      `;
-
-      bindTreeToggles();
-    }
-
-    function renderCurvaModule(){
-      setHeader(
-        "Curva mensual",
-        "Carga contractual por período, empresa y servicio."
-      );
-
-      const rows = getCurvaMes();
-      const total = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
-      const empresas = new Set(rows.map(x=>x.empresa)).size;
-      const servicios = new Set(rows.map(x=>x.servicio)).size;
-
-      currentExport = {
-        headers:["Período","Empresa","Servicio","Familia","Cantidad"],
-        rows: rows
-          .slice()
-          .sort((a,b)=>(a.empresa+a.servicio).localeCompare(b.empresa+b.servicio))
-          .map(r => [r.periodo, r.empresa, r.servicio, r.familia, r.cantidad]),
-        filename:`curva_mensual_${settings.periodo}`
-      };
-
-      document.getElementById("appContent").innerHTML = `
-        <div class="panel">
-          <h3>Carga de curva</h3>
-          <div class="panel-sub">La curva se controla por empresa + servicio.</div>
-
-          ${renderSummaryCards([
-            { label:"Curva período", value:formatNumber(total), sub:"Cantidad contractual cargada" },
-            { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con curva" },
-            { label:"Servicios", value:formatNumber(servicios), sub:"Servicios con curva" },
-            { label:"Registros", value:formatNumber(rows.length), sub:"Filas del período" }
-          ])}
-
-          <div style="height:14px"></div>
-
-          <div class="form-grid">
-            <div class="field">
-              <label>Período</label>
-              <input class="input" type="month" id="curvaPeriodo" value="${settings.periodo}">
-            </div>
-            <div class="field">
-              <label>Empresa</label>
-              <input class="input" list="empresasList" id="curvaEmpresa" placeholder="Empresa">
-            </div>
             <div class="field">
               <label>Servicio</label>
-              <input class="input" list="serviciosList" id="curvaServicio" placeholder="Servicio">
+              <select class="select" id="${moduleKey}_filter_servicio">
+                <option value="">Todos</option>
+                ${servicios.map(x => `<option value="${x}" ${current.servicio===x?"selected":""}>${x}</option>`).join("")}
+              </select>
             </div>
+
             <div class="field">
-              <label>Cantidad</label>
-              <input class="input" type="number" min="0" step="0.01" id="curvaCantidad" placeholder="0">
+              <label>Punto de servicio</label>
+              <select class="select" id="${moduleKey}_filter_punto">
+                <option value="">Todos</option>
+                ${puntos.map(x => `<option value="${x}" ${current.punto_servicio===x?"selected":""}>${x}</option>`).join("")}
+              </select>
             </div>
+
             <div class="field">
               <label>&nbsp;</label>
-              <button class="btn primary" id="btnGuardarCurva">Guardar curva</button>
+              <button class="btn secondary" id="${moduleKey}_expand_all">Expandir todo</button>
+            </div>
+
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn secondary" id="${moduleKey}_collapse_all">Contraer todo</button>
             </div>
           </div>
-
-          <div style="height:12px"></div>
-
-          <div class="flex">
-            <button class="btn secondary" id="btnVaciarCurvaMes">Vaciar período actual</button>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h3>Curva del período</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Período</th>
-                  <th>Empresa</th>
-                  <th>Servicio</th>
-                  <th>Familia</th>
-                  <th class="right">Cantidad</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${
-                  rows.length
-                  ? rows.map(r => `
-                      <tr>
-                        <td>${r.periodo}</td>
-                        <td>${r.empresa}</td>
-                        <td>${r.servicio}</td>
-                        <td>${r.familia}</td>
-                        <td class="right">${formatNumber(r.cantidad)}</td>
-                        <td><button class="btn secondary" data-del-curva="${r.id}">Eliminar</button></td>
-                      </tr>
-                    `).join("")
-                  : `<tr><td colspan="6"><div class="empty">No hay curva cargada para el período seleccionado.</div></td></tr>`
-                }
-              </tbody>
-            </table>
-          </div>
         </div>
       `;
+    }
 
-      document.getElementById("btnGuardarCurva").addEventListener("click", async () => {
-        const periodo = document.getElementById("curvaPeriodo").value;
-        const empresa = normalizeText(document.getElementById("curvaEmpresa").value);
-        const servicio = normalizeText(document.getElementById("curvaServicio").value);
-        const cantidad = Number(document.getElementById("curvaCantidad").value);
+    function bindConsumptionFilterBar(moduleKey, levels, allRows){
+      const empresaEl = document.getElementById(`${moduleKey}_filter_empresa`);
+      const servicioEl = document.getElementById(`${moduleKey}_filter_servicio`);
+      const puntoEl = document.getElementById(`${moduleKey}_filter_punto`);
+      const expandBtn = document.getElementById(`${moduleKey}_expand_all`);
+      const collapseBtn = document.getElementById(`${moduleKey}_collapse_all`);
 
-        if(!periodo || !empresa || !servicio || Number.isNaN(cantidad) || cantidad < 0){
-          alert("Completa período, empresa, servicio y cantidad.");
-          return;
-        }
-
-        db.curvaMensual.push({
-          id: `${Date.now()}_${Math.random()}`,
-          periodo,
-          empresa,
-          servicio,
-          familia: normalizeServiceFamily(servicio),
-          cantidad
-        });
-
-        ensureMasters(empresa, servicio);
-        await saveDb();
-        renderApp();
-      });
-
-      document.getElementById("btnVaciarCurvaMes").addEventListener("click", async () => {
-        if(!confirm(`Se eliminará toda la curva del período ${settings.periodo}.`)) return;
-        db.curvaMensual = db.curvaMensual.filter(x => x.periodo !== settings.periodo);
-        await saveDb();
-        renderApp();
-      });
-
-      document.querySelectorAll("[data-del-curva]").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          const id = btn.dataset.delCurva;
-          db.curvaMensual = db.curvaMensual.filter(x => String(x.id) !== String(id));
-          await saveDb();
+      if(empresaEl){
+        empresaEl.addEventListener("change", () => {
+          matrixFilters[moduleKey].empresa = empresaEl.value;
           renderApp();
         });
-      });
-    }
+      }
 
-    function getCobroRows(){
-      const realRows = getVentaRealMes();
-      const map = new Map();
-
-      realRows.forEach(r => {
-        const key = `${settings.periodo}|${r.empresa}|${r.servicio}`;
-        if(!map.has(key)){
-          map.set(key, {
-            periodo: settings.periodo,
-            empresa: r.empresa,
-            servicio: r.servicio,
-            familia: r.familia,
-            sistema: 0,
-            manual: 0,
-            real: 0,
-            curva: 0,
-            cobro: 0,
-            regla: ""
-          });
-        }
-        const obj = map.get(key);
-        if(r.origen === "SISTEMA") obj.sistema += Number(r.cantidad || 0);
-        if(r.origen === "MANUAL") obj.manual += Number(r.cantidad || 0);
-        obj.real += Number(r.cantidad || 0);
-      });
-
-      getCurvaMes().forEach(r => {
-        const key = `${r.periodo}|${r.empresa}|${r.servicio}`;
-        if(!map.has(key)){
-          map.set(key, {
-            periodo: r.periodo,
-            empresa: r.empresa,
-            servicio: r.servicio,
-            familia: r.familia,
-            sistema: 0,
-            manual: 0,
-            real: 0,
-            curva: 0,
-            cobro: 0,
-            regla: ""
-          });
-        }
-        map.get(key).curva += Number(r.cantidad || 0);
-      });
-
-      return [...map.values()].map(r => {
-        const cobro = Math.max(r.real, r.curva);
-        let regla = "REAL = CURVA";
-        if(cobro === r.real && cobro !== r.curva) regla = "COBRA REAL";
-        if(cobro === r.curva && cobro !== r.real) regla = "COBRA CURVA";
-        return { ...r, cobro, regla };
-      }).sort((a,b)=>(a.empresa+a.servicio).localeCompare(b.empresa+b.servicio));
-    }
-
-    function renderCobroModule(){
-      setHeader(
-        "Base de cobro",
-        "Cobro = mayor entre venta real y curva. Comparación por empresa + servicio."
-      );
-
-      const rows = getCobroRows();
-      const totalSistema = rows.reduce((a,b)=>a+Number(b.sistema||0),0);
-      const totalManual = rows.reduce((a,b)=>a+Number(b.manual||0),0);
-      const totalReal = rows.reduce((a,b)=>a+Number(b.real||0),0);
-      const totalCurva = rows.reduce((a,b)=>a+Number(b.curva||0),0);
-      const totalCobro = rows.reduce((a,b)=>a+Number(b.cobro||0),0);
-
-      currentExport = {
-        headers:["Período","Empresa","Servicio","Familia","Sistema","Manual","Real","Curva","Cobro","Regla"],
-        rows: rows.map(r => [
-          r.periodo,
-          r.empresa,
-          r.servicio,
-          r.familia,
-          r.sistema,
-          r.manual,
-          r.real,
-          r.curva,
-          r.cobro,
-          r.regla
-        ]),
-        filename:`base_cobro_${settings.periodo}`
-      };
-
-      document.getElementById("appContent").innerHTML = `
-        <div class="panel">
-          <h3>Resumen ejecutivo</h3>
-          ${renderSummaryCards([
-            { label:"Venta sistema", value:formatNumber(totalSistema), sub:"Origen sistema" },
-            { label:"Venta manual", value:formatNumber(totalManual), sub:"Origen manual" },
-            { label:"Venta real", value:formatNumber(totalReal), sub:"Sistema + manual" },
-            { label:"Curva", value:formatNumber(totalCurva), sub:"Base contractual" }
-          ])}
-
-          <div style="height:14px"></div>
-
-          ${renderSummaryCards([
-            { label:"Cobro período", value:formatNumber(totalCobro), sub:"Mayor entre real y curva" },
-            { label:"Registros", value:formatNumber(rows.length), sub:"Empresa + servicio" },
-            { label:"Cobran real", value:formatNumber(rows.filter(x=>x.regla==="COBRA REAL").length), sub:"Mayor real" },
-            { label:"Cobran curva", value:formatNumber(rows.filter(x=>x.regla==="COBRA CURVA").length), sub:"Mayor curva" }
-          ])}
-        </div>
-
-        <div class="panel">
-          <h3>Detalle de base de cobro</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Período</th>
-                  <th>Empresa</th>
-                  <th>Servicio</th>
-                  <th>Familia</th>
-                  <th class="right">Sistema</th>
-                  <th class="right">Manual</th>
-                  <th class="right">Real</th>
-                  <th class="right">Curva</th>
-                  <th class="right">Cobro</th>
-                  <th>Regla</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${
-                  rows.length
-                  ? rows.map(r => `
-                      <tr>
-                        <td>${r.periodo}</td>
-                        <td>${r.empresa}</td>
-                        <td>${r.servicio}</td>
-                        <td>${r.familia}</td>
-                        <td class="right">${formatNumber(r.sistema)}</td>
-                        <td class="right">${formatNumber(r.manual)}</td>
-                        <td class="right"><strong>${formatNumber(r.real)}</strong></td>
-                        <td class="right">${formatNumber(r.curva)}</td>
-                        <td class="right"><strong>${formatNumber(r.cobro)}</strong></td>
-                        <td>
-                          ${
-                            r.regla === "COBRA REAL" ? `<span class="tag success">${r.regla}</span>` :
-                            r.regla === "COBRA CURVA" ? `<span class="tag warning">${r.regla}</span>` :
-                            `<span class="tag gray">${r.regla}</span>`
-                          }
-                        </td>
-                      </tr>
-                    `).join("")
-                  : `<tr><td colspan="10"><div class="empty">No hay información suficiente para calcular base de cobro.</div></td></tr>`
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-    }
-
-    async function resetDatabase(){
-      if(!confirm("Esto borrará toda la información guardada en este navegador.")) return;
-
-      try{
-        const database = await openIndexedDb();
-        await new Promise((resolve, reject) => {
-          const tx = database.transaction(DB_STORE, "readwrite");
-          const store = tx.objectStore(DB_STORE);
-          const request = store.delete(DB_KEY);
-          request.onsuccess = function(){ resolve(); };
-          request.onerror = function(){ reject(request.error); };
+      if(servicioEl){
+        servicioEl.addEventListener("change", () => {
+          matrixFilters[moduleKey].servicio = servicioEl.value;
+          renderApp();
         });
+      }
 
-        localStorage.removeItem(SETTINGS_KEY);
-        db = structuredCloneSafe(DEFAULT_DB);
-        settings = loadSettings();
-        treeState.empresa.clear();
-        treeState.servicio.clear();
-        treeState.casino.clear();
-        updateDatalists();
-        renderApp();
-      }catch(error){
-        console.error(error);
-        alert("No se pudo limpiar la base local.");
+      if(puntoEl){
+        puntoEl.addEventListener("change", () => {
+          matrixFilters[moduleKey].punto_servicio = puntoEl.value;
+          renderApp();
+        });
+      }
+
+      if(expandBtn){
+        expandBtn.addEventListener("click", () => {
+          const filteredRows = filterConsumptionRows(allRows, matrixFilters[moduleKey]);
+          const tree = buildTree(filteredRows, levels);
+          treeState[moduleKey].clear();
+          expandAllTree(tree, moduleKey);
+          renderApp();
+        });
+      }
+
+      if(collapseBtn){
+        collapseBtn.addEventListener("click", () => {
+          treeState[moduleKey].clear();
+          renderApp();
+        });
       }
     }
 
-    function exportCurrentExcel(){
-      const ws = XLSX.utils.aoa_to_sheet([currentExport.headers, ...currentExport.rows]);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Datos");
-      XLSX.writeFile(wb, `${currentExport.filename}.xlsx`);
+    function setCurrentExport(headers, rows, filename){
+      currentExport = { headers, rows, filename };
     }
-
-    function exportCurrentPDF(){
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({
-        orientation: currentExport.headers.length > 8 ? "landscape" : "portrait",
-        unit: "pt",
-        format: "a4"
-      });
-
-      doc.setFontSize(14);
-      doc.text(currentExport.filename.replace(/_/g, " ").toUpperCase(), 40, 36);
-
-      doc.autoTable({
-        head: [currentExport.headers],
-        body: currentExport.rows.map(row => row.map(cell => {
-          if(typeof cell === "number") return formatNumber(cell);
-          return String(cell ?? "");
-        })),
-        startY: 52,
-        styles: {
-          fontSize: 8,
-          cellPadding: 4
-        },
-        headStyles: {
-          fillColor: [37, 99, 235]
-        },
-        theme: "grid",
-        margin: { left: 24, right: 24 }
-      });
-
-      doc.save(`${currentExport.filename}.pdf`);
-    }
-
-    function bindGlobalControls(){
-      const perfilSelector = document.getElementById("perfilSelector");
-      const periodoSelector = document.getElementById("periodoSelector");
-
-      perfilSelector.value = settings.perfil;
-      periodoSelector.value = settings.periodo;
-
-      perfilSelector.addEventListener("change", () => {
-        settings.perfil = perfilSelector.value;
-        saveSettings();
-        renderApp();
-      });
-
-      periodoSelector.addEventListener("change", () => {
-        settings.periodo = periodoSelector.value || getCurrentMonth();
-        saveSettings();
-        renderApp();
-      });
-
-      document.getElementById("btnReset").addEventListener("click", resetDatabase);
-      document.getElementById("btnExportExcel").addEventListener("click", exportCurrentExcel);
-      document.getElementById("btnExportPDF").addEventListener("click", exportCurrentPDF);
-    }
-
-    function renderApp(){
-      ensureCurrentModuleAllowed();
-      renderMenu();
-      updateDatalists();
-
-      switch(settings.currentModule){
-        case "supervisores":
-          renderSupervisorModule();
-          break;
-        case "produccion":
-          renderProduccionModule();
-          break;
-        case "sistema":
-          renderSistemaModule();
-          break;
-        case "manual":
-          renderManualModule();
-          break;
-        case "empresa":
-          renderConsumoEmpresaModule();
-          break;
-        case "servicio":
-          renderConsumoServicioModule();
-          break;
-        case "casino":
-          renderConsumoCasinoModule();
-          break;
-        case "curva":
-          renderCurvaModule();
-          break;
-        case "cobro":
-          renderCobroModule();
-          break;
-        default:
-          settings.currentModule = "supervisores";
-          saveSettings();
-          renderSupervisorModule();
-          break;
-      }
-    }
-
-    async function initApp(){
-      db = await loadDb();
-      bindGlobalControls();
-      renderApp();
-    }
-
-    initApp();
   </script>
+  <script>
+
+function renderDashboard(){
+
+  const ventasSup = applyGlobalTurnoFilter(getVentasSupervisoresMes());
+  const ventasReal = applyGlobalTurnoFilter(getVentaRealMes());
+  const produccion = applyGlobalTurnoFilter(getProduccionMes());
+  const curva = getCurvaMes();
+
+  const totalSup = ventasSup.reduce((a,b)=>a+Number(b.cantidad||0),0);
+  const totalReal = ventasReal.reduce((a,b)=>a+Number(b.cantidad||0),0);
+  const totalProd = produccion.reduce((a,b)=>a+Number(b.cantidad||0),0);
+  const totalCurva = curva.reduce((a,b)=>a+Number(b.cantidad||0),0);
+
+  const brechaSupReal = totalSup - totalReal;
+  const realAjustado = Math.max(totalReal,totalCurva);
+
+  updateHeader(
+    "Dashboard",
+    "Resumen operacional del período seleccionado."
+  );
+
+  return `
+  ${renderSummaryCards([
+    {label:"Venta supervisores",value:formatNumber(totalSup)},
+    {label:"Venta real",value:formatNumber(totalReal)},
+    {label:"Producción",value:formatNumber(totalProd)},
+    {label:"Curva",value:formatNumber(totalCurva)}
+  ])}
+
+  <div class="grid grid-2">
+
+    <div class="panel">
+      <h3>Comparativo rápido</h3>
+      <div class="mini-list">
+
+        <div class="mini-item">
+          <span>Supervisor vs Real</span>
+          <span class="${brechaSupReal<0?'danger-text':'success-text'}">
+            ${formatNumber(brechaSupReal)}
+          </span>
+        </div>
+
+        <div class="mini-item">
+          <span>Real ajustado por curva</span>
+          <span class="success-text">
+            ${formatNumber(realAjustado)}
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Estado del período</h3>
+
+      ${
+        isPeriodoCerrado()
+          ? `<span class="status-pill status-closed">CERRADO</span>`
+          : `<span class="status-pill status-open">ABIERTO</span>`
+      }
+
+      <div class="notice">
+      Cuando el período está cerrado no se pueden modificar registros.
+      </div>
+    </div>
+
+  </div>
+  `;
+}
+
+function renderVentaSupervisores(){
+
+  updateHeader(
+    "Venta supervisores",
+    "Captura de venta diaria desde supervisión."
+  );
+
+  const rows = applyGlobalTurnoFilter(getVentasSupervisoresMes());
+
+  return `
+  <div class="panel">
+    <h3>Registrar venta</h3>
+
+    <div class="form-grid">
+
+      <div class="field">
+        <label>Fecha</label>
+        <input type="date" id="sup_fecha" class="input">
+      </div>
+
+      <div class="field">
+        <label>Servicio</label>
+        <input list="serviciosList" id="sup_servicio" class="input">
+      </div>
+
+      <div class="field">
+        <label>Punto de servicio</label>
+        <select id="sup_punto" class="select">
+          ${db.maestros.puntosServicio.map(x=>`<option>${x}</option>`).join("")}
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Cantidad</label>
+        <input type="number" id="sup_cantidad" class="input">
+      </div>
+
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn primary" id="btn_guardar_sup">Guardar</button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <h3>Resumen</h3>
+
+    ${renderMatrixTable(
+      "supervisores",
+      ["punto_servicio","servicio"],
+      rows,
+      "Punto / Servicio",
+      "supervisores"
+    )}
+
+  </div>
+  `;
+}
+
+function renderProduccion(){
+
+  updateHeader(
+    "Producción",
+    "Carga de raciones planificadas por casino."
+  );
+
+  const rows = applyGlobalTurnoFilter(getProduccionMes());
+
+  return `
+  <div class="panel">
+    <h3>Registrar producción</h3>
+
+    <div class="form-grid">
+
+      <div class="field">
+        <label>Fecha</label>
+        <input type="date" id="prod_fecha" class="input">
+      </div>
+
+      <div class="field">
+        <label>Servicio</label>
+        <input list="serviciosList" id="prod_servicio" class="input">
+      </div>
+
+      <div class="field">
+        <label>Punto de servicio</label>
+        <select id="prod_punto" class="select">
+          ${db.maestros.puntosServicio.map(x=>`<option>${x}</option>`).join("")}
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Cantidad</label>
+        <input type="number" id="prod_cantidad" class="input">
+      </div>
+
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn primary" id="btn_guardar_prod">Guardar</button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <h3>Producción planificada</h3>
+
+    ${renderMatrixTable(
+      "produccion",
+      ["punto_servicio","servicio"],
+      rows,
+      "Punto / Servicio",
+      "produccion"
+    )}
+
+  </div>
+  `;
+}
+
+function renderVentaSistema(){
+
+  updateHeader(
+    "Venta sistema",
+    "Importación desde BBDD."
+  );
+
+  return `
+  <div class="panel">
+
+    <h3>Importar archivo</h3>
+
+    <div class="notice">
+    El archivo debe contener columnas:
+    NOMBRE_EMPRESA, SERVICIO, FECHA, EQUIPO, PRECIO
+    </div>
+
+    <div class="flex">
+      <input type="file" id="archivo_importar" class="input">
+      <button class="btn primary" id="btn_importar_sistema">Importar</button>
+    </div>
+
+    <div id="resultado_importacion"></div>
+
+  </div>
+  `;
+}
+
+function renderVentaManual(){
+
+  updateHeader(
+    "Venta manual",
+    "Registro manual de ventas."
+  );
+
+  const rows = applyGlobalTurnoFilter(getVentasManualMes());
+
+  return `
+  <div class="panel">
+
+    <h3>Registrar venta manual</h3>
+
+    <div class="form-grid">
+
+      <div class="field">
+        <label>Fecha</label>
+        <input type="date" id="man_fecha" class="input">
+      </div>
+
+      <div class="field">
+        <label>Empresa</label>
+        <input list="empresasList" id="man_empresa" class="input">
+      </div>
+
+      <div class="field">
+        <label>Servicio</label>
+        <input list="serviciosList" id="man_servicio" class="input">
+      </div>
+
+      <div class="field">
+        <label>Punto</label>
+        <select id="man_punto" class="select">
+          ${db.maestros.puntosServicio.map(x=>`<option>${x}</option>`).join("")}
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Cantidad</label>
+        <input type="number" id="man_cantidad" class="input">
+      </div>
+
+      <div class="field span-5">
+        <button class="btn primary" id="btn_guardar_manual">
+        Guardar registro
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="panel">
+
+    <h3>Consumos registrados</h3>
+
+    ${renderMatrixTable(
+      "manual",
+      ["empresa","servicio","punto_servicio"],
+      rows,
+      "Empresa / Servicio / Punto",
+      "manual"
+    )}
+
+  </div>
+  `;
+}
+
+function renderConsumoEmpresa(){
+
+  updateHeader(
+    "Consumos por empresa",
+    "Vista matricial por fecha."
+  );
+
+  const rows = applyGlobalTurnoFilter(getVentaRealMes());
+
+  return `
+  ${renderFilterBar("empresa",rows)}
+
+  <div class="panel">
+
+  ${renderMatrixTable(
+    "empresa",
+    ["empresa","servicio","punto_servicio"],
+    filterConsumptionRows(rows,matrixFilters.empresa),
+    "Empresa / Servicio / Punto",
+    "consumo_empresa"
+  )}
+
+  </div>
+  `;
+}
+
+function renderConsumoServicio(){
+
+  updateHeader(
+    "Consumos por servicios",
+    "Vista matricial por fecha."
+  );
+
+  const rows = applyGlobalTurnoFilter(getVentaRealMes());
+
+  return `
+  ${renderFilterBar("servicio",rows)}
+
+  <div class="panel">
+
+  ${renderMatrixTable(
+    "servicio",
+    ["servicio","empresa","punto_servicio"],
+    filterConsumptionRows(rows,matrixFilters.servicio),
+    "Servicio / Empresa / Punto",
+    "consumo_servicio"
+  )}
+
+  </div>
+  `;
+}
+
+function renderConsumoPunto(){
+
+  updateHeader(
+    "Consumos por puntos",
+    "Vista matricial por fecha."
+  );
+
+  const rows = applyGlobalTurnoFilter(getVentaRealMes());
+
+  return `
+  ${renderFilterBar("punto",rows)}
+
+  <div class="panel">
+
+  ${renderMatrixTable(
+    "punto",
+    ["punto_servicio","servicio","empresa"],
+    filterConsumptionRows(rows,matrixFilters.punto),
+    "Punto / Servicio / Empresa",
+    "consumo_punto"
+  )}
+
+  </div>
+  `;
+}
+
+function renderComparativos(){
+
+  updateHeader(
+    "Comparativos",
+    "Supervisor vs Real y Real vs Curva."
+  );
+
+  const sup = applyGlobalTurnoFilter(getVentasSupervisoresMes());
+  const real = applyGlobalTurnoFilter(getVentaRealMes());
+  const curva = getCurvaMes();
+
+  const totalSup = sup.reduce((a,b)=>a+Number(b.cantidad||0),0);
+  const totalReal = real.reduce((a,b)=>a+Number(b.cantidad||0),0);
+  const totalCurva = curva.reduce((a,b)=>a+Number(b.cantidad||0),0);
+
+  const realAjustado = Math.max(totalReal,totalCurva);
+
+  return `
+  ${renderSummaryCards([
+    {label:"Supervisor",value:formatNumber(totalSup)},
+    {label:"Real",value:formatNumber(totalReal)},
+    {label:"Curva",value:formatNumber(totalCurva)},
+    {label:"Real Ajustado",value:formatNumber(realAjustado)}
+  ])}
+  `;
+}
+
+</script>
+<script>
+
+function renderCurva(){
+
+  updateHeader(
+    "Curva mensual",
+    "Carga de curva contractual del mes."
+  );
+
+  const curva = getCurvaMes();
+
+  return `
+  <div class="panel">
+
+    <h3>Registrar curva</h3>
+
+    <div class="form-grid">
+
+      <div class="field">
+        <label>Empresa</label>
+        <input list="empresasList" id="curva_empresa" class="input">
+      </div>
+
+      <div class="field">
+        <label>Servicio</label>
+        <input list="serviciosList" id="curva_servicio" class="input">
+      </div>
+
+      <div class="field">
+        <label>Cantidad</label>
+        <input type="number" id="curva_cantidad" class="input">
+      </div>
+
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn primary" id="btn_guardar_curva">
+        Guardar curva
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="panel">
+
+    <h3>Curva registrada</h3>
+
+    <div class="table-wrap">
+
+    <table>
+      <thead>
+        <tr>
+          <th>Empresa</th>
+          <th>Servicio</th>
+          <th class="right">Cantidad</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+      ${
+        curva.length
+          ? curva.map(r=>`
+          <tr>
+            <td>${r.empresa}</td>
+            <td>${r.servicio}</td>
+            <td class="right">${formatNumber(r.cantidad)}</td>
+          </tr>
+          `).join("")
+          : `<tr><td colspan="3">Sin datos</td></tr>`
+      }
+
+      </tbody>
+
+    </table>
+
+    </div>
+
+  </div>
+  `;
+}
+
+function renderCobro(){
+
+  updateHeader(
+    "Base de cobro",
+    "Real ajustado según curva."
+  );
+
+  const real = getVentaRealMes();
+  const curva = getCurvaMes();
+
+  const totalReal = real.reduce((a,b)=>a+Number(b.cantidad||0),0);
+  const totalCurva = curva.reduce((a,b)=>a+Number(b.cantidad||0),0);
+
+  const cobro = Math.max(totalReal,totalCurva);
+
+  return `
+  ${renderSummaryCards([
+    {label:"Real",value:formatNumber(totalReal)},
+    {label:"Curva",value:formatNumber(totalCurva)},
+    {label:"Cobro final",value:formatNumber(cobro)}
+  ])}
+  `;
+}
+
+function renderCierre(){
+
+  updateHeader(
+    "Cierre mensual",
+    "Bloquea modificaciones del período."
+  );
+
+  const cerrado = isPeriodoCerrado();
+
+  return `
+  <div class="panel">
+
+    <h3>Estado del período</h3>
+
+    ${
+      cerrado
+      ? `<span class="status-pill status-closed">CERRADO</span>`
+      : `<span class="status-pill status-open">ABIERTO</span>`
+    }
+
+    <div class="notice">
+    Si el período se cierra no se pueden registrar cambios.
+    </div>
+
+    ${
+      cerrado
+        ? `<button class="btn warning" id="btn_reabrir">Reabrir período</button>`
+        : `<button class="btn danger" id="btn_cerrar">Cerrar período</button>`
+    }
+
+  </div>
+  `;
+}
+
+function renderTurnos(){
+
+  updateHeader(
+    "Configuración de turnos",
+    "Sistema configurable por ciclos."
+  );
+
+  return `
+  <div class="panel">
+
+    <div class="form-grid">
+
+      <div class="field">
+        <label>Fecha inicio ciclo</label>
+        <input type="date" id="turno_inicio" class="input"
+        value="${turnosConfig.fecha_inicio_ciclo}">
+      </div>
+
+      <div class="field">
+        <label>Días por turno</label>
+        <input type="number" id="turno_duracion" class="input"
+        value="${turnosConfig.duracion_turno}">
+      </div>
+
+      <div class="field">
+        <label>Cantidad turnos</label>
+        <input type="number" id="turno_cantidad" class="input"
+        value="${turnosConfig.cantidad_turnos}">
+      </div>
+
+      <div class="field span-2">
+        <label>Nombres turnos (coma)</label>
+        <input id="turno_nombres" class="input"
+        value="${turnosConfig.nombres_turnos.join(",")}">
+      </div>
+
+      <div class="field span-5">
+        <button class="btn primary" id="btn_guardar_turnos">
+        Guardar configuración
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+  `;
+}
+
+function renderAsistente(){
+
+  updateHeader(
+    "Asistente de análisis",
+    "Interpretación automática de datos."
+  );
+
+  return `
+  <div class="assistant-box">
+
+    <div class="flex">
+
+      <button class="btn secondary" data-analisis="promedio_dia">
+      Promedio por día
+      </button>
+
+      <button class="btn secondary" data-analisis="por_casino">
+      Consumo por casino
+      </button>
+
+      <button class="btn secondary" data-analisis="comparar_turnos">
+      Comparar turnos
+      </button>
+
+      <button class="btn secondary" data-analisis="anomalias">
+      Detectar anomalías
+      </button>
+
+    </div>
+
+    <textarea class="textarea"
+    id="consulta_libre"
+    placeholder="Consulta libre sobre los datos"></textarea>
+
+    <button class="btn primary" id="btn_consultar">
+    Analizar
+    </button>
+
+    <div class="assistant-output" id="resultado_asistente">
+    Aquí aparecerá el análisis.
+    </div>
+
+  </div>
+  `;
+}
+
+function renderApp(){
+
+  renderMenu();
+
+  updateDatalists();
+
+  const app = document.getElementById("appContent");
+
+  switch(settings.currentModule){
+
+    case "dashboard":
+      app.innerHTML = renderDashboard();
+      break;
+
+    case "supervisores":
+      app.innerHTML = renderVentaSupervisores();
+      break;
+
+    case "produccion":
+      app.innerHTML = renderProduccion();
+      break;
+
+    case "sistema":
+      app.innerHTML = renderVentaSistema();
+      break;
+
+    case "manual":
+      app.innerHTML = renderVentaManual();
+      break;
+
+    case "empresa":
+      app.innerHTML = renderConsumoEmpresa();
+      break;
+
+    case "servicio":
+      app.innerHTML = renderConsumoServicio();
+      break;
+
+    case "punto":
+      app.innerHTML = renderConsumoPunto();
+      break;
+
+    case "comparativos":
+      app.innerHTML = renderComparativos();
+      break;
+
+    case "curva":
+      app.innerHTML = renderCurva();
+      break;
+
+    case "cobro":
+      app.innerHTML = renderCobro();
+      break;
+
+    case "cierre":
+      app.innerHTML = renderCierre();
+      break;
+
+    case "turnos":
+      app.innerHTML = renderTurnos();
+      break;
+
+    case "asistente":
+      app.innerHTML = renderAsistente();
+      break;
+
+  }
+
+  bindTreeToggles();
+}
+
+async function init(){
+
+  db = await loadDb();
+
+  document.getElementById("perfilSelector").value = settings.perfil;
+  document.getElementById("periodoSelector").value = settings.periodo;
+
+  document.getElementById("perfilSelector").addEventListener("change",e=>{
+    settings.perfil = e.target.value;
+    saveSettings();
+    renderApp();
+  });
+
+  document.getElementById("periodoSelector").addEventListener("change",e=>{
+    settings.periodo = e.target.value;
+    saveSettings();
+    renderApp();
+  });
+
+  document.getElementById("btnReset").addEventListener("click",()=>{
+    if(confirm("Borrar base local?")){
+      indexedDB.deleteDatabase(DB_NAME);
+      location.reload();
+    }
+  });
+
+  renderApp();
+}
+
+init();
+
+</script>
 </body>
 </html>
