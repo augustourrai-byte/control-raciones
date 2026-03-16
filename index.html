@@ -1557,27 +1557,212 @@ function renderVentaSistema(){
     "Importación desde BBDD."
   );
 
+  const rows = applyGlobalTurnoFilter(getVentasSistemaMes());
+
+  currentExport = {
+    headers:["Fecha","Empresa","Servicio","Familia","Punto de servicio","Cantidad"],
+    rows: rows
+      .slice()
+      .sort((a,b)=>(a.fecha+a.empresa+a.servicio+a.punto_servicio).localeCompare(b.fecha+b.empresa+b.servicio+b.punto_servicio))
+      .map(r => [r.fecha, r.empresa, r.servicio, r.familia, r.punto_servicio, r.cantidad]),
+    filename:`venta_sistema_${settings.periodo}`
+  };
+
   return `
   <div class="panel">
 
     <h3>Importar archivo</h3>
 
     <div class="notice">
-    El archivo debe contener columnas:
-    NOMBRE_EMPRESA, SERVICIO, FECHA, EQUIPO, PRECIO
+    El archivo debe contener columnas: NOMBRE_EMPRESA, SERVICIO, FECHA, EQUIPO, PRECIO
     </div>
 
     <div class="flex">
-      <input type="file" id="archivo_importar" class="input">
+      <input type="file" id="archivo_importar" class="input" accept=".xlsx,.xls,.csv">
       <button class="btn primary" id="btn_importar_sistema">Importar</button>
+      <button class="btn secondary" id="btn_limpiar_sistema">Limpiar selección</button>
+      <button class="btn secondary" id="btn_vaciar_sistema_mes">Vaciar período actual</button>
     </div>
 
     <div id="resultado_importacion"></div>
 
   </div>
+
+  <div class="panel">
+    <h3>Venta sistema cargada</h3>
+
+    ${
+      rows.length
+      ? renderMatrixTable(
+          "sistema",
+          ["empresa","servicio","punto_servicio"],
+          rows,
+          "Empresa / Servicio / Punto",
+          "venta_sistema"
+        )
+      : `<div class="empty">No hay registros importados en el período seleccionado.</div>`
+    }
+
+  </div>
   `;
 }
 
+function getHeaderValue(row, headerName){
+  const key = Object.keys(row).find(k => normalizeText(k) === headerName);
+  return key ? row[key] : "";
+}
+
+async function procesarArchivoSistema(rows){
+
+  const out = document.getElementById("resultado_importacion");
+
+  if(!rows || !rows.length){
+    out.innerHTML = `<div class="notice danger">El archivo no contiene filas válidas.</div>`;
+    return;
+  }
+
+  const headers = Object.keys(rows[0]).map(h => normalizeText(h));
+  const required = ["NOMBRE_EMPRESA","SERVICIO","FECHA","EQUIPO","PRECIO"];
+  const missing = required.filter(h => !headers.includes(h));
+
+  if(missing.length){
+    out.innerHTML = `<div class="notice danger">Faltan columnas obligatorias: <strong>${missing.join(", ")}</strong></div>`;
+    return;
+  }
+
+  const grouped = {};
+  let leidas = 0;
+  let total = 0;
+
+  rows.forEach(row => {
+    const empresa = normalizeText(getHeaderValue(row, "NOMBRE_EMPRESA"));
+    const servicio = normalizeText(getHeaderValue(row, "SERVICIO"));
+    const fecha = parseDateToISO(getHeaderValue(row, "FECHA"));
+    const equipo = normalizeText(getHeaderValue(row, "EQUIPO"));
+    const punto = EQUIPO_MAP[equipo] || equipo || "SIN MAPEO";
+
+    let cantidadRaw = getHeaderValue(row, "PRECIO");
+    if(typeof cantidadRaw === "string"){
+      cantidadRaw = cantidadRaw.replace(/\./g, "").replace(",", ".");
+    }
+    const cantidad = Number(cantidadRaw);
+
+    if(!empresa || !servicio || !fecha || !punto || Number.isNaN(cantidad)) return;
+
+    const key = `${fecha}|${empresa}|${servicio}|${punto}`;
+
+    if(!grouped[key]){
+      grouped[key] = {
+        id: `${Date.now()}_${Math.random()}`,
+        fecha,
+        empresa,
+        servicio,
+        familia: normalizeServiceFamily(servicio),
+        punto_servicio: punto,
+        cantidad: 0
+      };
+    }
+
+    grouped[key].cantidad += cantidad;
+    leidas += 1;
+    total += cantidad;
+  });
+
+  const importados = Object.values(grouped);
+
+  importados.forEach(r => {
+    db.ventaSistema.push(r);
+    ensureMasters(r.empresa, r.servicio);
+  });
+
+  await saveDb();
+
+  out.innerHTML = `
+    <div class="notice success">
+      ✔ Filas leídas: <strong>${formatNumber(leidas)}</strong><br>
+      ✔ Registros consolidados: <strong>${formatNumber(importados.length)}</strong><br>
+      ✔ Cantidad total importada: <strong>${formatNumber(total)}</strong>
+    </div>
+  `;
+
+  renderApp();
+}
+
+async function importarArchivoSistema(){
+
+  if(!guardPeriodoAbierto()) return;
+
+  const input = document.getElementById("archivo_importar");
+  const file = input.files[0];
+  const out = document.getElementById("resultado_importacion");
+
+  if(!file){
+    alert("Selecciona un archivo antes de importar.");
+    return;
+  }
+
+  out.innerHTML = `<div class="notice">Procesando archivo...</div>`;
+
+  const reader = new FileReader();
+
+  reader.onload = async function(e){
+    try{
+      const data = e.target.result;
+      let workbook;
+
+      if(file.name.toLowerCase().endsWith(".csv")){
+        workbook = XLSX.read(data, { type:"string" });
+      }else{
+        workbook = XLSX.read(new Uint8Array(data), { type:"array" });
+      }
+
+      const firstSheet = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[firstSheet];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval:"" });
+
+      await procesarArchivoSistema(rows);
+
+    }catch(error){
+      out.innerHTML = `<div class="notice danger">Error al leer el archivo: <strong>${error.message}</strong></div>`;
+    }
+  };
+
+  if(file.name.toLowerCase().endsWith(".csv")){
+    reader.readAsText(file, "utf-8");
+  }else{
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function bindVentaSistemaEvents(){
+
+  const btnImportar = document.getElementById("btn_importar_sistema");
+  const btnLimpiar = document.getElementById("btn_limpiar_sistema");
+  const btnVaciar = document.getElementById("btn_vaciar_sistema_mes");
+
+  if(btnImportar){
+    btnImportar.addEventListener("click", importarArchivoSistema);
+  }
+
+  if(btnLimpiar){
+    btnLimpiar.addEventListener("click", () => {
+      document.getElementById("archivo_importar").value = "";
+      document.getElementById("resultado_importacion").innerHTML = "";
+    });
+  }
+
+  if(btnVaciar){
+    btnVaciar.addEventListener("click", async () => {
+      if(!guardPeriodoAbierto()) return;
+      if(!confirm(`Se eliminará toda la venta sistema del período ${settings.periodo}.`)) return;
+
+      db.ventaSistema = db.ventaSistema.filter(x => monthOf(x.fecha) !== settings.periodo);
+      await saveDb();
+      renderApp();
+    });
+  }
+}    
+    
 function renderVentaManual(){
 
   updateHeader(
@@ -2012,6 +2197,8 @@ function renderApp(){
 
     case "sistema":
       app.innerHTML = renderVentaSistema();
+      bindVentaSistemaEvents();
+      bindTreeToggles();
       break;
 
     case "manual":
