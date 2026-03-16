@@ -1,494 +1,2313 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Control Raciones Faena</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Control Operacional de Raciones</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root{
+      --bg:#f3f5f9;
+      --panel:#ffffff;
+      --panel-2:#f8fafc;
+      --line:#e5e7eb;
+      --text:#0f172a;
+      --muted:#64748b;
+      --dark:#111827;
+      --dark-2:#1f2937;
+      --primary:#2563eb;
+      --primary-2:#1d4ed8;
+      --success:#059669;
+      --warning:#d97706;
+      --danger:#dc2626;
+      --shadow:0 10px 30px rgba(15,23,42,.08);
+      --radius:18px;
+    }
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
 
-<style>
+    .app{
+      display:grid;
+      grid-template-columns: 300px 1fr;
+      min-height:100vh;
+    }
 
-body{
-font-family:Arial;
-margin:0;
-background:#f4f4f4;
-}
+    .sidebar{
+      background:linear-gradient(180deg,#111827 0%, #1f2937 100%);
+      color:#fff;
+      padding:22px 18px;
+      position:sticky;
+      top:0;
+      height:100vh;
+      overflow:auto;
+    }
 
-.container{
-display:flex;
-height:100vh;
-}
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      margin-bottom:20px;
+      padding:6px 8px 16px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
 
-.menu{
-width:250px;
-background:#2c2c2c;
-color:white;
-padding:10px;
-overflow:auto;
-}
+    .brand h1{
+      margin:0;
+      font-size:22px;
+      font-weight:800;
+      letter-spacing:.2px;
+    }
 
-.menu button{
-width:100%;
-margin-bottom:6px;
-padding:12px;
-border:none;
-background:#444;
-color:white;
-cursor:pointer;
-}
+    .brand p{
+      margin:0;
+      color:rgba(255,255,255,.65);
+      font-size:13px;
+    }
 
-.menu button:hover{
-background:#666;
-}
+    .menu{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:18px;
+    }
 
-.content{
-flex:1;
-padding:20px;
-overflow:auto;
-background:white;
-}
+    .menu-btn{
+      width:100%;
+      text-align:left;
+      border:none;
+      background:rgba(255,255,255,.08);
+      color:#fff;
+      padding:14px 16px;
+      border-radius:14px;
+      cursor:pointer;
+      font-size:15px;
+      transition:.18s ease;
+    }
 
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:10px;
-}
+    .menu-btn:hover{
+      background:rgba(255,255,255,.14);
+      transform:translateY(-1px);
+    }
 
-td,th{
-border:1px solid #ddd;
-padding:6px;
-text-align:left;
-}
+    .menu-btn.active{
+      background:#fff;
+      color:#111827;
+      font-weight:700;
+    }
 
-input,select{
-padding:6px;
-margin:3px;
-}
+    .sidebar-card{
+      margin-top:18px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
+      padding:14px;
+    }
 
-.resumen{
-background:#efefef;
-padding:10px;
-margin-bottom:10px;
-}
+    .sidebar-card h3{
+      margin:0 0 10px;
+      font-size:14px;
+      color:#fff;
+    }
 
-</style>
+    .sidebar-card label{
+      font-size:12px;
+      color:rgba(255,255,255,.75);
+      display:block;
+      margin:0 0 6px;
+    }
+
+    .sidebar-card select,
+    .sidebar-card input{
+      width:100%;
+      border:none;
+      border-radius:12px;
+      padding:10px 12px;
+      background:#fff;
+      color:#111827;
+      font-size:14px;
+    }
+
+    .main{
+      padding:24px;
+      min-width:0;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:20px;
+      flex-wrap:wrap;
+    }
+
+    .page-title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .page-title h2{
+      margin:0;
+      font-size:34px;
+      line-height:1.05;
+    }
+
+    .page-title p{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .toolbar input,
+    .toolbar select,
+    .toolbar button,
+    .field input,
+    .field select,
+    .field textarea{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:12px;
+      padding:11px 12px;
+      font-size:14px;
+      color:var(--text);
+      outline:none;
+    }
+
+    .toolbar button,
+    .btn{
+      cursor:pointer;
+      background:var(--dark);
+      color:#fff;
+      border:none;
+      padding:11px 14px;
+      border-radius:12px;
+      font-weight:700;
+    }
+
+    .btn:hover,
+    .toolbar button:hover{
+      background:var(--dark-2);
+    }
+
+    .btn.secondary{
+      background:#fff;
+      color:var(--text);
+      border:1px solid var(--line);
+    }
+
+    .btn.secondary:hover{
+      background:var(--panel-2);
+    }
+
+    .btn.primary{
+      background:var(--primary);
+    }
+
+    .btn.primary:hover{
+      background:var(--primary-2);
+    }
+
+    .btn.danger{
+      background:var(--danger);
+    }
+
+    .btn.danger:hover{
+      filter:brightness(.95);
+    }
+
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+      margin-bottom:18px;
+    }
+
+    .panel h3{
+      margin:0 0 12px;
+      font-size:20px;
+    }
+
+    .panel-subtitle{
+      margin:-4px 0 14px;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .grid{
+      display:grid;
+      gap:14px;
+    }
+
+    .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .grid.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .grid.cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+    .grid.cols-6{grid-template-columns:repeat(6,minmax(0,1fr))}
+
+    .kpi{
+      background:linear-gradient(180deg,#fff 0%, #f8fafc 100%);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      min-height:100px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+
+    .kpi .label{
+      color:var(--muted);
+      font-size:13px;
+      font-weight:600;
+    }
+
+    .kpi .value{
+      font-size:32px;
+      font-weight:800;
+      letter-spacing:-.5px;
+    }
+
+    .kpi .sub{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .form-grid{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:12px;
+      align-items:end;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .field label{
+      font-size:13px;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    .field textarea{
+      min-height:92px;
+      resize:vertical;
+    }
+
+    .table-wrap{
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:16px;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:#fff;
+    }
+
+    th, td{
+      padding:12px 12px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      font-size:14px;
+      vertical-align:top;
+      white-space:nowrap;
+    }
+
+    th{
+      background:#f8fafc;
+      color:#334155;
+      font-size:13px;
+      text-transform:uppercase;
+      letter-spacing:.35px;
+    }
+
+    tr:last-child td{border-bottom:none}
+
+    .muted{color:var(--muted)}
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+      background:#eff6ff;
+      color:#1d4ed8;
+    }
+
+    .tag.success{background:#ecfdf5;color:#047857}
+    .tag.warning{background:#fffbeb;color:#b45309}
+    .tag.danger{background:#fef2f2;color:#b91c1c}
+    .tag.gray{background:#f1f5f9;color:#475569}
+
+    .accordion{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    details{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#fff;
+      overflow:hidden;
+    }
+
+    summary{
+      list-style:none;
+      cursor:pointer;
+      padding:14px 16px;
+      font-weight:800;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background:#fbfdff;
+    }
+
+    summary::-webkit-details-marker{display:none}
+
+    .summary-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .summary-right{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:var(--muted);
+      font-size:13px;
+      flex-wrap:wrap;
+    }
+
+    .details-body{
+      padding:0 14px 14px;
+      background:#fff;
+    }
+
+    .nested{
+      margin-top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .empty{
+      border:1px dashed var(--line);
+      border-radius:16px;
+      padding:22px;
+      text-align:center;
+      color:var(--muted);
+      background:#fcfcfd;
+    }
+
+    .stat-row{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      padding:10px 0;
+      border-bottom:1px solid var(--line);
+      font-size:14px;
+    }
+
+    .stat-row:last-child{border-bottom:none}
+
+    .flex{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .right{text-align:right}
+    .danger-text{color:var(--danger); font-weight:700}
+    .success-text{color:var(--success); font-weight:700}
+    .warning-text{color:var(--warning); font-weight:700}
+
+    .hidden{display:none!important}
+
+    .file-note{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:4px;
+    }
+
+    .notice{
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#f8fafc;
+      color:#334155;
+      font-size:14px;
+      margin-top:12px;
+    }
+
+    @media (max-width: 1250px){
+      .grid.cols-6{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .grid.cols-5{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+    }
+
+    @media (max-width: 980px){
+      .app{grid-template-columns:1fr}
+      .sidebar{
+        position:relative;
+        height:auto;
+        border-bottom:1px solid rgba(255,255,255,.08);
+      }
+      .grid.cols-4,
+      .grid.cols-3,
+      .grid.cols-2{grid-template-columns:1fr}
+      .form-grid{grid-template-columns:1fr}
+      .topbar{align-items:flex-start}
+      .page-title h2{font-size:28px}
+    }
+  </style>
 </head>
-
-
 <body>
-
-<div class="container">
-
-<div class="menu">
-
-<button onclick="showModule('supervisores')">Venta supervisores</button>
-<button onclick="showModule('produccion')">Producción</button>
-<button onclick="showModule('sistema')">Venta sistema</button>
-<button onclick="showModule('manual')">Venta manuales</button>
-<button onclick="showModule('empresa')">Consumos por empresas</button>
-<button onclick="showModule('servicio')">Consumos por servicios</button>
-<button onclick="showModule('casino')">Consumos por casinos</button>
-<button onclick="showModule('curva')">Curva mensual</button>
-<button onclick="showModule('cobro')">Base de cobro</button>
-
-</div>
-
-<div class="content" id="content"></div>
-
-</div>
-
-<script>
-
-const CASINOS = {
-"A":"DP (PLANTA)",
-"B":"DM (MINA)",
-"C":"CAP",
-"D":"AÑAÑUCAS",
-"E":"CF",
-"F":"CAES",
-"G":"PDA 1"
-}
-
-let db = JSON.parse(localStorage.getItem("raciones_db")) || {
-
-ventaSupervisores:[],
-produccion:[],
-ventaSistema:[],
-ventaManual:[],
-curvaMensual:[]
-
-}
-
-function saveDB(){
-localStorage.setItem("raciones_db",JSON.stringify(db))
-}
-
-function showModule(name){
-
-if(name==="supervisores") moduleSupervisores()
-if(name==="produccion") moduleProduccion()
-if(name==="sistema") moduleSistema()
-if(name==="manual") moduleManual()
-if(name==="empresa") moduleEmpresa()
-if(name==="servicio") moduleServicio()
-if(name==="casino") moduleCasino()
-if(name==="curva") moduleCurva()
-if(name==="cobro") moduleCobro()
-
-}
-
-function moduleSupervisores(){
-
-let html=`
-
-<h2>Venta Supervisores</h2>
-
-<div class="resumen">
-Ingreso simple por fecha / servicio / casino
-</div>
-
-Fecha <input type="date" id="sup_fecha">
-
-Servicio <input id="sup_servicio">
-
-Casino
-<select id="sup_casino">
-<option>DP (PLANTA)</option>
-<option>DM (MINA)</option>
-<option>CAP</option>
-<option>AÑAÑUCAS</option>
-<option>CF</option>
-<option>CAES</option>
-<option>PDA 1</option>
-</select>
-
-Cantidad <input type="number" id="sup_cantidad">
-
-<button onclick="addSupervisor()">Guardar</button>
-
-<h3>Resumen del día</h3>
-
-<div id="sup_resumen"></div>
-
-`
-
-document.getElementById("content").innerHTML=html
-
-renderSupervisorResumen()
-
-}
-
-function addSupervisor(){
-
-let item={
-
-fecha:document.getElementById("sup_fecha").value,
-servicio:document.getElementById("sup_servicio").value,
-casino:document.getElementById("sup_casino").value,
-cantidad:Number(document.getElementById("sup_cantidad").value)
-
-}
-
-db.ventaSupervisores.push(item)
-
-saveDB()
-
-renderSupervisorResumen()
-
-}
-
-function renderSupervisorResumen(){
-
-let map={}
-
-db.ventaSupervisores.forEach(r=>{
-
-let key=r.fecha+"_"+r.casino+"_"+r.servicio
-
-if(!map[key]) map[key]=0
-
-map[key]+=r.cantidad
-
-})
-
-let html="<table><tr><th>Fecha</th><th>Casino</th><th>Servicio</th><th>Cantidad</th></tr>"
-
-Object.keys(map).forEach(k=>{
-
-let parts=k.split("_")
-
-html+=`<tr>
-<td>${parts[0]}</td>
-<td>${parts[1]}</td>
-<td>${parts[2]}</td>
-<td>${map[k]}</td>
-</tr>`
-
-})
-
-html+="</table>"
-
-document.getElementById("sup_resumen").innerHTML=html
-
-}
-
-function moduleProduccion(){
-
-let html=`
-
-<h2>Producción</h2>
-
-Fecha <input type="date" id="prod_fecha">
-
-Servicio <input id="prod_servicio">
-
-Casino
-<select id="prod_casino">
-<option>DP (PLANTA)</option>
-<option>DM (MINA)</option>
-<option>CAP</option>
-<option>AÑAÑUCAS</option>
-<option>CF</option>
-<option>CAES</option>
-<option>PDA 1</option>
-</select>
-
-Cantidad <input type="number" id="prod_cantidad">
-
-<button onclick="addProduccion()">Guardar</button>
-
-<div id="prod_tabla"></div>
-
-`
-
-document.getElementById("content").innerHTML=html
-
-renderProduccion()
-
-}
-
-function addProduccion(){
-
-db.produccion.push({
-
-fecha:document.getElementById("prod_fecha").value,
-servicio:document.getElementById("prod_servicio").value,
-casino:document.getElementById("prod_casino").value,
-cantidad:Number(document.getElementById("prod_cantidad").value)
-
-})
-
-saveDB()
-
-renderProduccion()
-
-}
-
-function renderProduccion(){
-
-let html="<table><tr><th>Fecha</th><th>Casino</th><th>Servicio</th><th>Cantidad</th></tr>"
-
-db.produccion.forEach(r=>{
-
-html+=`<tr>
-<td>${r.fecha}</td>
-<td>${r.casino}</td>
-<td>${r.servicio}</td>
-<td>${r.cantidad}</td>
-</tr>`
-
-})
-
-html+="</table>"
-
-document.getElementById("prod_tabla").innerHTML=html
-
-}
-
-function moduleSistema(){
-
-let html=`
-
-<h2>Importar Venta Sistema</h2>
-
-<input type="file" id="fileSistema">
-
-<button onclick="importSistema()">Importar</button>
-
-<div id="tablaSistema"></div>
-
-`
-
-document.getElementById("content").innerHTML=html
-
-renderSistema()
-
-}
-
-function importSistema(){
-
-let file=document.getElementById("fileSistema").files[0]
-
-let reader=new FileReader()
-
-reader.onload=function(e){
-
-let data=new Uint8Array(e.target.result)
-
-let workbook=XLSX.read(data,{type:"array"})
-
-let sheet=workbook.Sheets[workbook.SheetNames[0]]
-
-let json=XLSX.utils.sheet_to_json(sheet)
-
-json.forEach(r=>{
-
-let casino=CASINOS[r.EQUIPO] || r.EQUIPO
-
-db.ventaSistema.push({
-
-fecha:r.FECHA,
-empresa:r.NOMBRE_EMPRESA,
-servicio:r.SERVICIO,
-casino:casino,
-cantidad:Number(r.PRECIO)
-
-})
-
-})
-
-saveDB()
-
-renderSistema()
-
-}
-
-reader.readAsArrayBuffer(file)
-
-}
-
-function renderSistema(){
-
-let html="<table><tr><th>Fecha</th><th>Empresa</th><th>Servicio</th><th>Casino</th><th>Cantidad</th></tr>"
-
-db.ventaSistema.forEach(r=>{
-
-html+=`<tr>
-<td>${r.fecha}</td>
-<td>${r.empresa}</td>
-<td>${r.servicio}</td>
-<td>${r.casino}</td>
-<td>${r.cantidad}</td>
-</tr>`
-
-})
-
-html+="</table>"
-
-document.getElementById("tablaSistema").innerHTML=html
-
-}
-
-function moduleManual(){
-
-let html=`
-
-<h2>Venta Manual</h2>
-
-Fecha <input type="date" id="man_fecha">
-
-Empresa <input id="man_empresa">
-
-Servicio <input id="man_servicio">
-
-Casino
-<select id="man_casino">
-<option>DP (PLANTA)</option>
-<option>DM (MINA)</option>
-<option>CAP</option>
-<option>AÑAÑUCAS</option>
-<option>CF</option>
-<option>CAES</option>
-<option>PDA 1</option>
-</select>
-
-Cantidad <input type="number" id="man_cantidad">
-
-<button onclick="addManual()">Guardar</button>
-
-<div id="tablaManual"></div>
-
-`
-
-document.getElementById("content").innerHTML=html
-
-renderManual()
-
-}
-
-function addManual(){
-
-db.ventaManual.push({
-
-fecha:document.getElementById("man_fecha").value,
-empresa:document.getElementById("man_empresa").value,
-servicio:document.getElementById("man_servicio").value,
-casino:document.getElementById("man_casino").value,
-cantidad:Number(document.getElementById("man_cantidad").value)
-
-})
-
-saveDB()
-
-renderManual()
-
-}
-
-function renderManual(){
-
-let html="<table><tr><th>Fecha</th><th>Empresa</th><th>Servicio</th><th>Casino</th><th>Cantidad</th></tr>"
-
-db.ventaManual.forEach(r=>{
-
-html+=`<tr>
-<td>${r.fecha}</td>
-<td>${r.empresa}</td>
-<td>${r.servicio}</td>
-<td>${r.casino}</td>
-<td>${r.cantidad}</td>
-</tr>`
-
-})
-
-html+="</table>"
-
-document.getElementById("tablaManual").innerHTML=html
-
-}
-
-function moduleEmpresa(){
-document.getElementById("content").innerHTML="<h2>Consumos por empresas (próximo paso)</h2>"
-}
-
-function moduleServicio(){
-document.getElementById("content").innerHTML="<h2>Consumos por servicios (próximo paso)</h2>"
-}
-
-function moduleCasino(){
-document.getElementById("content").innerHTML="<h2>Consumos por casinos (próximo paso)</h2>"
-}
-
-function moduleCurva(){
-document.getElementById("content").innerHTML="<h2>Curva mensual (próximo paso)</h2>"
-}
-
-function moduleCobro(){
-document.getElementById("content").innerHTML="<h2>Base de cobro (próximo paso)</h2>"
-}
-
-showModule("supervisores")
-
-</script>
-
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Control Raciones</h1>
+        <p>Faena minera · histórico mensual · base de cobro</p>
+      </div>
+
+      <div class="sidebar-card">
+        <h3>Perfil</h3>
+        <label>Modo de visualización</label>
+        <select id="perfilSelector">
+          <option value="ADMIN">Administrador</option>
+          <option value="SUPERVISOR">Supervisor</option>
+        </select>
+      </div>
+
+      <div class="sidebar-card">
+        <h3>Período activo</h3>
+        <label>Mes de trabajo</label>
+        <input type="month" id="periodoSelector" />
+      </div>
+
+      <nav class="menu" id="menu"></nav>
+
+      <div class="sidebar-card">
+        <h3>Acciones</h3>
+        <div class="flex">
+          <button class="btn secondary" id="btnExportarCobro" style="width:100%">Exportar base cobro</button>
+          <button class="btn secondary" id="btnExportarReal" style="width:100%">Exportar venta real</button>
+          <button class="btn danger" id="btnReset" style="width:100%">Reset local</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="page-title">
+          <h2 id="pageTitle">Venta supervisores</h2>
+          <p id="pageSubtitle">Captura y control operacional por período.</p>
+        </div>
+
+        <div class="toolbar">
+          <span class="tag gray" id="perfilTag">ADMINISTRADOR</span>
+          <span class="tag" id="periodoTag"></span>
+        </div>
+      </div>
+
+      <div id="appContent"></div>
+    </main>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "control_raciones_v4_full";
+    const SETTINGS_KEY = "control_raciones_v4_settings";
+
+    const CASINOS = [
+      "DP (PLANTA)",
+      "DM (MINA)",
+      "CAP",
+      "AÑAÑUCAS",
+      "CF",
+      "CAES",
+      "PDA 1"
+    ];
+
+    const EQUIPO_MAP = {
+      "A":"DP (PLANTA)",
+      "B":"DM (MINA)",
+      "C":"CAP",
+      "D":"AÑAÑUCAS",
+      "E":"CF",
+      "F":"CAES",
+      "G":"PDA 1"
+    };
+
+    const MENU_ITEMS = [
+      { key: "supervisores", label: "Venta supervisores", roles: ["ADMIN","SUPERVISOR"] },
+      { key: "produccion", label: "Producción", roles: ["ADMIN"] },
+      { key: "sistema", label: "Venta sistema", roles: ["ADMIN"] },
+      { key: "manual", label: "Venta manuales", roles: ["ADMIN"] },
+      { key: "empresa", label: "Consumos por empresas", roles: ["ADMIN"] },
+      { key: "servicio", label: "Consumos por servicios", roles: ["ADMIN"] },
+      { key: "casino", label: "Consumos por casinos", roles: ["ADMIN"] },
+      { key: "curva", label: "Curva mensual", roles: ["ADMIN"] },
+      { key: "cobro", label: "Base de cobro", roles: ["ADMIN"] }
+    ];
+
+    const DEFAULT_DB = {
+      ventaSupervisores: [],
+      produccion: [],
+      ventaSistema: [],
+      ventaManual: [],
+      curvaMensual: [],
+      maestros: {
+        empresas: [],
+        servicios: [
+          "DESAYUNO",
+          "ALMUERZO",
+          "CENA",
+          "CENA TRASNOCHE",
+          "COLACION REFORZADA",
+          "COLACION CORDILLERA",
+          "COLACION TERRENO",
+          "PERMUTA DESAYUNO",
+          "PERMUTA ALMUERZO",
+          "PERMUTA CENA",
+          "PERMUTA CENA 24H",
+          "PERMUTA CENA TRASNOCHE",
+          "AGUAS 500CC",
+          "BIDONES",
+          "COFFEE STANDARD",
+          "COFFEE PLUS",
+          "COFFEE BASICO"
+        ]
+      }
+    };
+
+    const DEFAULT_SETTINGS = {
+      perfil: "ADMIN",
+      periodo: getCurrentMonth(),
+      currentModule: "supervisores"
+    };
+
+    let db = loadDb();
+    let settings = loadSettings();
+
+    function getCurrentMonth(){
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+    }
+
+    function structuredCloneSafe(obj){
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    function loadDb(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw){
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DB));
+        return structuredCloneSafe(DEFAULT_DB);
+      }
+      try{
+        const parsed = JSON.parse(raw);
+        return {
+          ventaSupervisores: parsed.ventaSupervisores || [],
+          produccion: parsed.produccion || [],
+          ventaSistema: parsed.ventaSistema || [],
+          ventaManual: parsed.ventaManual || [],
+          curvaMensual: parsed.curvaMensual || [],
+          maestros: {
+            empresas: parsed?.maestros?.empresas || [],
+            servicios: parsed?.maestros?.servicios || DEFAULT_DB.maestros.servicios
+          }
+        };
+      }catch{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DB));
+        return structuredCloneSafe(DEFAULT_DB);
+      }
+    }
+
+    function loadSettings(){
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if(!raw){
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(DEFAULT_SETTINGS));
+        return structuredCloneSafe(DEFAULT_SETTINGS);
+      }
+      try{
+        return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+      }catch{
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(DEFAULT_SETTINGS));
+        return structuredCloneSafe(DEFAULT_SETTINGS);
+      }
+    }
+
+    function saveDb(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    }
+
+    function saveSettings(){
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    }
+
+    function normalizeText(v){
+      return String(v || "").trim().replace(/\s+/g," ").toUpperCase();
+    }
+
+    function normalizeServiceFamily(servicio){
+      const s = normalizeText(servicio);
+      if(s === "COLACION TERRENO") return "COLACION TERRENO";
+      if(s.includes("PERMUTA")) return "COLACION TERRENO";
+      return s;
+    }
+
+    function parseDateToISO(value){
+      if(value === null || value === undefined || value === "") return "";
+      if(typeof value === "number"){
+        const d = XLSX.SSF.parse_date_code(value);
+        if(d && d.y && d.m && d.d){
+          return `${d.y}-${String(d.m).padStart(2,"0")}-${String(d.d).padStart(2,"0")}`;
+        }
+      }
+      const s = String(value).trim();
+      if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      let m = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+      if(m) return `${m[3]}-${m[2]}-${m[1]}`;
+      m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if(m) return `${m[3]}-${m[2]}-${m[1]}`;
+      m = s.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+      if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+      return "";
+    }
+
+    function formatNumber(n){
+      return new Intl.NumberFormat("es-CL", { maximumFractionDigits: 2 }).format(Number(n || 0));
+    }
+
+    function csvValue(v){
+      const s = String(v ?? "");
+      if(s.includes(";") || s.includes('"') || s.includes("\n")){
+        return `"${s.replace(/"/g,'""')}"`;
+      }
+      return s;
+    }
+
+    function monthOf(fecha){
+      return String(fecha || "").slice(0,7);
+    }
+
+    function inSelectedMonth(fecha){
+      return monthOf(fecha) === settings.periodo;
+    }
+
+    function ensureMasters(empresa, servicio){
+      const e = normalizeText(empresa);
+      const s = normalizeText(servicio);
+      if(e && !db.maestros.empresas.includes(e)) db.maestros.empresas.push(e);
+      if(s && !db.maestros.servicios.includes(s)) db.maestros.servicios.push(s);
+    }
+
+    function getVisibleMenuItems(){
+      return MENU_ITEMS.filter(item => item.roles.includes(settings.perfil));
+    }
+
+    function ensureCurrentModuleAllowed(){
+      const allowed = getVisibleMenuItems().map(x => x.key);
+      if(!allowed.includes(settings.currentModule)){
+        settings.currentModule = allowed[0];
+        saveSettings();
+      }
+    }
+
+    function renderMenu(){
+      ensureCurrentModuleAllowed();
+      const menu = document.getElementById("menu");
+      menu.innerHTML = getVisibleMenuItems().map(item => `
+        <button class="menu-btn ${settings.currentModule === item.key ? "active" : ""}" data-module="${item.key}">
+          ${item.label}
+        </button>
+      `).join("");
+
+      menu.querySelectorAll(".menu-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          settings.currentModule = btn.dataset.module;
+          saveSettings();
+          renderApp();
+        });
+      });
+    }
+
+    function setHeader(title, subtitle){
+      document.getElementById("pageTitle").textContent = title;
+      document.getElementById("pageSubtitle").textContent = subtitle;
+      document.getElementById("perfilTag").textContent = settings.perfil === "ADMIN" ? "ADMINISTRADOR" : "SUPERVISOR";
+      document.getElementById("periodoTag").textContent = `PERÍODO ${settings.periodo}`;
+    }
+
+    function getVentasSistemaMes(){
+      return db.ventaSistema.filter(x => inSelectedMonth(x.fecha));
+    }
+
+    function getVentasManualMes(){
+      return db.ventaManual.filter(x => inSelectedMonth(x.fecha));
+    }
+
+    function getVentasSupervisoresMes(){
+      return db.ventaSupervisores.filter(x => inSelectedMonth(x.fecha));
+    }
+
+    function getProduccionMes(){
+      return db.produccion.filter(x => inSelectedMonth(x.fecha));
+    }
+
+    function getCurvaMes(){
+      return db.curvaMensual.filter(x => x.periodo === settings.periodo);
+    }
+
+    function getVentaRealMes(){
+      const sistema = getVentasSistemaMes().map(x => ({ ...x, origen:"SISTEMA" }));
+      const manual = getVentasManualMes().map(x => ({ ...x, origen:"MANUAL" }));
+      return [...sistema, ...manual];
+    }
+
+    function groupSum(rows, keyFn, amountFn){
+      const map = new Map();
+      rows.forEach(row => {
+        const key = keyFn(row);
+        map.set(key, (map.get(key) || 0) + Number(amountFn(row) || 0));
+      });
+      return map;
+    }
+
+    function sortDatesAsc(arr){
+      return [...arr].sort((a,b) => a.localeCompare(b));
+    }
+
+    function sortDatesDesc(arr){
+      return [...arr].sort((a,b) => b.localeCompare(a));
+    }
+
+    function nestedAccordionByDayCasinoServiceCompany(rows){
+      const byDate = {};
+      rows.forEach(r => {
+        if(!byDate[r.fecha]) byDate[r.fecha] = {};
+        if(!byDate[r.fecha][r.casino]) byDate[r.fecha][r.casino] = {};
+        if(!byDate[r.fecha][r.casino][r.servicio]) byDate[r.fecha][r.casino][r.servicio] = {};
+        if(!byDate[r.fecha][r.casino][r.servicio][r.empresa || "SIN EMPRESA"]) byDate[r.fecha][r.casino][r.servicio][r.empresa || "SIN EMPRESA"] = 0;
+        byDate[r.fecha][r.casino][r.servicio][r.empresa || "SIN EMPRESA"] += Number(r.cantidad || 0);
+      });
+
+      const dates = sortDatesAsc(Object.keys(byDate));
+      if(!dates.length) return `<div class="empty">No hay información para el período seleccionado.</div>`;
+
+      return `<div class="accordion">` + dates.map(fecha => {
+        const casinos = byDate[fecha];
+        const totalDia = Object.values(casinos).flatMap(servs => Object.values(servs)).flatMap(emps => Object.values(emps)).reduce((a,b)=>a+b,0);
+
+        return `
+          <details ${dates.length <= 7 ? "open" : ""}>
+            <summary>
+              <div class="summary-left">
+                <span>${fecha}</span>
+                <span class="tag gray">${Object.keys(casinos).length} casinos</span>
+              </div>
+              <div class="summary-right">
+                <strong>${formatNumber(totalDia)}</strong>
+              </div>
+            </summary>
+            <div class="details-body">
+              <div class="nested">
+                ${Object.entries(casinos).sort((a,b)=>a[0].localeCompare(b[0])).map(([casino, servicios]) => {
+                  const totalCasino = Object.values(servicios).flatMap(emps => Object.values(emps)).reduce((a,b)=>a+b,0);
+                  return `
+                    <details>
+                      <summary>
+                        <div class="summary-left">
+                          <span>${casino}</span>
+                        </div>
+                        <div class="summary-right">
+                          <strong>${formatNumber(totalCasino)}</strong>
+                        </div>
+                      </summary>
+                      <div class="details-body">
+                        <div class="nested">
+                          ${Object.entries(servicios).sort((a,b)=>a[0].localeCompare(b[0])).map(([servicio, empresas]) => {
+                            const totalServicio = Object.values(empresas).reduce((a,b)=>a+b,0);
+                            return `
+                              <details>
+                                <summary>
+                                  <div class="summary-left">
+                                    <span>${servicio}</span>
+                                  </div>
+                                  <div class="summary-right">
+                                    <strong>${formatNumber(totalServicio)}</strong>
+                                  </div>
+                                </summary>
+                                <div class="details-body">
+                                  ${Object.entries(empresas).sort((a,b)=>a[0].localeCompare(b[0])).map(([empresa, cantidad]) => `
+                                    <div class="stat-row">
+                                      <span>${empresa}</span>
+                                      <strong>${formatNumber(cantidad)}</strong>
+                                    </div>
+                                  `).join("")}
+                                </div>
+                              </details>
+                            `;
+                          }).join("")}
+                        </div>
+                      </div>
+                    </details>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+          </details>
+        `;
+      }).join("") + `</div>`;
+    }
+
+    function nestedAccordionSimpleByDayCasinoService(rows){
+      const byDate = {};
+      rows.forEach(r => {
+        if(!byDate[r.fecha]) byDate[r.fecha] = {};
+        if(!byDate[r.fecha][r.casino]) byDate[r.fecha][r.casino] = {};
+        if(!byDate[r.fecha][r.casino][r.servicio]) byDate[r.fecha][r.casino][r.servicio] = 0;
+        byDate[r.fecha][r.casino][r.servicio] += Number(r.cantidad || 0);
+      });
+
+      const dates = sortDatesAsc(Object.keys(byDate));
+      if(!dates.length) return `<div class="empty">No hay información para el período seleccionado.</div>`;
+
+      return `<div class="accordion">` + dates.map(fecha => {
+        const casinos = byDate[fecha];
+        const totalDia = Object.values(casinos).flatMap(servicios => Object.values(servicios)).reduce((a,b)=>a+b,0);
+
+        return `
+          <details ${dates.length <= 7 ? "open" : ""}>
+            <summary>
+              <div class="summary-left">
+                <span>${fecha}</span>
+                <span class="tag gray">${Object.keys(casinos).length} casinos</span>
+              </div>
+              <div class="summary-right">
+                <strong>${formatNumber(totalDia)}</strong>
+              </div>
+            </summary>
+            <div class="details-body">
+              <div class="nested">
+                ${Object.entries(casinos).sort((a,b)=>a[0].localeCompare(b[0])).map(([casino, servicios]) => `
+                  <details>
+                    <summary>
+                      <div class="summary-left">
+                        <span>${casino}</span>
+                      </div>
+                      <div class="summary-right">
+                        <strong>${formatNumber(Object.values(servicios).reduce((a,b)=>a+b,0))}</strong>
+                      </div>
+                    </summary>
+                    <div class="details-body">
+                      ${Object.entries(servicios).sort((a,b)=>a[0].localeCompare(b[0])).map(([servicio, cantidad]) => `
+                        <div class="stat-row">
+                          <span>${servicio}</span>
+                          <strong>${formatNumber(cantidad)}</strong>
+                        </div>
+                      `).join("")}
+                    </div>
+                  </details>
+                `).join("")}
+              </div>
+            </div>
+          </details>
+        `;
+      }).join("") + `</div>`;
+    }
+
+    function renderSummaryCards(items){
+      return `<div class="grid cols-4">` + items.map(item => `
+        <div class="kpi">
+          <div class="label">${item.label}</div>
+          <div class="value">${item.value}</div>
+          <div class="sub">${item.sub || ""}</div>
+        </div>
+      `).join("") + `</div>`;
+    }
+
+    function renderSupervisorModule(){
+      setHeader(
+        "Venta supervisores",
+        "Captura simple por fecha, servicio, casino y cantidad. El supervisor solo ve este módulo."
+      );
+
+      const rows = getVentasSupervisoresMes();
+      const total = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
+      const dias = new Set(rows.map(x=>x.fecha)).size;
+      const casinos = new Set(rows.map(x=>x.casino)).size;
+      const servicios = new Set(rows.map(x=>x.servicio)).size;
+
+      document.getElementById("appContent").innerHTML = `
+        <div class="panel">
+          <h3>Ingreso de venta supervisores</h3>
+          <div class="panel-subtitle">Registro rápido operativo. Este origen no entra directo a cobro.</div>
+
+          ${renderSummaryCards([
+            { label:"Total período", value:formatNumber(total), sub:"Cantidad cargada por supervisión" },
+            { label:"Días con carga", value:formatNumber(dias), sub:"Fechas con movimiento" },
+            { label:"Casinos usados", value:formatNumber(casinos), sub:"Casinos distintos en el período" },
+            { label:"Servicios usados", value:formatNumber(servicios), sub:"Servicios distintos en el período" }
+          ])}
+
+          <div style="height:14px"></div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label>Fecha</label>
+              <input type="date" id="supFecha">
+            </div>
+            <div class="field">
+              <label>Servicio</label>
+              <input list="serviciosList" id="supServicio" placeholder="Ej. ALMUERZO">
+            </div>
+            <div class="field">
+              <label>Casino</label>
+              <select id="supCasino">${CASINOS.map(x=>`<option value="${x}">${x}</option>`).join("")}</select>
+            </div>
+            <div class="field">
+              <label>Cantidad</label>
+              <input type="number" min="0" step="0.01" id="supCantidad" placeholder="0">
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn primary" id="btnGuardarSupervisor">Guardar venta</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Resumen del período</h3>
+          <div class="panel-subtitle">Vista diaria desplegable por casino y servicio.</div>
+          ${nestedAccordionSimpleByDayCasinoService(rows)}
+        </div>
+
+        <div class="panel">
+          <h3>Histórico detallado</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Casino</th>
+                  <th>Servicio</th>
+                  <th class="right">Cantidad</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  rows.length
+                  ? sortDatesDesc([...new Set(rows.map(x => `${x.fecha}|${x.casino}|${x.servicio}|${x.cantidad}|${x.id}`))]).map(key => {
+                      const [, , , , id] = key.split("|");
+                      const r = rows.find(x => String(x.id) === String(id));
+                      return `
+                        <tr>
+                          <td>${r.fecha}</td>
+                          <td>${r.casino}</td>
+                          <td>${r.servicio}</td>
+                          <td class="right">${formatNumber(r.cantidad)}</td>
+                          <td><button class="btn secondary" data-del-supervisor="${r.id}">Eliminar</button></td>
+                        </tr>
+                      `;
+                    }).join("")
+                  : `<tr><td colspan="5"><div class="empty">No hay registros de venta supervisores en este período.</div></td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("btnGuardarSupervisor").addEventListener("click", () => {
+        const fecha = document.getElementById("supFecha").value;
+        const servicio = normalizeText(document.getElementById("supServicio").value);
+        const casino = document.getElementById("supCasino").value;
+        const cantidad = Number(document.getElementById("supCantidad").value);
+
+        if(!fecha || !servicio || !casino || Number.isNaN(cantidad) || cantidad < 0){
+          alert("Completa fecha, servicio, casino y cantidad.");
+          return;
+        }
+
+        db.ventaSupervisores.push({
+          id: Date.now().toString(),
+          fecha,
+          servicio,
+          familia: normalizeServiceFamily(servicio),
+          casino,
+          cantidad
+        });
+
+        ensureMasters("", servicio);
+        saveDb();
+        renderApp();
+      });
+
+      document.querySelectorAll("[data-del-supervisor]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.delSupervisor;
+          db.ventaSupervisores = db.ventaSupervisores.filter(x => String(x.id) !== String(id));
+          saveDb();
+          renderApp();
+        });
+      });
+    }
+
+    function renderProduccionModule(){
+      setHeader(
+        "Producción",
+        "Carga operativa por fecha, servicio, casino y cantidad. Histórico mensual con resumen diario."
+      );
+
+      const rows = getProduccionMes();
+      const total = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
+      const dias = new Set(rows.map(x=>x.fecha)).size;
+      const casinos = new Set(rows.map(x=>x.casino)).size;
+      const servicios = new Set(rows.map(x=>x.servicio)).size;
+
+      document.getElementById("appContent").innerHTML = `
+        <div class="panel">
+          <h3>Carga de producción</h3>
+          <div class="panel-subtitle">Esta vista no lleva empresa. Es control operacional.</div>
+
+          ${renderSummaryCards([
+            { label:"Producción período", value:formatNumber(total), sub:"Total planificado/cargado" },
+            { label:"Días con carga", value:formatNumber(dias), sub:"Fechas con movimiento" },
+            { label:"Casinos usados", value:formatNumber(casinos), sub:"Casinos distintos" },
+            { label:"Servicios usados", value:formatNumber(servicios), sub:"Servicios distintos" }
+          ])}
+
+          <div style="height:14px"></div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label>Fecha</label>
+              <input type="date" id="prodFecha">
+            </div>
+            <div class="field">
+              <label>Servicio</label>
+              <input list="serviciosList" id="prodServicio" placeholder="Ej. ALMUERZO">
+            </div>
+            <div class="field">
+              <label>Casino</label>
+              <select id="prodCasino">${CASINOS.map(x=>`<option value="${x}">${x}</option>`).join("")}</select>
+            </div>
+            <div class="field">
+              <label>Cantidad</label>
+              <input type="number" min="0" step="0.01" id="prodCantidad" placeholder="0">
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn primary" id="btnGuardarProduccion">Guardar producción</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Resumen del período</h3>
+          <div class="panel-subtitle">Día → casino → servicio.</div>
+          ${nestedAccordionSimpleByDayCasinoService(rows)}
+        </div>
+
+        <div class="panel">
+          <h3>Histórico detallado</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Casino</th>
+                  <th>Servicio</th>
+                  <th class="right">Cantidad</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  rows.length
+                  ? rows.slice().sort((a,b)=>(b.fecha+b.casino+b.servicio).localeCompare(a.fecha+a.casino+a.servicio)).map(r => `
+                      <tr>
+                        <td>${r.fecha}</td>
+                        <td>${r.casino}</td>
+                        <td>${r.servicio}</td>
+                        <td class="right">${formatNumber(r.cantidad)}</td>
+                        <td><button class="btn secondary" data-del-produccion="${r.id}">Eliminar</button></td>
+                      </tr>
+                    `).join("")
+                  : `<tr><td colspan="5"><div class="empty">No hay registros de producción en este período.</div></td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("btnGuardarProduccion").addEventListener("click", () => {
+        const fecha = document.getElementById("prodFecha").value;
+        const servicio = normalizeText(document.getElementById("prodServicio").value);
+        const casino = document.getElementById("prodCasino").value;
+        const cantidad = Number(document.getElementById("prodCantidad").value);
+
+        if(!fecha || !servicio || !casino || Number.isNaN(cantidad) || cantidad < 0){
+          alert("Completa fecha, servicio, casino y cantidad.");
+          return;
+        }
+
+        db.produccion.push({
+          id: Date.now().toString(),
+          fecha,
+          servicio,
+          familia: normalizeServiceFamily(servicio),
+          casino,
+          cantidad
+        });
+
+        ensureMasters("", servicio);
+        saveDb();
+        renderApp();
+      });
+
+      document.querySelectorAll("[data-del-produccion]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.delProduccion;
+          db.produccion = db.produccion.filter(x => String(x.id) !== String(id));
+          saveDb();
+          renderApp();
+        });
+      });
+    }
+
+    function renderSistemaModule(){
+      setHeader(
+        "Venta sistema",
+        "Importación de Excel o CSV desde BBDD. PRECIO se interpreta como cantidad de servicios."
+      );
+
+      const rows = getVentasSistemaMes();
+      const total = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
+      const empresas = new Set(rows.map(x=>x.empresa)).size;
+      const casinos = new Set(rows.map(x=>x.casino)).size;
+      const servicios = new Set(rows.map(x=>x.servicio)).size;
+
+      document.getElementById("appContent").innerHTML = `
+        <div class="panel">
+          <h3>Importar archivo</h3>
+          <div class="panel-subtitle">Columnas obligatorias: NOMBRE_EMPRESA, SERVICIO, FECHA, EQUIPO, PRECIO.</div>
+
+          ${renderSummaryCards([
+            { label:"Sistema período", value:formatNumber(total), sub:"Cantidad total importada" },
+            { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con consumo" },
+            { label:"Casinos", value:formatNumber(casinos), sub:"Casinos con consumo" },
+            { label:"Servicios", value:formatNumber(servicios), sub:"Servicios distintos" }
+          ])}
+
+          <div style="height:14px"></div>
+
+          <div class="form-grid">
+            <div class="field" style="grid-column: span 2;">
+              <label>Archivo Excel / CSV</label>
+              <input type="file" id="fileSistema" accept=".xlsx,.xls,.csv">
+              <div class="file-note">Se lee la primera hoja del archivo.</div>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn primary" id="btnImportarSistema">Importar archivo</button>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn secondary" id="btnLimpiarSistema">Limpiar selección</button>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn secondary" id="btnVaciarSistemaMes">Vaciar período actual</button>
+            </div>
+          </div>
+
+          <div id="resultadoImportacionSistema"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Resumen del período</h3>
+          <div class="panel-subtitle">Día → casino → servicio → empresa.</div>
+          ${nestedAccordionByDayCasinoServiceCompany(rows)}
+        </div>
+
+        <div class="panel">
+          <h3>Histórico detallado</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Empresa</th>
+                  <th>Servicio</th>
+                  <th>Familia</th>
+                  <th>Casino</th>
+                  <th class="right">Cantidad</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  rows.length
+                  ? rows.slice().sort((a,b)=>(b.fecha+b.empresa+b.servicio+b.casino).localeCompare(a.fecha+a.empresa+a.servicio+a.casino)).map(r => `
+                      <tr>
+                        <td>${r.fecha}</td>
+                        <td>${r.empresa}</td>
+                        <td>${r.servicio}</td>
+                        <td>${r.familia}</td>
+                        <td>${r.casino}</td>
+                        <td class="right">${formatNumber(r.cantidad)}</td>
+                        <td><button class="btn secondary" data-del-sistema="${r.id}">Eliminar</button></td>
+                      </tr>
+                    `).join("")
+                  : `<tr><td colspan="7"><div class="empty">No hay venta sistema en este período.</div></td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("btnImportarSistema").addEventListener("click", importSistemaFromFile);
+      document.getElementById("btnLimpiarSistema").addEventListener("click", () => {
+        document.getElementById("fileSistema").value = "";
+        document.getElementById("resultadoImportacionSistema").innerHTML = "";
+      });
+      document.getElementById("btnVaciarSistemaMes").addEventListener("click", () => {
+        if(!confirm(`Se eliminará toda la venta sistema del período ${settings.periodo}.`)) return;
+        db.ventaSistema = db.ventaSistema.filter(x => monthOf(x.fecha) !== settings.periodo);
+        saveDb();
+        renderApp();
+      });
+
+      document.querySelectorAll("[data-del-sistema]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.delSistema;
+          db.ventaSistema = db.ventaSistema.filter(x => String(x.id) !== String(id));
+          saveDb();
+          renderApp();
+        });
+      });
+    }
+
+    function importSistemaFromFile(){
+      const input = document.getElementById("fileSistema");
+      const file = input.files[0];
+      const out = document.getElementById("resultadoImportacionSistema");
+
+      if(!file){
+        alert("Selecciona un archivo antes de importar.");
+        return;
+      }
+
+      out.innerHTML = `<div class="notice">Procesando archivo...</div>`;
+
+      const reader = new FileReader();
+      reader.onload = function(e){
+        try{
+          const data = e.target.result;
+          let workbook;
+
+          if(file.name.toLowerCase().endsWith(".csv")){
+            workbook = XLSX.read(data, { type:"string" });
+          }else{
+            workbook = XLSX.read(new Uint8Array(data), { type:"array" });
+          }
+
+          const firstSheet = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[firstSheet];
+          const rows = XLSX.utils.sheet_to_json(sheet, { defval:"" });
+
+          if(!rows.length){
+            out.innerHTML = `<div class="notice">El archivo no contiene filas válidas.</div>`;
+            return;
+          }
+
+          const normalizedHeaders = Object.keys(rows[0]).map(h => normalizeText(h));
+          const requiredHeaders = ["NOMBRE_EMPRESA","SERVICIO","FECHA","EQUIPO","PRECIO"];
+          const missing = requiredHeaders.filter(h => !normalizedHeaders.includes(h));
+          if(missing.length){
+            out.innerHTML = `<div class="notice">Faltan columnas obligatorias: <strong>${missing.join(", ")}</strong></div>`;
+            return;
+          }
+
+          const getValue = (row, name) => {
+            const originalKey = Object.keys(row).find(k => normalizeText(k) === name);
+            return originalKey ? row[originalKey] : "";
+          };
+
+          const grouped = {};
+          let rawRows = 0;
+          let total = 0;
+
+          rows.forEach(row => {
+            const empresa = normalizeText(getValue(row, "NOMBRE_EMPRESA"));
+            const servicio = normalizeText(getValue(row, "SERVICIO"));
+            const fecha = parseDateToISO(getValue(row, "FECHA"));
+            const equipo = normalizeText(getValue(row, "EQUIPO"));
+            const casino = EQUIPO_MAP[equipo] || equipo || "SIN MAPEO";
+
+            let rawCantidad = getValue(row, "PRECIO");
+            if(typeof rawCantidad === "string"){
+              rawCantidad = rawCantidad.replace(/\./g,"").replace(",",".");
+            }
+            const cantidad = Number(rawCantidad);
+
+            if(!empresa || !servicio || !fecha || !casino || Number.isNaN(cantidad)) return;
+
+            const key = `${fecha}|${empresa}|${servicio}|${casino}`;
+            if(!grouped[key]){
+              grouped[key] = {
+                id: `${Date.now()}_${Math.random()}`,
+                fecha,
+                empresa,
+                servicio,
+                familia: normalizeServiceFamily(servicio),
+                casino,
+                cantidad: 0
+              };
+            }
+
+            grouped[key].cantidad += cantidad;
+            rawRows += 1;
+            total += cantidad;
+          });
+
+          const imported = Object.values(grouped);
+          imported.forEach(r => {
+            db.ventaSistema.push(r);
+            ensureMasters(r.empresa, r.servicio);
+          });
+
+          saveDb();
+          out.innerHTML = `
+            <div class="notice">
+              ✔ Filas fuente leídas: <strong>${formatNumber(rawRows)}</strong><br>
+              ✔ Registros consolidados importados: <strong>${formatNumber(imported.length)}</strong><br>
+              ✔ Cantidad total sumada: <strong>${formatNumber(total)}</strong>
+            </div>
+          `;
+          renderApp();
+        }catch(error){
+          out.innerHTML = `<div class="notice">Error al leer el archivo: <strong>${error.message}</strong></div>`;
+        }
+      };
+
+      if(file.name.toLowerCase().endsWith(".csv")){
+        reader.readAsText(file, "utf-8");
+      }else{
+        reader.readAsArrayBuffer(file);
+      }
+    }
+
+    function renderManualModule(){
+      setHeader(
+        "Venta manuales",
+        "Carga complementaria por fecha, empresa, servicio, casino y cantidad. Esta sí afecta la venta real."
+      );
+
+      const rows = getVentasManualMes();
+      const total = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
+      const empresas = new Set(rows.map(x=>x.empresa)).size;
+      const casinos = new Set(rows.map(x=>x.casino)).size;
+      const servicios = new Set(rows.map(x=>x.servicio)).size;
+
+      document.getElementById("appContent").innerHTML = `
+        <div class="panel">
+          <h3>Ingreso de venta manual</h3>
+          <div class="panel-subtitle">Se suma a venta sistema para formar la venta real.</div>
+
+          ${renderSummaryCards([
+            { label:"Manual período", value:formatNumber(total), sub:"Cantidad cargada manualmente" },
+            { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con carga" },
+            { label:"Casinos", value:formatNumber(casinos), sub:"Casinos usados" },
+            { label:"Servicios", value:formatNumber(servicios), sub:"Servicios distintos" }
+          ])}
+
+          <div style="height:14px"></div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label>Fecha</label>
+              <input type="date" id="manFecha">
+            </div>
+            <div class="field">
+              <label>Empresa</label>
+              <input list="empresasList" id="manEmpresa" placeholder="Empresa">
+            </div>
+            <div class="field">
+              <label>Servicio</label>
+              <input list="serviciosList" id="manServicio" placeholder="Servicio">
+            </div>
+            <div class="field">
+              <label>Casino</label>
+              <select id="manCasino">${CASINOS.map(x=>`<option value="${x}">${x}</option>`).join("")}</select>
+            </div>
+            <div class="field">
+              <label>Cantidad</label>
+              <input type="number" min="0" step="0.01" id="manCantidad" placeholder="0">
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="flex">
+            <button class="btn primary" id="btnGuardarManual">Guardar venta manual</button>
+            <button class="btn secondary" id="btnVaciarManualMes">Vaciar período actual</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Resumen del período</h3>
+          <div class="panel-subtitle">Día → casino → servicio → empresa.</div>
+          ${nestedAccordionByDayCasinoServiceCompany(rows)}
+        </div>
+
+        <div class="panel">
+          <h3>Histórico detallado</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Empresa</th>
+                  <th>Servicio</th>
+                  <th>Familia</th>
+                  <th>Casino</th>
+                  <th class="right">Cantidad</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  rows.length
+                  ? rows.slice().sort((a,b)=>(b.fecha+b.empresa+b.servicio+b.casino).localeCompare(a.fecha+a.empresa+a.servicio+a.casino)).map(r => `
+                      <tr>
+                        <td>${r.fecha}</td>
+                        <td>${r.empresa}</td>
+                        <td>${r.servicio}</td>
+                        <td>${r.familia}</td>
+                        <td>${r.casino}</td>
+                        <td class="right">${formatNumber(r.cantidad)}</td>
+                        <td><button class="btn secondary" data-del-manual="${r.id}">Eliminar</button></td>
+                      </tr>
+                    `).join("")
+                  : `<tr><td colspan="7"><div class="empty">No hay venta manual en este período.</div></td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("btnGuardarManual").addEventListener("click", () => {
+        const fecha = document.getElementById("manFecha").value;
+        const empresa = normalizeText(document.getElementById("manEmpresa").value);
+        const servicio = normalizeText(document.getElementById("manServicio").value);
+        const casino = document.getElementById("manCasino").value;
+        const cantidad = Number(document.getElementById("manCantidad").value);
+
+        if(!fecha || !empresa || !servicio || !casino || Number.isNaN(cantidad) || cantidad < 0){
+          alert("Completa fecha, empresa, servicio, casino y cantidad.");
+          return;
+        }
+
+        db.ventaManual.push({
+          id: Date.now().toString(),
+          fecha,
+          empresa,
+          servicio,
+          familia: normalizeServiceFamily(servicio),
+          casino,
+          cantidad
+        });
+
+        ensureMasters(empresa, servicio);
+        saveDb();
+        renderApp();
+      });
+
+      document.getElementById("btnVaciarManualMes").addEventListener("click", () => {
+        if(!confirm(`Se eliminará toda la venta manual del período ${settings.periodo}.`)) return;
+        db.ventaManual = db.ventaManual.filter(x => monthOf(x.fecha) !== settings.periodo);
+        saveDb();
+        renderApp();
+      });
+
+      document.querySelectorAll("[data-del-manual]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.delManual;
+          db.ventaManual = db.ventaManual.filter(x => String(x.id) !== String(id));
+          saveDb();
+          renderApp();
+        });
+      });
+    }
+
+    function renderConsumoEmpresaModule(){
+      setHeader(
+        "Consumos por empresas",
+        "Vista analítica de la venta real del período. Jerarquía: día → empresa → servicio → casino."
+      );
+
+      const realRows = getVentaRealMes();
+      const empresaMap = new Map();
+      realRows.forEach(r => {
+        if(!empresaMap.has(r.empresa)){
+          empresaMap.set(r.empresa, { empresa:r.empresa, sistema:0, manual:0, real:0, casinos:new Set(), servicios:new Set() });
+        }
+        const obj = empresaMap.get(r.empresa);
+        if(r.origen === "SISTEMA") obj.sistema += Number(r.cantidad || 0);
+        if(r.origen === "MANUAL") obj.manual += Number(r.cantidad || 0);
+        obj.real += Number(r.cantidad || 0);
+        obj.casinos.add(r.casino);
+        obj.servicios.add(r.servicio);
+      });
+
+      const top = [...empresaMap.values()].sort((a,b)=>b.real-a.real).slice(0,8);
+      const totalReal = realRows.reduce((a,b)=>a+Number(b.cantidad||0),0);
+      const empresas = empresaMap.size;
+
+      const nestedByDay = (() => {
+        const byDate = {};
+        realRows.forEach(r => {
+          if(!byDate[r.fecha]) byDate[r.fecha] = {};
+          if(!byDate[r.fecha][r.empresa]) byDate[r.fecha][r.empresa] = {};
+          if(!byDate[r.fecha][r.empresa][r.servicio]) byDate[r.fecha][r.empresa][r.servicio] = {};
+          if(!byDate[r.fecha][r.empresa][r.servicio][r.casino]) byDate[r.fecha][r.empresa][r.servicio][r.casino] = 0;
+          byDate[r.fecha][r.empresa][r.servicio][r.casino] += Number(r.cantidad || 0);
+        });
+
+        const dates = sortDatesAsc(Object.keys(byDate));
+        if(!dates.length) return `<div class="empty">No hay venta real para el período seleccionado.</div>`;
+
+        return `<div class="accordion">` + dates.map(fecha => `
+          <details ${dates.length <= 7 ? "open" : ""}>
+            <summary>
+              <div class="summary-left">
+                <span>${fecha}</span>
+                <span class="tag gray">${Object.keys(byDate[fecha]).length} empresas</span>
+              </div>
+              <div class="summary-right">
+                <strong>${formatNumber(Object.values(byDate[fecha]).flatMap(servicios=>Object.values(servicios)).flatMap(casinos=>Object.values(casinos)).reduce((a,b)=>a+b,0))}</strong>
+              </div>
+            </summary>
+            <div class="details-body">
+              <div class="nested">
+                ${Object.entries(byDate[fecha]).sort((a,b)=>a[0].localeCompare(b[0])).map(([empresa, servicios]) => `
+                  <details>
+                    <summary>
+                      <div class="summary-left"><span>${empresa}</span></div>
+                      <div class="summary-right"><strong>${formatNumber(Object.values(servicios).flatMap(casinos => Object.values(casinos)).reduce((a,b)=>a+b,0))}</strong></div>
+                    </summary>
+                    <div class="details-body">
+                      <div class="nested">
+                        ${Object.entries(servicios).sort((a,b)=>a[0].localeCompare(b[0])).map(([servicio, casinos]) => `
+                          <details>
+                            <summary>
+                              <div class="summary-left"><span>${servicio}</span></div>
+                              <div class="summary-right"><strong>${formatNumber(Object.values(casinos).reduce((a,b)=>a+b,0))}</strong></div>
+                            </summary>
+                            <div class="details-body">
+                              ${Object.entries(casinos).sort((a,b)=>a[0].localeCompare(b[0])).map(([casino, cantidad]) => `
+                                <div class="stat-row">
+                                  <span>${casino}</span>
+                                  <strong>${formatNumber(cantidad)}</strong>
+                                </div>
+                              `).join("")}
+                            </div>
+                          </details>
+                        `).join("")}
+                      </div>
+                    </div>
+                  </details>
+                `).join("")}
+              </div>
+            </div>
+          </details>
+        `).join("") + `</div>`;
+      })();
+
+      document.getElementById("appContent").innerHTML = `
+        <div class="panel">
+          <h3>Resumen ejecutivo</h3>
+          ${renderSummaryCards([
+            { label:"Venta real período", value:formatNumber(totalReal), sub:"Sistema + manual" },
+            { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con consumo real" },
+            { label:"Venta sistema", value:formatNumber(realRows.filter(x=>x.origen==="SISTEMA").reduce((a,b)=>a+Number(b.cantidad||0),0)), sub:"Origen sistema" },
+            { label:"Venta manual", value:formatNumber(realRows.filter(x=>x.origen==="MANUAL").reduce((a,b)=>a+Number(b.cantidad||0),0)), sub:"Origen manual" }
+          ])}
+        </div>
+
+        <div class="panel">
+          <h3>Top empresas del período</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Empresa</th>
+                  <th class="right">Sistema</th>
+                  <th class="right">Manual</th>
+                  <th class="right">Real</th>
+                  <th>Casinos</th>
+                  <th>Servicios</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  top.length
+                  ? top.map(r => `
+                      <tr>
+                        <td>${r.empresa}</td>
+                        <td class="right">${formatNumber(r.sistema)}</td>
+                        <td class="right">${formatNumber(r.manual)}</td>
+                        <td class="right"><strong>${formatNumber(r.real)}</strong></td>
+                        <td>${[...r.casinos].sort().join(", ")}</td>
+                        <td>${[...r.servicios].sort().slice(0,5).join(", ")}${r.servicios.size > 5 ? "..." : ""}</td>
+                      </tr>
+                    `).join("")
+                  : `<tr><td colspan="6"><div class="empty">No hay consumo real para el período.</div></td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Detalle diario desplegable</h3>
+          <div class="panel-subtitle">Día → empresa → servicio → casino.</div>
+          ${nestedByDay}
+        </div>
+      `;
+    }
+
+    function renderConsumoServicioModule(){
+      setHeader(
+        "Consumos por servicios",
+        "Vista analítica de la venta real del período. Jerarquía: día → servicio → casino → empresa."
+      );
+
+      const realRows = getVentaRealMes();
+      const servicioMap = new Map();
+      realRows.forEach(r => {
+        const key = `${r.servicio}|${r.familia}`;
+        if(!servicioMap.has(key)){
+          servicioMap.set(key, { servicio:r.servicio, familia:r.familia, real:0, casinos:new Set(), empresas:new Set() });
+        }
+        const obj = servicioMap.get(key);
+        obj.real += Number(r.cantidad || 0);
+        obj.casinos.add(r.casino);
+        obj.empresas.add(r.empresa);
+      });
+
+      const top = [...servicioMap.values()].sort((a,b)=>b.real-a.real).slice(0,12);
+
+      const nested = (() => {
+        const byDate = {};
+        realRows.forEach(r => {
+          if(!byDate[r.fecha]) byDate[r.fecha] = {};
+          if(!byDate[r.fecha][r.servicio]) byDate[r.fecha][r.servicio] = {};
+          if(!byDate[r.fecha][r.servicio][r.casino]) byDate[r.fecha][r.servicio][r.casino] = {};
+          if(!byDate[r.fecha][r.servicio][r.casino][r.empresa]) byDate[r.fecha][r.servicio][r.casino][r.empresa] = 0;
+          byDate[r.fecha][r.servicio][r.casino][r.empresa] += Number(r.cantidad || 0);
+        });
+
+        const dates = sortDatesAsc(Object.keys(byDate));
+        if(!dates.length) return `<div class="empty">No hay venta real para el período seleccionado.</div>`;
+
+        return `<div class="accordion">` + dates.map(fecha => `
+          <details ${dates.length <= 7 ? "open" : ""}>
+            <summary>
+              <div class="summary-left">
+                <span>${fecha}</span>
+                <span class="tag gray">${Object.keys(byDate[fecha]).length} servicios</span>
+              </div>
+              <div class="summary-right">
+                <strong>${formatNumber(Object.values(byDate[fecha]).flatMap(casinos=>Object.values(casinos)).flatMap(empresas=>Object.values(empresas)).reduce((a,b)=>a+b,0))}</strong>
+              </div>
+            </summary>
+            <div class="details-body">
+              <div class="nested">
+                ${Object.entries(byDate[fecha]).sort((a,b)=>a[0].localeCompare(b[0])).map(([servicio, casinos]) => `
+                  <details>
+                    <summary>
+                      <div class="summary-left"><span>${servicio}</span></div>
+                      <div class="summary-right"><strong>${formatNumber(Object.values(casinos).flatMap(empresas=>Object.values(empresas)).reduce((a,b)=>a+b,0))}</strong></div>
+                    </summary>
+                    <div class="details-body">
+                      <div class="nested">
+                        ${Object.entries(casinos).sort((a,b)=>a[0].localeCompare(b[0])).map(([casino, empresas]) => `
+                          <details>
+                            <summary>
+                              <div class="summary-left"><span>${casino}</span></div>
+                              <div class="summary-right"><strong>${formatNumber(Object.values(empresas).reduce((a,b)=>a+b,0))}</strong></div>
+                            </summary>
+                            <div class="details-body">
+                              ${Object.entries(empresas).sort((a,b)=>a[0].localeCompare(b[0])).map(([empresa, cantidad]) => `
+                                <div class="stat-row">
+                                  <span>${empresa}</span>
+                                  <strong>${formatNumber(cantidad)}</strong>
+                                </div>
+                              `).join("")}
+                            </div>
+                          </details>
+                        `).join("")}
+                      </div>
+                    </div>
+                  </details>
+                `).join("")}
+              </div>
+            </div>
+          </details>
+        `).join("") + `</div>`;
+      })();
+
+      document.getElementById("appContent").innerHTML = `
+        <div class="panel">
+          <h3>Resumen ejecutivo</h3>
+          ${renderSummaryCards([
+            { label:"Servicios con consumo", value:formatNumber(servicioMap.size), sub:"Servicios distintos" },
+            { label:"Venta real período", value:formatNumber(realRows.reduce((a,b)=>a+Number(b.cantidad||0),0)), sub:"Sistema + manual" },
+            { label:"Casinos activos", value:formatNumber(new Set(realRows.map(x=>x.casino)).size), sub:"Casinos con movimiento" },
+            { label:"Empresas activas", value:formatNumber(new Set(realRows.map(x=>x.empresa)).size), sub:"Empresas con movimiento" }
+          ])}
+        </div>
+
+        <div class="panel">
+          <h3>Top servicios del período</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Servicio</th>
+                  <th>Familia</th>
+                  <th class="right">Real</th>
+                  <th class="right">Casinos</th>
+                  <th class="right">Empresas</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  top.length
+                  ? top.map(r => `
+                      <tr>
+                        <td>${r.servicio}</td>
+                        <td>${r.familia}</td>
+                        <td class="right"><strong>${formatNumber(r.real)}</strong></td>
+                        <td class="right">${formatNumber(r.casinos.size)}</td>
+                        <td class="right">${formatNumber(r.empresas.size)}</td>
+                      </tr>
+                    `).join("")
+                  : `<tr><td colspan="5"><div class="empty">No hay consumo real para el período.</div></td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Detalle diario desplegable</h3>
+          <div class="panel-subtitle">Día → servicio → casino → empresa.</div>
+          ${nested}
+        </div>
+      `;
+    }
+
+    function renderConsumoCasinoModule(){
+      setHeader(
+        "Consumos por casinos",
+        "Vista operativa de la venta real del período. Jerarquía: día → casino → servicio → empresa."
+      );
+
+      const realRows = getVentaRealMes();
+      const casinoMap = new Map();
+      realRows.forEach(r => {
+        if(!casinoMap.has(r.casino)){
+          casinoMap.set(r.casino, { casino:r.casino, real:0, empresas:new Set(), servicios:new Set() });
+        }
+        const obj = casinoMap.get(r.casino);
+        obj.real += Number(r.cantidad || 0);
+        obj.empresas.add(r.empresa);
+        obj.servicios.add(r.servicio);
+      });
+
+      const top = [...casinoMap.values()].sort((a,b)=>b.real-a.real);
+
+      document.getElementById("appContent").innerHTML = `
+        <div class="panel">
+          <h3>Resumen ejecutivo</h3>
+          ${renderSummaryCards([
+            { label:"Casinos con consumo", value:formatNumber(casinoMap.size), sub:"Casinos activos en el período" },
+            { label:"Venta real período", value:formatNumber(realRows.reduce((a,b)=>a+Number(b.cantidad||0),0)), sub:"Sistema + manual" },
+            { label:"Servicios activos", value:formatNumber(new Set(realRows.map(x=>x.servicio)).size), sub:"Servicios con movimiento" },
+            { label:"Empresas activas", value:formatNumber(new Set(realRows.map(x=>x.empresa)).size), sub:"Empresas con movimiento" }
+          ])}
+        </div>
+
+        <div class="panel">
+          <h3>Totales por casino</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Casino</th>
+                  <th class="right">Real</th>
+                  <th class="right">Servicios</th>
+                  <th class="right">Empresas</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  top.length
+                  ? top.map(r => `
+                      <tr>
+                        <td>${r.casino}</td>
+                        <td class="right"><strong>${formatNumber(r.real)}</strong></td>
+                        <td class="right">${formatNumber(r.servicios.size)}</td>
+                        <td class="right">${formatNumber(r.empresas.size)}</td>
+                      </tr>
+                    `).join("")
+                  : `<tr><td colspan="4"><div class="empty">No hay consumo real para el período.</div></td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Detalle diario desplegable</h3>
+          <div class="panel-subtitle">Día → casino → servicio → empresa.</div>
+          ${nestedAccordionByDayCasinoServiceCompany(realRows)}
+        </div>
+      `;
+    }
+
+    function renderCurvaModule(){
+      setHeader(
+        "Curva mensual",
+        "Carga contractual por período, empresa y servicio. Base de comparación para cobro."
+      );
+
+      const rows = getCurvaMes();
+      const total = rows.reduce((a,b)=>a+Number(b.cantidad||0),0);
+      const empresas = new Set(rows.map(x=>x.empresa)).size;
+      const servicios = new Set(rows.map(x=>x.servicio)).size;
+
+      document.getElementById("appContent").innerHTML = `
+        <div class="panel">
+          <h3>Carga de curva</h3>
+          <div class="panel-subtitle">La curva se controla por empresa + servicio.</div>
+
+          ${renderSummaryCards([
+            { label:"Curva período", value:formatNumber(total), sub:"Cantidad contractual cargada" },
+            { label:"Empresas", value:formatNumber(empresas), sub:"Empresas con curva" },
+            { label:"Servicios", value:formatNumber(servicios), sub:"Servicios con curva" },
+            { label:"Registros", value:formatNumber(rows.length), sub:"Filas del período" }
+          ])}
+
+          <div style="height:14px"></div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label>Período</label>
+              <input type="month" id="curvaPeriodo" value="${settings.periodo}">
+            </div>
+            <div class="field">
+              <label>Empresa</label>
+              <input list="empresasList" id="curvaEmpresa" placeholder="Empresa">
+            </div>
+            <div class="field">
+              <label>Servicio</label>
+              <input list="serviciosList" id="curvaServicio" placeholder="Servicio">
+            </div>
+            <div class="field">
+              <label>Cantidad</label>
+              <input type="number" min="0" step="0.01" id="curvaCantidad" placeholder="0">
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn primary" id="btnGuardarCurva">Guardar curva</button>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="flex">
+            <button class="btn secondary" id="btnVaciarCurvaMes">Vaciar período actual</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Curva cargada del período</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Período</th>
+                  <th>Empresa</th>
+                  <th>Servicio</th>
+                  <th>Familia</th>
+                  <th class="right">Cantidad</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  rows.length
+                  ? rows.slice().sort((a,b)=>(a.empresa+a.servicio).localeCompare(b.empresa+b.servicio)).map(r => `
+                      <tr>
+                        <td>${r.periodo}</td>
+                        <td>${r.empresa}</td>
+                        <td>${r.servicio}</td>
+                        <td>${r.familia}</td>
+                        <td class="right">${formatNumber(r.cantidad)}</td>
+                        <td><button class="btn secondary" data-del-curva="${r.id}">Eliminar</button></td>
+                      </tr>
+                    `).join("")
+                  : `<tr><td colspan="6"><div class="empty">No hay curva cargada para el período.</div></td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("btnGuardarCurva").addEventListener("click", () => {
+        const periodo = document.getElementById("curvaPeriodo").value;
+        const empresa = normalizeText(document.getElementById("curvaEmpresa").value);
+        const servicio = normalizeText(document.getElementById("curvaServicio").value);
+        const cantidad = Number(document.getElementById("curvaCantidad").value);
+
+        if(!periodo || !empresa || !servicio || Number.isNaN(cantidad) || cantidad < 0){
+          alert("Completa período, empresa, servicio y cantidad.");
+          return;
+        }
+
+        db.curvaMensual.push({
+          id: Date.now().toString(),
+          periodo,
+          empresa,
+          servicio,
+          familia: normalizeServiceFamily(servicio),
+          cantidad
+        });
+
+        ensureMasters(empresa, servicio);
+        saveDb();
+        renderApp();
+      });
+
+      document.getElementById("btnVaciarCurvaMes").addEventListener("click", () => {
+        if(!confirm(`Se eliminará toda la curva del período ${settings.periodo}.`)) return;
+        db.curvaMensual = db.curvaMensual.filter(x => x.periodo !== settings.periodo);
+        saveDb();
+        renderApp();
+      });
+
+      document.querySelectorAll("[data-del-curva]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.delCurva;
+          db.curvaMensual = db.curvaMensual.filter(x => String(x.id) !== String(id));
+          saveDb();
+          renderApp();
+        });
+      });
+    }
+
+    function getCobroRows(){
+      const realRows = getVentaRealMes();
+      const map = new Map();
+
+      realRows.forEach(r => {
+        const key = `${settings.periodo}|${r.empresa}|${r.servicio}`;
+        if(!map.has(key)){
+          map.set(key, {
+            periodo: settings.periodo,
+            empresa: r.empresa,
+            servicio: r.servicio,
+            familia: r.familia,
+            sistema: 0,
+            manual: 0,
+            real: 0,
+            curva: 0,
+            cobro: 0,
+            regla: ""
+          });
+        }
+        const obj = map.get(key);
+        if(r.origen === "SISTEMA") obj.sistema += Number(r.cantidad || 0);
+        if(r.origen === "MANUAL") obj.manual += Number(r.cantidad || 0);
+        obj.real += Number(r.cantidad || 0);
+      });
+
+      getCurvaMes().forEach(r => {
+        const key = `${r.periodo}|${r.empresa}|${r.servicio}`;
+        if(!map.has(key)){
+          map.set(key, {
+            periodo: r.periodo,
+            empresa: r.empresa,
+            servicio: r.servicio,
+            familia: r.familia,
+            sistema: 0,
+            manual: 0,
+            real: 0,
+            curva: 0,
+            cobro: 0,
+            regla: ""
+          });
+        }
+        map.get(key).curva += Number(r.cantidad || 0);
+      });
+
+      return [...map.values()].map(r => {
+        const cobro = Math.max(r.real, r.curva);
+        let regla = "REAL = CURVA";
+        if(cobro === r.real && cobro !== r.curva) regla = "COBRA REAL";
+        if(cobro === r.curva && cobro !== r.real) regla = "COBRA CURVA";
+        return { ...r, cobro, regla };
+      }).sort((a,b)=>(a.empresa+a.servicio).localeCompare(b.empresa+b.servicio));
+    }
+
+    function renderCobroModule(){
+      setHeader(
+        "Base de cobro",
+        "Consolidado contractual del período. Cobro = mayor entre venta real y curva."
+      );
+
+      const rows = getCobroRows();
+      const totalSistema = rows.reduce((a,b)=>a+Number(b.sistema||0),0);
+      const totalManual = rows.reduce((a,b)=>a+Number(b.manual||0),0);
+      const totalReal = rows.reduce((a,b)=>a+Number(b.real||0),0);
+      const totalCurva = rows.reduce((a,b)=>a+Number(b.curva||0),0);
+      const totalCobro = rows.reduce((a,b)=>a+Number(b.cobro||0),0);
+
+      document.getElementById("appContent").innerHTML = `
+        <div class="panel">
+          <h3>Resumen ejecutivo</h3>
+          ${renderSummaryCards([
+            { label:"Venta sistema", value:formatNumber(totalSistema), sub:"Origen sistema" },
+            { label:"Venta manual", value:formatNumber(totalManual), sub:"Origen manual" },
+            { label:"Venta real", value:formatNumber(totalReal), sub:"Sistema + manual" },
+            { label:"Curva", value:formatNumber(totalCurva), sub:"Base contractual" }
+          ])}
+
+          <div style="height:14px"></div>
+
+          ${renderSummaryCards([
+            { label:"Cobro período", value:formatNumber(totalCobro), sub:"Mayor entre real y curva" },
+            { label:"Registros", value:formatNumber(rows.length), sub:"Empresa + servicio" },
+            { label:"Cobran real", value:formatNumber(rows.filter(x=>x.regla==="COBRA REAL").length), sub:"Mayor real" },
+            { label:"Cobran curva", value:formatNumber(rows.filter(x=>x.regla==="COBRA CURVA").length), sub:"Mayor curva" }
+          ])}
+        </div>
+
+        <div class="panel">
+          <h3>Base de cobro del período</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Período</th>
+                  <th>Empresa</th>
+                  <th>Servicio</th>
+                  <th>Familia</th>
+                  <th class="right">Sistema</th>
+                  <th class="right">Manual</th>
+                  <th class="right">Real</th>
+                  <th class="right">Curva</th>
+                  <th class="right">Cobro</th>
+                  <th>Regla</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  rows.length
+                  ? rows.map(r => `
+                      <tr>
+                        <td>${r.periodo}</td>
+                        <td>${r.empresa}</td>
+                        <td>${r.servicio}</td>
+                        <td>${r.familia}</td>
+                        <td class="right">${formatNumber(r.sistema)}</td>
+                        <td class="right">${formatNumber(r.manual)}</td>
+                        <td class="right"><strong>${formatNumber(r.real)}</strong></td>
+                        <td class="right">${formatNumber(r.curva)}</td>
+                        <td class="right"><strong>${formatNumber(r.cobro)}</strong></td>
+                        <td>${
+                          r.regla === "COBRA REAL" ? `<span class="tag success">${r.regla}</span>` :
+                          r.regla === "COBRA CURVA" ? `<span class="tag warning">${r.regla}</span>` :
+                          `<span class="tag gray">${r.regla}</span>`
+                        }</td>
+                      </tr>
+                    `).join("")
+                  : `<tr><td colspan="10"><div class="empty">No hay información suficiente para calcular base de cobro en este período.</div></td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function exportCobroCSV(){
+      const rows = getCobroRows();
+      const headers = ["periodo","empresa","servicio","familia","sistema","manual","real","curva","cobro","regla"];
+      const csv = [
+        headers.join(";"),
+        ...rows.map(r => headers.map(h => csvValue(r[h] ?? "")).join(";"))
+      ].join("\n");
+
+      const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `base_cobro_${settings.periodo}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportVentaRealCSV(){
+      const rows = getVentaRealMes();
+      const headers = ["fecha","empresa","servicio","familia","casino","cantidad","origen"];
+      const csv = [
+        headers.join(";"),
+        ...rows.map(r => headers.map(h => csvValue(r[h] ?? "")).join(";"))
+      ].join("\n");
+
+      const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `venta_real_${settings.periodo}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function bindGlobalControls(){
+      const perfilSelector = document.getElementById("perfilSelector");
+      const periodoSelector = document.getElementById("periodoSelector");
+
+      perfilSelector.value = settings.perfil;
+      periodoSelector.value = settings.periodo;
+
+      perfilSelector.addEventListener("change", () => {
+        settings.perfil = perfilSelector.value;
+        saveSettings();
+        renderApp();
+      });
+
+      periodoSelector.addEventListener("change", () => {
+        settings.periodo = periodoSelector.value || getCurrentMonth();
+        saveSettings();
+        renderApp();
+      });
+
+      document.getElementById("btnExportarCobro").addEventListener("click", exportCobroCSV);
+      document.getElementById("btnExportarReal").addEventListener("click", exportVentaRealCSV);
+      document.getElementById("btnReset").addEventListener("click", () => {
+        if(!confirm("Esto borrará toda la información guardada en este navegador.")) return;
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(SETTINGS_KEY);
+        db = loadDb();
+        settings = loadSettings();
+        renderApp();
+      });
+    }
+
+    function ensureDatalists(){
+      if(!document.getElementById("empresasList")){
+        const dl = document.createElement("datalist");
+        dl.id = "empresasList";
+        document.body.appendChild(dl);
+      }
+      if(!document.getElementById("serviciosList")){
+        const dl = document.createElement("datalist");
+        dl.id = "serviciosList";
+        document.body.appendChild(dl);
+      }
+
+      document.getElementById("empresasList").innerHTML = db.maestros.empresas
+        .slice().sort((a,b)=>a.localeCompare(b))
+        .map(x=>`<option value="${x}"></option>`).join("");
+
+      document.getElementById("serviciosList").innerHTML = db.maestros.servicios
+        .slice().sort((a,b)=>a.localeCompare(b))
+        .map(x=>`<option value="${x}"></option>`).join("");
+    }
+
+    function renderApp(){
+      ensureCurrentModuleAllowed();
+      renderMenu();
+      ensureDatalists();
+
+      switch(settings.currentModule){
+        case "supervisores":
+          renderSupervisorModule();
+          break;
+        case "produccion":
+          renderProduccionModule();
+          break;
+        case "sistema":
+          renderSistemaModule();
+          break;
+        case "manual":
+          renderManualModule();
+          break;
+        case "empresa":
+          renderConsumoEmpresaModule();
+          break;
+        case "servicio":
+          renderConsumoServicioModule();
+          break;
+        case "casino":
+          renderConsumoCasinoModule();
+          break;
+        case "curva":
+          renderCurvaModule();
+          break;
+        case "cobro":
+          renderCobroModule();
+          break;
+        default:
+          settings.currentModule = "supervisores";
+          saveSettings();
+          renderSupervisorModule();
+          break;
+      }
+    }
+
+    bindGlobalControls();
+    renderApp();
+  </script>
 </body>
 </html>
